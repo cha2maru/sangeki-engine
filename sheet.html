@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>推理シート</title>
+<style>
+:root { --bg:#f6f4ef; --fg:#1d1b18; --mut:#6b665d; --line:#d6d0c4; --head:#2a2723; --headfg:#f6f4ef;
+  --cand:#fff; --out:#e9e5dc; --sure:#fbe6b8; --candrow:#e6eef6; --acc:#8a2b2b; }
+@media (prefers-color-scheme: dark) { :root { --bg:#1b1a18; --fg:#ece8e0; --mut:#a39d91; --line:#3d3a35;
+  --head:#0f0e0d; --headfg:#ece8e0; --cand:#23221f; --out:#161513; --sure:#4a3a17; --candrow:#1c2733; --acc:#e08a8a; } }
+body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.6 system-ui, sans-serif; }
+main { max-width:1100px; margin:0 auto; padding:16px; }
+h1 { font-size:20px; margin:0 0 4px; } h2 { font-size:16px; margin:28px 0 8px; border-bottom:2px solid var(--fg); }
+.mut { color:var(--mut); font-size:12px; }
+.scroll { overflow-x:auto; }
+table { border-collapse:collapse; width:100%; }
+th, td { border:1px solid var(--line); padding:4px 6px; vertical-align:top; }
+th { background:var(--head); color:var(--headfg); font-weight:600; white-space:nowrap; }
+td.n { text-align:center; white-space:nowrap; }
+td.hist { font-size:12px; min-width:220px; } td.hist b { color:var(--acc); }
+.vert th.r { writing-mode:vertical-rl; padding:6px 2px; font-size:12px; }
+tr.out td { background:var(--out); color:var(--mut); text-decoration:line-through; }
+tr.out td:first-child, tr.out td:last-child { text-decoration:none; }
+tr.sure td { background:var(--sure); }
+tr.cand td { background:var(--candrow); }
+select, textarea, input { font:inherit; color:inherit; background:var(--cand); border:1px solid var(--line); border-radius:3px; }
+textarea { width:100%; min-height:1.8em; resize:vertical; box-sizing:border-box; }
+.meta { display:flex; flex-wrap:wrap; gap:6px 18px; margin:8px 0; }
+.meta b { color:var(--acc); }
+#saved { position:fixed; right:12px; bottom:12px; font-size:12px; color:var(--mut); }
+details summary { cursor:pointer; color:var(--acc); }
+a { color:var(--acc); }
+</style>
+<main>
+<h1>推理シート ― 歪んだ独占欲</h1>
+<p class="mut">公開シートに、早見表とキャラクターカードの公開情報を足して、書き込めるようにしたもの。
+書いた内容は自動で保存されます（脚本家役の Claude はプレイ中これを読みません）。 <a href="/">盤面へ戻る</a></p>
+
+<div class="meta">
+  <span>惨劇セット <b>Basic Tragedy X</b><span class="mut">（シートの表記は旧書式の Basic Tragedy）</span></span>
+  <span>ループ <b>3</b></span><span>1ループ <b>8日</b></span>
+  <span>相談 <b>未記入</b><span class="mut">（1人で3人分を操作するので影響なし）</span></span>
+  <span>ルール <b>Y×1 / X×2</b></span>
+</div>
+
+<h2>ルールと役職 ― どのルールが使われているか</h2>
+<p class="mut">丸数字は、そのルールが追加する役職の人数。印は最初「不明」。「候補」で青、「消えた」で取り消し線、「確定」で黄色になる。出典: 早見表（originals/summary.pdf）</p>
+<div class="scroll"><table class="vert" id="rules"></table></div>
+
+<h2>事件 ― 誰が犯人か</h2>
+<p class="mut">「経過」はゲームから自動で入る。事件フェイズで発生を判定した時点で、生存していて不安が不安臨界以上だったキャラクター（公開情報）を並べる。
+発生したなら犯人はこの中にいる。不発なら、この中の生存者は犯人ではない（犯人が死亡していた場合を除く）。</p>
+<div class="scroll"><table id="incidents"></table></div>
+
+<h2>登場人物 ― 誰がどの役職か</h2>
+<p class="mut">出典: キャラクターカード（originals/tragedy_commons_5th/chara_cards/）。★は1ループ1回制限。</p>
+<div class="scroll"><table id="chars"></table></div>
+
+<h2>役職 ― 登場しているか</h2>
+<p class="mut">能力の文面は早見表のとおり。印は自分用（不明／候補／いない／確定。最初は不明）。</p>
+<div class="scroll"><table id="roles"></table></div>
+
+<h2>敗北条件 ― どれが効いているか</h2>
+<p class="mut">早見表のルールと役職から、主人公が負ける道筋を並べたもの。印は自分用。</p>
+<div class="scroll"><table id="loss"></table></div>
+
+<h2>自由メモ</h2>
+<textarea id="free" data-k="free" rows="6"></textarea>
+</main>
+<div id="saved"></div>
+
+<script>
+const ROLES = ['キーパーソン','キラー','クロマク','カルティスト','タイムトラベラー','ウィッチ','フレンド','ミスリーダー','ラバーズ','メインラバーズ','シリアルキラー','ファクター'];
+// [名前, 区分, {役職: 人数}, 追加ルール]
+const RULES = [
+ ['殺人計画','Y',{キーパーソン:1,キラー:1,クロマク:1},''],
+ ['封印されしモノ','Y',{クロマク:1,カルティスト:1},'【敗北条件：ループ終了時】神社に[暗躍C]が2つ以上ある。'],
+ ['僕と契約しようよ！','Y',{キーパーソン:1},'【強制：脚本作成時】必ず少女がキーパーソンとなる。<br>【敗北条件：ループ終了時】キーパーソンに[暗躍C]が2つ以上ある。'],
+ ['未来改変プラン','Y',{カルティスト:1,タイムトラベラー:1},'【敗北条件：ループ終了時】このループ中に蝶の羽ばたきが発生している。'],
+ ['巨大時限爆弾Xの存在','Y',{ウィッチ:1},'【敗北条件：ループ終了時】ウィッチの初期エリアに[暗躍C]が2つ以上ある。'],
+ ['友情サークル','X',{フレンド:2,ミスリーダー:1},''],
+ ['恋愛風景','X',{ラバーズ:1,メインラバーズ:1},''],
+ ['潜む殺人鬼','X',{フレンド:1,シリアルキラー:1},''],
+ ['不穏な噂','X',{ミスリーダー:1},'【任意能力：脚本家能力フェイズ】任意のボード1つに[暗躍C]を1つ置く。（1ループ1回制限）'],
+ ['妄想拡大ウイルス','X',{ミスリーダー:1},'【強制：常時】パーソンは[不安C]が3つ以上置かれている限り、役職がシリアルキラーに変更される。'],
+ ['因果の糸','X',{},'【強制：ループ開始時】ひとつ前のループ終了時に[友好C]の置かれていた全キャラクターに[不安C]を2つ置く。'],
+ ['不定因子χ','X',{ファクター:1},''],
+];
+// [役職, 上限, 条文能力, 能力]
+const ROLE_TEXT = [
+ ['キーパーソン','','','【強制：このキャラクターの死亡時】主人公は敗北し、直ちにループを終了する。'],
+ ['キラー','','友好無視','【任意能力：ターン終了フェイズ】同一エリアのキーパーソンに[暗躍C]が2つ以上→キーパーソンを死亡させる。<br>【任意能力：ターン終了フェイズ】このキャラクターに[暗躍C]が4つ以上→主人公を死亡させる。'],
+ ['クロマク','','友好無視','【任意能力：脚本家能力フェイズ】同一エリアのキャラクター1人、またはこのキャラクターのいるボードに[暗躍C]を1つ置く。'],
+ ['カルティスト','','絶対友好無視','【任意能力：行動解決フェイズ】同一エリアのキャラクター、またはこのキャラクターのいるボードへの暗躍禁止を無視してもよい。'],
+ ['タイムトラベラー','','','【強制：常時】このキャラクターは死亡しない。<br>【強制：行動解決フェイズ】このキャラクターへの友好禁止を無視する。<br>【任意能力：最終日のターン終了フェイズ】このキャラクターに[友好C]が2つ以下→主人公は敗北し、直ちにループを終了する。'],
+ ['ウィッチ','','絶対友好無視',''],
+ ['フレンド','2','','【敗北条件：ループ終了時】このカードが死亡している。その場合、このカードの役職を公開する。<br>【強制：ループ開始時】このキャラクターの役職が公開されたことがある→このキャラクターに[友好C]を1つ置く。'],
+ ['ミスリーダー','1','','【任意能力：脚本家能力フェイズ】同一エリアのキャラクター1人に[不安C]を1つ置く。'],
+ ['ラバーズ','','','【強制：メインラバーズの死亡時】このキャラクターに[不安C]を6つ置く。'],
+ ['メインラバーズ','','','【強制：ラバーズの死亡時】このキャラクターに[不安C]を6つ置く。<br>【任意能力：ターン終了フェイズ】このキャラクターに[暗躍C]が1つ以上かつ[不安C]が3つ以上→主人公を死亡させる。'],
+ ['シリアルキラー','','','【強制：ターン終了フェイズ】このキャラクターと同一エリアにいるキャラクターが1人だけ→そのキャラクターを死亡させる。'],
+ ['ファクター','','友好無視','【強制：常時】学校に[暗躍C]が2つ以上→このキャラクターはミスリーダーの能力を得る。（役職自体は変化しない。）<br>【強制：常時】都市に[暗躍C]が2つ以上→このキャラクターはキーパーソンの能力を得る。（役職自体は変化しない。）'],
+];
+// [日, 事件, 効果]  出典: 公開シート（toukou_001）と早見表
+const INCIDENTS = [
+ [2,'不安拡大','任意のキャラクター1人に[不安C]を2つ置き、別のキャラクター1人に[暗躍C]を1つ置く。'],
+ [4,'邪気の汚染','神社に[暗躍C]を2つ置く。'],
+ [5,'自殺','犯人は死亡する。'],
+ [7,'殺人事件','犯人と同一エリアにいる犯人以外のキャラクター1人を死亡させる。'],
+];
+// [名前, 不安臨界, 初期, 禁止, 属性, 友好能力]
+const CHARS = [
+ ['男子学生',2,'学校','—','学生/少年','[2] 同一エリアの自身以外の学生1人から不安を1つ取り除く。'],
+ ['女子学生',3,'学校','—','学生/少女','[2] 同一エリアの自身以外の学生1人から不安を1つ取り除く。'],
+ ['お嬢様',1,'学校','—','学生/少女','[3] 学校か都市にいないと使えない。同一エリアのキャラクター1人に友好を1つ置く。'],
+ ['巫女',2,'神社','都市','学生/少女','[3] 神社にいないと使えない。神社から暗躍を1つ取り除く。<br>[5]★ 同一エリアのキャラクター1人の役職を知る。'],
+ ['刑事',3,'都市','—','大人/男性','[4]★ このループで発生した事件1つの犯人を知る。<br>[5]★ 同一エリアのキャラクター1人に護衛を1つ置く。護衛が置かれたキャラクターが死亡する場合、代わりに護衛を1つ取り除く。'],
+ ['サラリーマン',2,'都市','学校','大人/男性','[3] このキャラクターの役職を知る。'],
+ ['情報屋',3,'都市','—','大人/女性','[5]★ ルールXの名前1つを宣言する。脚本家は脚本に使われているルールXのうち、宣言された名前でないもの1つを公開する。'],
+ ['医者',2,'病院','—','大人/男性','[2] 同一エリアの自身以外のキャラクターから不安を1つ取り除く。または不安を1つ置く。このキャラクターが友好無視を持ち、さらに友好が2つ以上置かれている場合、脚本家はこの能力を脚本家能力フェイズに使用できる。<br>[3] このループ中、入院患者は禁止エリアを失い、病院以外に移動できるようになる。'],
+ ['入院患者',2,'病院','神社/都市/学校','少年','（能力なし）'],
+];
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sel = (k, opts) => `<select data-k="${k}">${opts.map(o => `<option>${esc(o)}</option>`).join('')}</select>`;
+const memo = k => `<textarea data-k="${k}" rows="1"></textarea>`;
+
+document.getElementById('rules').innerHTML =
+  `<tr><th>印</th><th>ルール</th><th></th>${ROLES.map(r => `<th class="r">${r}</th>`).join('')}<th>追加ルール</th><th>メモ</th></tr>` +
+  RULES.map(([n, yx, rs, add], i) => `<tr data-row="rule${i}"><td class="n">${sel('rule'+i, ['不明','候補','消えた','確定'])}</td>
+    <td>${n}</td><td class="n">${yx}</td>${ROLES.map(r => `<td class="n">${rs[r] ? '①②'[rs[r]-1] : ''}</td>`).join('')}
+    <td>${add}</td><td>${memo('rulememo'+i)}</td></tr>`).join('');
+
+const NAMES = CHARS.map(c => c[0]);
+document.getElementById('incidents').innerHTML =
+  `<tr><th>日</th><th>事件</th><th>効果</th><th>犯人</th><th>経過（ループごと）</th><th>メモ</th></tr>` +
+  INCIDENTS.map(([d, n, e], i) => `<tr><td class="n">${d}</td><td>${n}</td><td>${e}</td>
+    <td>${sel('culprit'+i, ['未定', ...NAMES])}</td>
+    <td class="hist" data-inc="${esc(n)}"><span class="mut">まだ無い</span></td>
+    <td>${memo('incmemo'+i)}</td></tr>`).join('');
+
+document.getElementById('chars').innerHTML =
+  `<tr><th>人物</th><th>臨界</th><th>初期</th><th>禁止</th><th>属性</th><th>友好能力</th><th>役職の推測</th><th>メモ</th></tr>` +
+  CHARS.map(([n, k, a, f, t, ab], i) => `<tr><td>${n}</td><td class="n">${k}</td><td class="n">${a}</td><td>${f}</td><td>${t}</td><td>${ab}</td>
+    <td>${sel('role'+i, ['未定','パーソン', ...ROLES])}</td><td>${memo('charmemo'+i)}</td></tr>`).join('');
+
+document.getElementById('roles').innerHTML =
+  `<tr><th>印</th><th>役職</th><th>上限</th><th>条文能力</th><th>能力</th><th>メモ</th></tr>` +
+  ROLE_TEXT.map(([n, u, j, a], i) => `<tr data-row="rolemark${i}"><td class="n">${sel('rolemark'+i, ['不明','候補','いない','確定'])}</td><td>${n}</td><td class="n">${u}</td><td>${j}</td><td>${a}</td><td>${memo('rolememo'+i)}</td></tr>`).join('');
+
+// 敗北条件。出典: 早見表（ルールY の追加ルール、役職の能力、事件 病院の事件）
+const LOSS = [
+ ['即時','キーパーソンが死亡する','役職 キーパーソン（殺人計画・僕と契約しようよ！）'],
+ ['即時','主人公が死亡する ― キラーに暗躍4以上（ターン終了）','役職 キラー（殺人計画）'],
+ ['即時','主人公が死亡する ― メインラバーズに暗躍1以上かつ不安3以上（ターン終了）','役職 メインラバーズ（恋愛風景）'],
+ ['即時','主人公が死亡する ― 病院の事件の発生時に病院に暗躍2以上','事件 病院の事件'],
+ ['即時','最終日のターン終了時、タイムトラベラーに友好2以下','役職 タイムトラベラー（未来改変プラン）'],
+ ['ループ終了時','神社に暗躍2以上','ルールY 封印されしモノ'],
+ ['ループ終了時','キーパーソンに暗躍2以上','ルールY 僕と契約しようよ！'],
+ ['ループ終了時','このループ中に蝶の羽ばたきが発生している','ルールY 未来改変プラン'],
+ ['ループ終了時','ウィッチの初期エリアに暗躍2以上','ルールY 巨大時限爆弾Xの存在'],
+ ['ループ終了時','フレンドが死亡している（その役職を公開）','役職 フレンド（友情サークル・潜む殺人鬼）'],
+];
+document.getElementById('loss').innerHTML =
+  `<tr><th>印</th><th>いつ</th><th>条件</th><th>どこから来るか</th><th>メモ</th></tr>` +
+  LOSS.map(([w, c, src], i) => `<tr data-row="loss${i}"><td class="n">${sel('loss'+i, ['不明','候補','無い','確定'])}</td><td class="n">${w}</td><td>${c}</td><td>${src}</td><td>${memo('lossmemo'+i)}</td></tr>`).join('');
+
+// 保存と復元
+const fields = () => document.querySelectorAll('[data-k]');
+function paint() {
+  document.querySelectorAll('tr[data-row]').forEach(tr => {
+    const v = document.querySelector(`[data-k=${tr.dataset.row}]`).value;
+    tr.className = ['消えた','いない','無い'].includes(v) ? 'out' : v === '確定' ? 'sure' : v === '候補' ? 'cand' : '';
+  });
+}
+let timer;
+function save() {
+  paint();
+  clearTimeout(timer);
+  timer = setTimeout(async () => {
+    const n = {}; fields().forEach(e => n[e.dataset.k] = e.value);
+    try { await fetch('/notes', { method: 'POST', body: JSON.stringify(n) });
+      document.getElementById('saved').textContent = '保存しました ' + new Date().toLocaleTimeString(); }
+    catch { document.getElementById('saved').textContent = '保存に失敗（サーバーを確認）'; }
+  }, 400);
+}
+fetch('/notes').then(r => r.json()).then(n => {
+  fields().forEach(e => { if (n[e.dataset.k] != null) e.value = n[e.dataset.k]; });
+  paint();
+}).catch(() => {});
+fields().forEach(e => e.addEventListener(e.tagName === 'TEXTAREA' ? 'input' : 'change', save));
+
+// ゲームの経過（state.incidentHistory）を5秒おきに読み、事件の行に反映する
+async function history() {
+  try {
+    const s = await (await fetch('/state')).json();
+    document.querySelectorAll('td.hist').forEach(td => {
+      const rows = (s.incidentHistory || []).filter(h => h.name === td.dataset.inc);
+      td.innerHTML = rows.length ? rows.map(h => `L${h.loop}: <b>${h.result}</b> ｜ 臨界以上: ${h.critical.length ? h.critical.map(esc).join('・') : 'なし'}`).join('<br>')
+        : '<span class="mut">まだ無い</span>';
+    });
+  } catch {}
+}
+history(); setInterval(history, 5000);
+</script>
+</html>

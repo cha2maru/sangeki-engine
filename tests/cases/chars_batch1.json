@@ -1,0 +1,4825 @@
+[
+ {
+  "_interface": "友好能力 第1弾（C10 委員長・C12 異世界人・C14 アイドル・C15 マスコミ・C17 ナース・C21 鑑識官・C23 教師・C25 軍人・C27 女の子）。エンジンのコードを見ずに一次資料から先に書いた期待値。state は README の完全な状態（abilities.json と同じ追加フィールド: ability_used_today・ability_used_loop・unbound）。declare: [[cid, idx, arg], ...] を順に主人公能力フェイズで宣言する（idx はカード上から 0,1。abilities.json の use_ability(state, cid, idx, arg, refuse) と同じ）。refuse: declare と同じ長さの真偽の列（脚本家の拒否の意思）。then（任意）: 宣言の後に続ける処理。{phase:\"turn_end\", choice:{optional:[...]}} / {phase:\"incident\", choice} / {phase:\"action\", input:{placements}} / {phase:\"loop_start\"}。形は later_stages・s5_roles_incidents と同じ。新しい arg の形の提案: 委員長 {card: 主人公の札ID}（リーダー state.leader の used から★札を1枚取り除く。リーダーに使用済みの★札が無いと宣言できない。card:null は「選べない」を表す）。異世界人[4] {target}（死亡させる。死亡の処理は既存の kill と同じ1か所を通す＝護衛・タイムトラベラーの不死・ラバーズの不安6・キーパーソンのループ終了がそのまま効く）。異世界人[5] {target: 死体}（alive=true に戻す。カウンターはそのまま）。アイドル [3][4] {target}。マスコミ[2a] {target}（エリア不問）、[2b] {target: キャラ | \"B:<自身のエリア>\"}。ナース {target}（拒否不可: refuse=true は error、絶対友好無視でも拒否されない）。鑑識官[2] {from, to, counter: \"gw\"|\"par\"|\"int\"|null}（from・to は鑑識官以外の同一エリアの生存キャラ2人。counter は from に置かれているもの。2人とも一切カウンターが無いときだけ null）。鑑識官[5] {target: 死体}（エリア不問）。教師[3] {target, mode: \"place\"|\"remove\"}、教師[4] {target}。軍人[2] {target}、軍人[5] null → state[\"protagonists_immortal\"]=True（このループ中。ループの準備で False）。主人公を死亡させる効果（キラーの KILLER_PROT・メインラバーズの MAIN_LOVERS・病院の事件の暗躍2）は、この値が真なら何も起こさない（LoopEnd を投げない）。死亡させる処理（主人公死亡）を1か所にまとめて、そこで見ることを提案する。女の子[1] null → state.unbound に C27（医者[3]の入院患者と同じ仕組み）。女の子[3] {board}（現在地と縦横で隣り合うボード。禁止エリアでも移動できる＝公式FAQ 根幹ルール非優先の原則）。expect: chars は載せたキャラの載せた項目だけ比べる（載っていないキャラは不変）、boards は全体、used は載せたプレイヤーの使用済み札の全体（並びは問わない）、used_loop はこのループに使用済みの★能力の全体（並びは問わない）、refused は最後の宣言が拒否されたか、reveal は abilities.json と同じ、unbound は全体、flags は state の同名キーの値（キーが無ければ False とみなす）、occurred は then の事件の発生、loop_end は null（続行）か {reason, defeat}（宣言の途中・then のどちらで起きてもよい）。error は最後の宣言が error になり、状態がその宣言の直前から変わらないこと（文字列は理由の要約で文言一致は求めない）。status: confirmed（一次資料で確定）/ unresolved（一次資料で決まらない。期待値は字面どおりの読みで、理由は unresolved 欄。試験は xfail とし、ユーザーの裁定を待つ）。"
+ },
+ {
+  "id": "c10-return-mvx",
+  "desc": "委員長 友好2→リーダーAの使用済み移動禁止を手札に戻す。★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C10": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [
+     "MVX",
+     "PAR-"
+    ],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C10",
+    0,
+    {
+     "card": "MVX"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "used": {
+    "A": [
+     "PAR-"
+    ]
+   },
+   "used_loop": [
+    "C10#0"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_10_1.png（2026-09-23 画像で照合）「[友好2]（1ループ1回制限）リーダーは自身の行動カードのうち、1ループ1回制限かつ使用済みのものを1つ選び、それを手札に戻す」／主人公の書 印刷p37 委員長「[主人公]リーダーの行動カードのうち、「1ループに1回まで」かつ使用済みのものを1つ選びます。[脚本家]そのカードをリーダーの手札に戻します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c10-leader-b",
+  "desc": "リーダーがBのとき、戻すのはBの札（Aの使用済みは変わらない）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "B",
+   "chars": {
+    "C10": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [
+     "GW2"
+    ],
+    "B": [
+     "GW2"
+    ],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C10",
+    0,
+    {
+     "card": "GW2"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "used": {
+    "A": [
+     "GW2"
+    ],
+    "B": []
+   },
+   "used_loop": [
+    "C10#0"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_10_1.png（2026-09-23 画像で照合）「[友好2]（1ループ1回制限）リーダーは自身の行動カードのうち、1ループ1回制限かつ使用済みのものを1つ選び、それを手札に戻す」／主人公の書 印刷p37 委員長「[主人公]リーダーの行動カードのうち、「1ループに1回まで」かつ使用済みのものを1つ選びます。[脚本家]そのカードをリーダーの手札に戻します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c10-not-leaders-card-error",
+  "desc": "リーダーAは移動禁止を使っていない（Bだけが使用済み）→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C10": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [
+     "MVX"
+    ],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C10",
+    0,
+    {
+     "card": "MVX"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "card not used by leader"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_10_1.png（2026-09-23 画像で照合）「[友好2]（1ループ1回制限）リーダーは自身の行動カードのうち、1ループ1回制限かつ使用済みのものを1つ選び、それを手札に戻す」／主人公の書 印刷p37 委員長「[主人公]リーダーの行動カードのうち、「1ループに1回まで」かつ使用済みのものを1つ選びます。[脚本家]そのカードをリーダーの手札に戻します」／主人公の書 印刷p37 友好能力リスト冒頭「まずリーダーは[主人公]に書かれたことをすべて行ってください。それが行えない場合、その能力は使えません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c10-nothing-used-error",
+  "desc": "リーダーに使用済みの★札が無い→能力は使えない（error。★も消費しない）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C10": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C10",
+    0,
+    {
+     "card": null
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "no used once-per-loop card"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_10_1.png（2026-09-23 画像で照合）「[友好2]（1ループ1回制限）リーダーは自身の行動カードのうち、1ループ1回制限かつ使用済みのものを1つ選び、それを手札に戻す」／主人公の書 印刷p37 委員長「[主人公]リーダーの行動カードのうち、「1ループに1回まで」かつ使用済みのものを1つ選びます。[脚本家]そのカードをリーダーの手札に戻します」／主人公の書 印刷p37 友好能力リスト冒頭「まずリーダーは[主人公]に書かれたことをすべて行ってください。それが行えない場合、その能力は使えません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c10-gw1-error",
+  "desc": "委員長 友好1→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C10": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [
+     "MVX"
+    ],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C10",
+    0,
+    {
+     "card": "MVX"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "goodwill short"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_10_1.png（2026-09-23 画像で照合）「[友好2]（1ループ1回制限）リーダーは自身の行動カードのうち、1ループ1回制限かつ使用済みのものを1つ選び、それを手札に戻す」／主人公の書 印刷p37 委員長「[主人公]リーダーの行動カードのうち、「1ループに1回まで」かつ使用済みのものを1つ選びます。[脚本家]そのカードをリーダーの手札に戻します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c10-once-per-loop-error",
+  "desc": "このループで既に使用（1ループ1回）→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C10": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [
+     "GW2"
+    ],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   },
+   "ability_used_loop": [
+    "C10#0"
+   ]
+  },
+  "declare": [
+   [
+    "C10",
+    0,
+    {
+     "card": "GW2"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "once per loop"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_10_1.png（2026-09-23 画像で照合）「[友好2]（1ループ1回制限）リーダーは自身の行動カードのうち、1ループ1回制限かつ使用済みのものを1つ選び、それを手札に戻す」／主人公の書 印刷p37 委員長「[主人公]リーダーの行動カードのうち、「1ループに1回まで」かつ使用済みのものを1つ選びます。[脚本家]そのカードをリーダーの手札に戻します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c10-refused-killer",
+  "desc": "キラーの委員長が拒否→札は戻らず、★は使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C10": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [
+     "MVX"
+    ],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C10": "KILLER"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C10",
+    0,
+    {
+     "card": "MVX"
+    }
+   ]
+  ],
+  "refuse": [
+   true
+  ],
+  "expect": {
+   "used": {
+    "A": [
+     "MVX"
+    ]
+   },
+   "used_loop": [
+    "C10#0"
+   ],
+   "refused": true
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_10_1.png（2026-09-23 画像で照合）「[友好2]（1ループ1回制限）リーダーは自身の行動カードのうち、1ループ1回制限かつ使用済みのものを1つ選び、それを手札に戻す」／主人公の書 印刷p37 委員長「[主人公]リーダーの行動カードのうち、「1ループに1回まで」かつ使用済みのものを1つ選びます。[脚本家]そのカードをリーダーの手札に戻します」／主人公の書 印刷p23 4-6「拒否できるのは、友好無視を持つキャラクターの友好能力のみです。拒否が行われたとしても「1ループ1回制限」の能力は使用済になります」／公式FAQ Ch10",
+  "status": "confirmed"
+ },
+ {
+  "id": "c12-kill",
+  "desc": "異世界人 友好4→同じ神社の巫女(パーソン)を死亡させる。★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C12": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C12",
+    0,
+    {
+     "target": "C04"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C04": {
+     "alive": false,
+     "par": 1
+    }
+   },
+   "used_loop": [
+    "C12#0"
+   ],
+   "refused": false,
+   "loop_end": null
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_12_1.png（2026-09-23 画像で照合）「[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクター1人を死亡させる」／主人公の書 印刷p38 異世界人「[主人公]異世界人と同一エリアにいる他のキャラクター1人を選びます。[脚本家]選ばれたキャラクターを死亡させます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c12-kill-key-loop-end",
+  "desc": "キーパーソンを死亡させる→直ちにループ終了（敗北）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C12": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C04": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C12",
+    0,
+    {
+     "target": "C04"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C04": {
+     "alive": false
+    }
+   },
+   "loop_end": {
+    "reason": "KEY_DIED",
+    "defeat": true
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_12_1.png（2026-09-23 画像で照合）「[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクター1人を死亡させる」／主人公の書 印刷p38 異世界人「[主人公]異世界人と同一エリアにいる他のキャラクター1人を選びます。[脚本家]選ばれたキャラクターを死亡させます」／早見表 キーパーソン「【強制：このキャラクターの死亡時】主人公は敗北し、直ちにループを終了する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c12-kill-self-error",
+  "desc": "異世界人が自身を対象→error（自身以外）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C12": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C12",
+    0,
+    {
+     "target": "C12"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "self not allowed"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_12_1.png（2026-09-23 画像で照合）「[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクター1人を死亡させる」／主人公の書 印刷p38 異世界人「[主人公]異世界人と同一エリアにいる他のキャラクター1人を選びます。[脚本家]選ばれたキャラクターを死亡させます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c12-kill-guarded",
+  "desc": "護衛1の刑事を死亡させる→代わりに護衛を1つ取り除き生存。★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C12": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 1
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C12",
+    0,
+    {
+     "target": "C05"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C05": {
+     "alive": true,
+     "guard": 0
+    }
+   },
+   "used_loop": [
+    "C12#0"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_12_1.png（2026-09-23 画像で照合）「[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクター1人を死亡させる」／主人公の書 印刷p38 異世界人「[主人公]異世界人と同一エリアにいる他のキャラクター1人を選びます。[脚本家]選ばれたキャラクターを死亡させます」／主人公の書 印刷p38 刑事「護衛カウンターが置かれたキャラクターが死亡する場合、それを解決する代わりにその護衛カウンターを取り除いてください」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c12-kill-tt-nothing",
+  "desc": "タイムトラベラーを対象→死亡しないので何も起きない。★は使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C12": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C04": "TT"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C12",
+    0,
+    {
+     "target": "C04"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C04": {
+     "alive": true
+    }
+   },
+   "used_loop": [
+    "C12#0"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_12_1.png（2026-09-23 画像で照合）「[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクター1人を死亡させる」／主人公の書 印刷p38 異世界人「[主人公]異世界人と同一エリアにいる他のキャラクター1人を選びます。[脚本家]選ばれたキャラクターを死亡させます」／早見表 タイムトラベラー「【強制：常時】このキャラクターは死亡しない」／公式FAQ Ch18（死亡しないキャラクターを対象にでき、何も起きない）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c12-kill-lovers-main-par6",
+  "desc": "ラバーズ(巫女)を死亡させる→同一エリア外のメインラバーズ(女子学生)に不安6",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C12": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C04": "LOVERS",
+     "C02": "MAIN_LOVERS"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C12",
+    0,
+    {
+     "target": "C04"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C04": {
+     "alive": false
+    },
+    "C02": {
+     "alive": true,
+     "par": 7
+    }
+   },
+   "loop_end": null
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_12_1.png（2026-09-23 画像で照合）「[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクター1人を死亡させる」／主人公の書 印刷p38 異世界人「[主人公]異世界人と同一エリアにいる他のキャラクター1人を選びます。[脚本家]選ばれたキャラクターを死亡させます」／早見表 メインラバーズ「【強制：ラバーズの死亡時】このキャラクターに[不安C]を6つ置く」（死亡の原因を問わない）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c12-revive",
+  "desc": "異世界人 友好5→同じ神社の巫女の死体を蘇生。死体のカウンター(不安2・友好1)は残る",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C12": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": false,
+     "par": 2,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C12",
+    1,
+    {
+     "target": "C04"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C04": {
+     "alive": true,
+     "par": 2,
+     "gw": 1,
+     "area": "SHR"
+    }
+   },
+   "used_loop": [
+    "C12#1"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_12_1.png（2026-09-23 画像で照合）「[友好5]（1ループ1回制限）同一エリアの死体1つを蘇生させる」／主人公の書 印刷p38 異世界人「[主人公]異世界人と同一エリアにある死体1つを選びます。[脚本家]選ばれた死体を蘇生させます」／haunted_p12（wiki/concepts/terminology.md）「死体が蘇生するとは、そのキャラクターカードが死亡した状態から、生存する状態に変化することを表します」／公式FAQ Ru01（死亡してもカウンターは取り除かない）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c12-revive-alive-error",
+  "desc": "生存している巫女を蘇生の対象→error（死体1つを選ぶ）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C12": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C12",
+    1,
+    {
+     "target": "C04"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "not a corpse"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_12_1.png（2026-09-23 画像で照合）「[友好5]（1ループ1回制限）同一エリアの死体1つを蘇生させる」／主人公の書 印刷p38 異世界人「[主人公]異世界人と同一エリアにある死体1つを選びます。[脚本家]選ばれた死体を蘇生させます」／haunted_p12（wiki/concepts/terminology.md）「死体が蘇生するとは、そのキャラクターカードが死亡した状態から、生存する状態に変化することを表します」／主人公の書 印刷p37 友好能力リスト冒頭「まずリーダーは[主人公]に書かれたことをすべて行ってください。それが行えない場合、その能力は使えません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c12-revive-other-area-error",
+  "desc": "学校にある死体→error（同一エリア）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C12": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C12",
+    1,
+    {
+     "target": "C01"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "not same area"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_12_1.png（2026-09-23 画像で照合）「[友好5]（1ループ1回制限）同一エリアの死体1つを蘇生させる」／主人公の書 印刷p38 異世界人「[主人公]異世界人と同一エリアにある死体1つを選びます。[脚本家]選ばれた死体を蘇生させます」／haunted_p12（wiki/concepts/terminology.md）「死体が蘇生するとは、そのキャラクターカードが死亡した状態から、生存する状態に変化することを表します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c12-kill-then-revive-same-phase",
+  "desc": "同じフェイズに[4]で男子学生を死亡させ、[5]で蘇生（別の能力は両方使える）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C12": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C12",
+    0,
+    {
+     "target": "C01"
+    }
+   ],
+   [
+    "C12",
+    1,
+    {
+     "target": "C01"
+    }
+   ]
+  ],
+  "refuse": [
+   false,
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C01": {
+     "alive": true
+    }
+   },
+   "used_loop": [
+    "C12#0",
+    "C12#1"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_12_1.png（2026-09-23 画像で照合）「[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクター1人を死亡させる」／主人公の書 印刷p38 異世界人「[主人公]異世界人と同一エリアにいる他のキャラクター1人を選びます。[脚本家]選ばれたキャラクターを死亡させます」／カード画像 originals/tragedy_commons_5th/chara_cards/character_12_1.png（2026-09-23 画像で照合）「[友好5]（1ループ1回制限）同一エリアの死体1つを蘇生させる」／主人公の書 印刷p38 異世界人「[主人公]異世界人と同一エリアにある死体1つを選びます。[脚本家]選ばれた死体を蘇生させます」／haunted_p12（wiki/concepts/terminology.md）「死体が蘇生するとは、そのキャラクターカードが死亡した状態から、生存する状態に変化することを表します」／公式FAQ Ch06（あるキャラクターの持つ２つの能力を両方使用することは可能）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c14-remove-par",
+  "desc": "アイドル 友好3→同じ都市の刑事の不安1を取り除く",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C14": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C14",
+    0,
+    {
+     "target": "C05"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C05": {
+     "par": 1
+    }
+   },
+   "used_loop": [],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_14_1.png（2026-09-23 画像で照合）「[友好3] 同一エリアの自身以外のキャラクター1人から不安カウンターを1つ取り除く」／主人公の書 印刷p39 アイドル「その（選んだ）キャラクターに不安カウンターが置かれていなくても構いません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c14-remove-self-error",
+  "desc": "アイドルが自身の不安を取り除く→error（自身以外）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C14": {
+     "area": "CIT",
+     "alive": true,
+     "par": 1,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C14",
+    0,
+    {
+     "target": "C14"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "self not allowed"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_14_1.png（2026-09-23 画像で照合）「[友好3] 同一エリアの自身以外のキャラクター1人から不安カウンターを1つ取り除く」／主人公の書 印刷p39 アイドル「その（選んだ）キャラクターに不安カウンターが置かれていなくても構いません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c14-gw-place",
+  "desc": "アイドル 友好4→同じ都市の情報屋に友好1。同じフェイズで[3]の後に[4]も使える",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C14": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C14",
+    0,
+    {
+     "target": "C07"
+    }
+   ],
+   [
+    "C14",
+    1,
+    {
+     "target": "C07"
+    }
+   ]
+  ],
+  "refuse": [
+   false,
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C07": {
+     "par": 0,
+     "gw": 1
+    }
+   },
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_14_1.png（2026-09-23 画像で照合）「[友好3] 同一エリアの自身以外のキャラクター1人から不安カウンターを1つ取り除く」／主人公の書 印刷p39 アイドル「その（選んだ）キャラクターに不安カウンターが置かれていなくても構いません」／カード画像 originals/tragedy_commons_5th/chara_cards/character_14_1.png（2026-09-23 画像で照合）「[友好4] 同一エリアの自身以外のキャラクター1人に友好カウンターを1つ置く」／主人公の書 印刷p39 アイドル／公式FAQ Ch06",
+  "status": "confirmed"
+ },
+ {
+  "id": "c14-gw-place-gw3-error",
+  "desc": "アイドル 友好3→[4]は使えない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C14": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C14",
+    1,
+    {
+     "target": "C07"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "goodwill short"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_14_1.png（2026-09-23 画像で照合）「[友好4] 同一エリアの自身以外のキャラクター1人に友好カウンターを1つ置く」／主人公の書 印刷p39 アイドル",
+  "status": "confirmed"
+ },
+ {
+  "id": "c14-gw-corpse-error",
+  "desc": "情報屋の死体に友好→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C14": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C14",
+    1,
+    {
+     "target": "C07"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "corpse"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_14_1.png（2026-09-23 画像で照合）「[友好4] 同一エリアの自身以外のキャラクター1人に友好カウンターを1つ置く」／主人公の書 印刷p39 アイドル／公式FAQ Ru05「死体に対して…キャラクターを対象とした能力の対象として選ぶことは出来ません」／Ru06「死体は能力を使用できません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c14-same-phase-twice-error",
+  "desc": "同じフェイズに[3]を2回目→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C14": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   },
+   "ability_used_today": [
+    "C14#0"
+   ]
+  },
+  "declare": [
+   [
+    "C14",
+    0,
+    {
+     "target": "C05"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "already used this phase"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_14_1.png（2026-09-23 画像で照合）「[友好3] 同一エリアの自身以外のキャラクター1人から不安カウンターを1つ取り除く」／主人公の書 印刷p39 アイドル「その（選んだ）キャラクターに不安カウンターが置かれていなくても構いません」／主人公の書 印刷p23 4-6「拒否できるのは、友好無視を持つキャラクターの友好能力のみです。拒否が行われたとしても「1ループ1回制限」の能力は使用済になります」／公式FAQ Ch10（能力は1回ずつ）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c14-cultist-absolute",
+  "desc": "カルティストのアイドル→脚本家が拒否しないと言っても必ず拒否",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C14": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_SEAL",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C14": "CULTIST"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C14",
+    1,
+    {
+     "target": "C07"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C07": {
+     "gw": 0
+    }
+   },
+   "refused": true
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_14_1.png（2026-09-23 画像で照合）「[友好4] 同一エリアの自身以外のキャラクター1人に友好カウンターを1つ置く」／主人公の書 印刷p39 アイドル／早見表 役職表（wiki/concepts/role-abilities.md 照合済み）: キラー・クロマク・ファクター＝友好無視（任意）、カルティスト・ウィッチ＝絶対友好無視（必ず拒否。公式FAQ Ch03）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c15-par-any-area",
+  "desc": "マスコミ(都市) 友好2→学校の男子学生に不安1（エリアの制限なし）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C15": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C15",
+    0,
+    {
+     "target": "C01"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C01": {
+     "par": 1
+    }
+   },
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_15_1.png（2026-09-23 画像で照合）「[友好2] 自身以外のキャラクター1人に不安カウンターを1つ置く」／主人公の書 印刷p39 マスコミ「[主人公]マスコミ以外のキャラクター1人を選びます」（エリアの制限なし）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c15-par-self-error",
+  "desc": "マスコミが自身に不安→error（自身以外）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C15": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C15",
+    0,
+    {
+     "target": "C15"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "self not allowed"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_15_1.png（2026-09-23 画像で照合）「[友好2] 自身以外のキャラクター1人に不安カウンターを1つ置く」／主人公の書 印刷p39 マスコミ「[主人公]マスコミ以外のキャラクター1人を選びます」（エリアの制限なし）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c15-int-own-board",
+  "desc": "マスコミ 友好2→自身のいる都市ボードに暗躍1",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C15": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 1,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C15",
+    1,
+    {
+     "target": "B:CIT"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 2,
+    "SCH": 0
+   },
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_15_1.png（2026-09-23 画像で照合）「[友好2] 同一エリアのキャラクター1人か、自身のいるボードに暗躍カウンターを1つ置く」／主人公の書 印刷p39 マスコミ「マスコミと同一エリアにいるキャラクター1人か、マスコミのいるボードを選びます」／公式FAQ Ch01「同じエリアにいるキャラクター」は能力を使うキャラクターを含む",
+  "status": "confirmed"
+ },
+ {
+  "id": "c15-int-self",
+  "desc": "マスコミが自身に暗躍1（同一エリアは自身を含む）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C15": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C15",
+    1,
+    {
+     "target": "C15"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C15": {
+     "int": 1
+    }
+   },
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_15_1.png（2026-09-23 画像で照合）「[友好2] 同一エリアのキャラクター1人か、自身のいるボードに暗躍カウンターを1つ置く」／主人公の書 印刷p39 マスコミ「マスコミと同一エリアにいるキャラクター1人か、マスコミのいるボードを選びます」／公式FAQ Ch01「同じエリアにいるキャラクター」は能力を使うキャラクターを含む",
+  "status": "confirmed"
+ },
+ {
+  "id": "c15-int-other-board-error",
+  "desc": "自身のいない学校ボードに暗躍→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C15": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C15",
+    1,
+    {
+     "target": "B:SCH"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "not own board"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_15_1.png（2026-09-23 画像で照合）「[友好2] 同一エリアのキャラクター1人か、自身のいるボードに暗躍カウンターを1つ置く」／主人公の書 印刷p39 マスコミ「マスコミと同一エリアにいるキャラクター1人か、マスコミのいるボードを選びます」／公式FAQ Ch01「同じエリアにいるキャラクター」は能力を使うキャラクターを含む",
+  "status": "confirmed"
+ },
+ {
+  "id": "c15-int-other-area-char-error",
+  "desc": "学校の男子学生に暗躍→error（同一エリア）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C15": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C15",
+    1,
+    {
+     "target": "C01"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "not same area"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_15_1.png（2026-09-23 画像で照合）「[友好2] 同一エリアのキャラクター1人か、自身のいるボードに暗躍カウンターを1つ置く」／主人公の書 印刷p39 マスコミ「マスコミと同一エリアにいるキャラクター1人か、マスコミのいるボードを選びます」／公式FAQ Ch01「同じエリアにいるキャラクター」は能力を使うキャラクターを含む",
+  "status": "confirmed"
+ },
+ {
+  "id": "c17-remove-at-critical",
+  "desc": "ナース 友好2→同じ病院の医者(不安臨界2)の不安2ちょうどから1取り除く",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C17": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C17",
+    0,
+    {
+     "target": "C08"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C08": {
+     "par": 1
+    }
+   },
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_17_1.png（2026-09-23 画像で照合）「[友好2] 同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人から不安カウンターを1つ取り除く。この能力は友好無視や絶対友好無視で拒否されない」／主人公の書 印刷p40 ナース「もしナースに友好無視、絶対友好無視を持つ役職が配役されていたとしても、この能力は拒否できません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c17-below-critical-error",
+  "desc": "医者の不安1（臨界2未満）→対象にできない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C17": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C17",
+    0,
+    {
+     "target": "C08"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "below paranoia limit"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_17_1.png（2026-09-23 画像で照合）「[友好2] 同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人から不安カウンターを1つ取り除く。この能力は友好無視や絶対友好無視で拒否されない」／主人公の書 印刷p40 ナース「もしナースに友好無視、絶対友好無視を持つ役職が配役されていたとしても、この能力は拒否できません」／主人公の書 印刷p37 友好能力リスト冒頭「まずリーダーは[主人公]に書かれたことをすべて行ってください。それが行えない場合、その能力は使えません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c17-self-error",
+  "desc": "ナース自身(不安3＝臨界)→error（自身以外）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C17": {
+     "area": "HOS",
+     "alive": true,
+     "par": 3,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C17",
+    0,
+    {
+     "target": "C17"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "self not allowed"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_17_1.png（2026-09-23 画像で照合）「[友好2] 同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人から不安カウンターを1つ取り除く。この能力は友好無視や絶対友好無視で拒否されない」／主人公の書 印刷p40 ナース「もしナースに友好無視、絶対友好無視を持つ役職が配役されていたとしても、この能力は拒否できません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c17-witch-not-refused",
+  "desc": "ウィッチ(絶対友好無視)のナース→拒否されず解決",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C17": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_BOMB",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C17": "WITCH"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C17",
+    0,
+    {
+     "target": "C08"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C08": {
+     "par": 2
+    }
+   },
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_17_1.png（2026-09-23 画像で照合）「[友好2] 同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人から不安カウンターを1つ取り除く。この能力は友好無視や絶対友好無視で拒否されない」／主人公の書 印刷p40 ナース「もしナースに友好無視、絶対友好無視を持つ役職が配役されていたとしても、この能力は拒否できません」／早見表 役職表（wiki/concepts/role-abilities.md 照合済み）: キラー・クロマク・ファクター＝友好無視（任意）、カルティスト・ウィッチ＝絶対友好無視（必ず拒否。公式FAQ Ch03）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c17-killer-refuse-error",
+  "desc": "キラーのナースで脚本家が拒否しようとする→error（拒否できない）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C17": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C17": "KILLER"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C17",
+    0,
+    {
+     "target": "C08"
+    }
+   ]
+  ],
+  "refuse": [
+   true
+  ],
+  "expect": {
+   "error": "cannot be refused"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_17_1.png（2026-09-23 画像で照合）「[友好2] 同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人から不安カウンターを1つ取り除く。この能力は友好無視や絶対友好無視で拒否されない」／主人公の書 印刷p40 ナース「もしナースに友好無視、絶対友好無視を持つ役職が配役されていたとしても、この能力は拒否できません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c21-move-gw",
+  "desc": "鑑識官 友好2→同じ都市の刑事(友好2)から情報屋へ友好1を移動。★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C21": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C21",
+    0,
+    {
+     "from": "C05",
+     "to": "C07",
+     "counter": "gw"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C05": {
+     "gw": 1
+    },
+    "C07": {
+     "gw": 1
+    }
+   },
+   "used_loop": [
+    "C21#0"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_21_1.png（2026-09-23 画像で照合）「[友好2]（1ループ1回制限）同一エリアの自身以外のキャラクター2人の間で、任意のカウンター1つを移動させる」／主人公の書 印刷p40 鑑識官「[主人公]鑑識官と同一エリアにいる他のキャラクター2人を選びます。この際、鑑識官以外のキャラクターが1人しかいない場合はこの能力は使えません。さらに、可能であればそれらのキャラクターどちらかに置かれたカウンターを1つ選びます（両者に一切のカウンターが置かれていない場合は選びません）。[脚本家]選ばれたカウンターがあるならば、それを選ばれたもう一方のキャラクターに置きます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c21-corpse-not-counted-error",
+  "desc": "同じ都市の2人目が死体→キャラクターは1人なので使えない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C21": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C21",
+    0,
+    {
+     "from": "C05",
+     "to": "C07",
+     "counter": "par"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "corpse"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_21_1.png（2026-09-23 画像で照合）「[友好2]（1ループ1回制限）同一エリアの自身以外のキャラクター2人の間で、任意のカウンター1つを移動させる」／主人公の書 印刷p40 鑑識官「[主人公]鑑識官と同一エリアにいる他のキャラクター2人を選びます。この際、鑑識官以外のキャラクターが1人しかいない場合はこの能力は使えません。さらに、可能であればそれらのキャラクターどちらかに置かれたカウンターを1つ選びます（両者に一切のカウンターが置かれていない場合は選びません）。[脚本家]選ばれたカウンターがあるならば、それを選ばれたもう一方のキャラクターに置きます」／公式FAQ Ru05「死体に対して…キャラクターを対象とした能力の対象として選ぶことは出来ません」／Ru06「死体は能力を使用できません」／公式FAQ Ru05「死体は人数に含めません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c21-from-has-none-error",
+  "desc": "刑事に不安が無いのに不安を選ぶ→error（置かれたカウンターを選ぶ）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C21": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C21",
+    0,
+    {
+     "from": "C05",
+     "to": "C07",
+     "counter": "par"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "no such counter"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_21_1.png（2026-09-23 画像で照合）「[友好2]（1ループ1回制限）同一エリアの自身以外のキャラクター2人の間で、任意のカウンター1つを移動させる」／主人公の書 印刷p40 鑑識官「[主人公]鑑識官と同一エリアにいる他のキャラクター2人を選びます。この際、鑑識官以外のキャラクターが1人しかいない場合はこの能力は使えません。さらに、可能であればそれらのキャラクターどちらかに置かれたカウンターを1つ選びます（両者に一切のカウンターが置かれていない場合は選びません）。[脚本家]選ばれたカウンターがあるならば、それを選ばれたもう一方のキャラクターに置きます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c21-both-empty-ok",
+  "desc": "2人とも一切カウンターが無い→カウンターを選ばず(null)使える。何も変わらず★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C21": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C21",
+    0,
+    {
+     "from": "C05",
+     "to": "C07",
+     "counter": null
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C05": {
+     "par": 0,
+     "gw": 0,
+     "int": 0
+    },
+    "C07": {
+     "par": 0,
+     "gw": 0,
+     "int": 0
+    }
+   },
+   "used_loop": [
+    "C21#0"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_21_1.png（2026-09-23 画像で照合）「[友好2]（1ループ1回制限）同一エリアの自身以外のキャラクター2人の間で、任意のカウンター1つを移動させる」／主人公の書 印刷p40 鑑識官「[主人公]鑑識官と同一エリアにいる他のキャラクター2人を選びます。この際、鑑識官以外のキャラクターが1人しかいない場合はこの能力は使えません。さらに、可能であればそれらのキャラクターどちらかに置かれたカウンターを1つ選びます（両者に一切のカウンターが置かれていない場合は選びません）。[脚本家]選ばれたカウンターがあるならば、それを選ばれたもう一方のキャラクターに置きます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c21-null-when-possible-error",
+  "desc": "刑事に不安1があるのにカウンターを選ばない(null)→error（可能であれば選ぶ）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C21": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C21",
+    0,
+    {
+     "from": "C05",
+     "to": "C07",
+     "counter": null
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "counter must be chosen"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_21_1.png（2026-09-23 画像で照合）「[友好2]（1ループ1回制限）同一エリアの自身以外のキャラクター2人の間で、任意のカウンター1つを移動させる」／主人公の書 印刷p40 鑑識官「[主人公]鑑識官と同一エリアにいる他のキャラクター2人を選びます。この際、鑑識官以外のキャラクターが1人しかいない場合はこの能力は使えません。さらに、可能であればそれらのキャラクターどちらかに置かれたカウンターを1つ選びます（両者に一切のカウンターが置かれていない場合は選びません）。[脚本家]選ばれたカウンターがあるならば、それを選ばれたもう一方のキャラクターに置きます」／主人公の書 印刷p37 友好能力リスト冒頭「まずリーダーは[主人公]に書かれたことをすべて行ってください。それが行えない場合、その能力は使えません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c21-move-guard",
+  "desc": "護衛カウンターを刑事から情報屋へ移動できるか（「任意のカウンター」に護衛を含むか）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C21": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 1
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C21",
+    0,
+    {
+     "from": "C05",
+     "to": "C07",
+     "counter": "guard"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C05": {
+     "guard": 0
+    },
+    "C07": {
+     "guard": 1
+    }
+   },
+   "used_loop": [
+    "C21#0"
+   ]
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_21_1.png（2026-09-23 画像で照合）「[友好2]（1ループ1回制限）同一エリアの自身以外のキャラクター2人の間で、任意のカウンター1つを移動させる」／主人公の書 印刷p40 鑑識官「[主人公]鑑識官と同一エリアにいる他のキャラクター2人を選びます。この際、鑑識官以外のキャラクターが1人しかいない場合はこの能力は使えません。さらに、可能であればそれらのキャラクターどちらかに置かれたカウンターを1つ選びます（両者に一切のカウンターが置かれていない場合は選びません）。[脚本家]選ばれたカウンターがあるならば、それを選ばれたもう一方のキャラクターに置きます」／wiki/concepts/counters.md（印刷p18: 護衛カウンターは進行管理用カウンターに分類） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "「任意のカウンター」「置かれたカウンター」が友好・不安・暗躍の3種に限るのか、進行管理用の護衛カウンター(刑事[5])も含むのかが一次資料で決まらない。期待値は「含む」の読み"
+ },
+ {
+  "id": "c21-corpse-role-any-area",
+  "desc": "鑑識官(都市) 友好5→病院にある医者の死体の役職(キラー)を知る（エリアの制限なし）。★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C21": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "KILLER"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C21",
+    1,
+    {
+     "target": "C08"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "reveal": {
+    "role": {
+     "char": "C08",
+     "role": "KILLER"
+    }
+   },
+   "used_loop": [
+    "C21#1"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_21_1.png（2026-09-23 画像で照合）「[友好5]（1ループ1回制限）死体1つの役職を知る」（同一エリアの限定なし）／主人公の書 印刷p40 鑑識官「[主人公]死体1つを選びます。[脚本家]選ばれた死体の役職を伝えます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c21-corpse-role-alive-error",
+  "desc": "生存している医者を対象→error（死体を選ぶ）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C21": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C21",
+    1,
+    {
+     "target": "C08"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "not a corpse"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_21_1.png（2026-09-23 画像で照合）「[友好5]（1ループ1回制限）死体1つの役職を知る」（同一エリアの限定なし）／主人公の書 印刷p40 鑑識官「[主人公]死体1つを選びます。[脚本家]選ばれた死体の役職を伝えます」／主人公の書 印刷p37 友好能力リスト冒頭「まずリーダーは[主人公]に書かれたことをすべて行ってください。それが行えない場合、その能力は使えません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c21-corpse-role-refused",
+  "desc": "ファクターの鑑識官が[5]を拒否→公開なし、★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C21": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C21": "FACTOR",
+     "C08": "KILLER"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C21",
+    1,
+    {
+     "target": "C08"
+    }
+   ]
+  ],
+  "refuse": [
+   true
+  ],
+  "expect": {
+   "reveal": {},
+   "used_loop": [
+    "C21#1"
+   ],
+   "refused": true
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_21_1.png（2026-09-23 画像で照合）「[友好5]（1ループ1回制限）死体1つの役職を知る」（同一エリアの限定なし）／主人公の書 印刷p40 鑑識官「[主人公]死体1つを選びます。[脚本家]選ばれた死体の役職を伝えます」／主人公の書 印刷p23 4-6「拒否できるのは、友好無視を持つキャラクターの友好能力のみです。拒否が行われたとしても「1ループ1回制限」の能力は使用済になります」／公式FAQ Ch10",
+  "status": "confirmed"
+ },
+ {
+  "id": "c21-corpse-role-virus",
+  "desc": "妄想拡大ウイルス。不安3のパーソン(女子学生)の死体の役職は？",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C21": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": false,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_VIRUS",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C21",
+    1,
+    {
+     "target": "C02"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "reveal": {
+    "role": {
+     "char": "C02",
+     "role": "PERSON"
+    }
+   },
+   "used_loop": [
+    "C21#1"
+   ]
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_21_1.png（2026-09-23 画像で照合）「[友好5]（1ループ1回制限）死体1つの役職を知る」（同一エリアの限定なし）／主人公の書 印刷p40 鑑識官「[主人公]死体1つを選びます。[脚本家]選ばれた死体の役職を伝えます」／主人公の書 印刷p33 妄想拡大ウイルス「元々の役職がパーソンであるキャラクターは、不安カウンターが3つ以上置かれている限り、役職がシリアルキラーに変更される」／haunted_p12「キャラクター」は生存しているカードのみ ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "ウイルスの条文は「キャラクターは」なので字面では死体には効かず、パーソンと伝える（期待値はこの読み）。一方、死亡前（生存中・不安3）にはシリアルキラーであり、死体の「役職」が死亡時点のものを保つのかは一次資料で決まらない"
+ },
+ {
+  "id": "c23-remove",
+  "desc": "教師 友好3→同じ学校の男子学生の不安1を取り除く",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C23": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C23",
+    0,
+    {
+     "target": "C01",
+     "mode": "remove"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C01": {
+     "par": 1
+    }
+   },
+   "used_loop": [],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_23_1.png（2026-09-23 画像で照合）「[友好3] 同一エリアの学生1人から不安カウンターを1つ取り除く。または不安カウンターを1つ置く」／主人公の書 印刷p37 教師「教師と同一エリアにいる学生1人を選び、不安カウンターを取り除くか置くかも宣言します。不安カウンターが置かれていない学生を選び、取り除くことを宣言しても構いません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c23-place",
+  "desc": "教師 友好3→女子学生に不安1を置く",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C23": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C23",
+    0,
+    {
+     "target": "C02",
+     "mode": "place"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C02": {
+     "par": 1
+    }
+   },
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_23_1.png（2026-09-23 画像で照合）「[友好3] 同一エリアの学生1人から不安カウンターを1つ取り除く。または不安カウンターを1つ置く」／主人公の書 印刷p37 教師「教師と同一エリアにいる学生1人を選び、不安カウンターを取り除くか置くかも宣言します。不安カウンターが置かれていない学生を選び、取り除くことを宣言しても構いません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c23-adult-error",
+  "desc": "同じ学校の刑事(大人)を対象→error（学生のみ）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C23": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C23",
+    0,
+    {
+     "target": "C05",
+     "mode": "remove"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "not a student"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_23_1.png（2026-09-23 画像で照合）「[友好3] 同一エリアの学生1人から不安カウンターを1つ取り除く。または不安カウンターを1つ置く」／主人公の書 印刷p37 教師「教師と同一エリアにいる学生1人を選び、不安カウンターを取り除くか置くかも宣言します。不安カウンターが置かれていない学生を選び、取り除くことを宣言しても構いません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c23-no-mode-error",
+  "desc": "取り除くか置くかを宣言しない→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C23": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C23",
+    0,
+    {
+     "target": "C01"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "mode required"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_23_1.png（2026-09-23 画像で照合）「[友好3] 同一エリアの学生1人から不安カウンターを1つ取り除く。または不安カウンターを1つ置く」／主人公の書 印刷p37 教師「教師と同一エリアにいる学生1人を選び、不安カウンターを取り除くか置くかも宣言します。不安カウンターが置かれていない学生を選び、取り除くことを宣言しても構いません」／主人公の書 印刷p37 友好能力リスト冒頭「まずリーダーは[主人公]に書かれたことをすべて行ってください。それが行えない場合、その能力は使えません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c23-gw2-error",
+  "desc": "教師 友好2→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C23": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C23",
+    0,
+    {
+     "target": "C01",
+     "mode": "remove"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "goodwill short"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_23_1.png（2026-09-23 画像で照合）「[友好3] 同一エリアの学生1人から不安カウンターを1つ取り除く。または不安カウンターを1つ置く」／主人公の書 印刷p37 教師「教師と同一エリアにいる学生1人を選び、不安カウンターを取り除くか置くかも宣言します。不安カウンターが置かれていない学生を選び、取り除くことを宣言しても構いません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c23-role-student",
+  "desc": "教師 友好4→同じ学校の委員長の役職(キーパーソン)を知る。★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C23": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C10": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C10": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C23",
+    1,
+    {
+     "target": "C10"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "reveal": {
+    "role": {
+     "char": "C10",
+     "role": "KEY"
+    }
+   },
+   "used_loop": [
+    "C23#1"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_23_1.png（2026-09-23 画像で照合）「[友好4]（1ループ1回制限）同一エリアの学生1人の役職を知る」／主人公の書 印刷p37 教師「[主人公]教師と同一エリアにいる学生1人を選びます。[脚本家]選ばれたキャラクターの役職を伝えます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c23-role-adult-error",
+  "desc": "同じ学校のサラリーマン(大人)の役職→error（学生のみ）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C23": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C23",
+    1,
+    {
+     "target": "C06"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "not a student"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_23_1.png（2026-09-23 画像で照合）「[友好4]（1ループ1回制限）同一エリアの学生1人の役職を知る」／主人公の書 印刷p37 教師「[主人公]教師と同一エリアにいる学生1人を選びます。[脚本家]選ばれたキャラクターの役職を伝えます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c25-par2",
+  "desc": "軍人 友好2→同じ病院の入院患者に不安2。★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C25": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C25",
+    0,
+    {
+     "target": "C09"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C09": {
+     "par": 3
+    }
+   },
+   "used_loop": [
+    "C25#0"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_25_1.png（2026-09-23 画像で照合）「[友好2]（1ループ1回制限）同一エリアのキャラクター1人に不安カウンターを2つ置く」／主人公の書 印刷p41 軍人「軍人と同一エリアにいるキャラクター1人を選びます」／公式FAQ Ch01（同一エリアは自身を含む）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c25-immortal-set",
+  "desc": "軍人 友好5→このループ中、主人公は死亡しない（state.protagonists_immortal=true）。★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C25": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C25",
+    1,
+    null
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "flags": {
+    "protagonists_immortal": true
+   },
+   "used_loop": [
+    "C25#1"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_25_1.png（2026-09-23 画像で照合）「[友好5]（1ループ1回制限）このループ中、主人公は死亡しない」／主人公の書 印刷p41 軍人「[脚本家]このループ中、主人公は死亡しなくなります。主人公を死亡させるような効果が発生した場合、代わりに何も起こりませんので、脚本家はそのような効果が発生した事実を伝える必要はありません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c25-immortal-refused",
+  "desc": "クロマクの軍人が[5]を拒否→効果なし、★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C25": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C25": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C25",
+    1,
+    null
+   ]
+  ],
+  "refuse": [
+   true
+  ],
+  "expect": {
+   "flags": {
+    "protagonists_immortal": false
+   },
+   "used_loop": [
+    "C25#1"
+   ],
+   "refused": true
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_25_1.png（2026-09-23 画像で照合）「[友好5]（1ループ1回制限）このループ中、主人公は死亡しない」／主人公の書 印刷p41 軍人「[脚本家]このループ中、主人公は死亡しなくなります。主人公を死亡させるような効果が発生した場合、代わりに何も起こりませんので、脚本家はそのような効果が発生した事実を伝える必要はありません」／主人公の書 印刷p23 4-6「拒否できるのは、友好無視を持つキャラクターの友好能力のみです。拒否が行われたとしても「1ループ1回制限」の能力は使用済になります」／公式FAQ Ch10",
+  "status": "confirmed"
+ },
+ {
+  "id": "c25-immortal-vs-killer",
+  "desc": "主人公死亡しない状態で、キラー(暗躍4)が主人公を死亡させる→何も起こらずループ続行",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 4,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C09": "KILLER"
+    },
+    "incidents": []
+   },
+   "protagonists_immortal": true
+  },
+  "declare": [],
+  "refuse": [],
+  "then": {
+   "phase": "turn_end",
+   "choice": {
+    "optional": [
+     {
+      "char": "C09",
+      "ability": "KILLER_PROT"
+     }
+    ]
+   }
+  },
+  "expect": {
+   "loop_end": null
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_25_1.png（2026-09-23 画像で照合）「[友好5]（1ループ1回制限）このループ中、主人公は死亡しない」／主人公の書 印刷p41 軍人「[脚本家]このループ中、主人公は死亡しなくなります。主人公を死亡させるような効果が発生した場合、代わりに何も起こりませんので、脚本家はそのような効果が発生した事実を伝える必要はありません」／早見表 キラー「【任意能力：ターン終了フェイズ】このキャラクターに[暗躍C]が4つ以上→主人公を死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c25-immortal-vs-main-lovers",
+  "desc": "主人公死亡しない状態で、メインラバーズ(暗躍1・不安3)の主人公殺害→何も起こらない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "LOVERS",
+     "C02": "MAIN_LOVERS"
+    },
+    "incidents": []
+   },
+   "protagonists_immortal": true
+  },
+  "declare": [],
+  "refuse": [],
+  "then": {
+   "phase": "turn_end",
+   "choice": {
+    "optional": [
+     {
+      "char": "C02",
+      "ability": "MAIN_LOVERS"
+     }
+    ]
+   }
+  },
+  "expect": {
+   "loop_end": null
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_25_1.png（2026-09-23 画像で照合）「[友好5]（1ループ1回制限）このループ中、主人公は死亡しない」／主人公の書 印刷p41 軍人「[脚本家]このループ中、主人公は死亡しなくなります。主人公を死亡させるような効果が発生した場合、代わりに何も起こりませんので、脚本家はそのような効果が発生した事実を伝える必要はありません」／早見表 メインラバーズ「【任意能力：ターン終了フェイズ】…→主人公を死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c25-immortal-vs-hospital",
+  "desc": "主人公死亡しない状態で病院の事件(病院に暗躍2)→病院のキャラは死亡、主人公は死亡せずループ続行",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 2,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "HOSPITAL",
+      "culprit": "C01"
+     }
+    ]
+   },
+   "protagonists_immortal": true
+  },
+  "declare": [],
+  "refuse": [],
+  "then": {
+   "phase": "incident",
+   "choice": null
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C08": {
+     "alive": false
+    }
+   },
+   "loop_end": null
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_25_1.png（2026-09-23 画像で照合）「[友好5]（1ループ1回制限）このループ中、主人公は死亡しない」／主人公の書 印刷p41 軍人「[脚本家]このループ中、主人公は死亡しなくなります。主人公を死亡させるような効果が発生した場合、代わりに何も起こりませんので、脚本家はそのような効果が発生した事実を伝える必要はありません」／早見表 事件 病院の事件「病院に[暗躍C]が1つ以上→病院にいるすべてのキャラクターを死亡させる。病院に[暗躍C]が2つ以上→主人公を死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c25-immortal-key-still-dies",
+  "desc": "主人公死亡しない状態でも、病院の事件でキーパーソンが死亡すればループ終了（キーパーソンの能力は別）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 2,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C09": "KEY"
+    },
+    "incidents": [
+     {
+      "day": 2,
+      "id": "HOSPITAL",
+      "culprit": "C01"
+     }
+    ]
+   },
+   "protagonists_immortal": true
+  },
+  "declare": [],
+  "refuse": [],
+  "then": {
+   "phase": "incident",
+   "choice": null
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C09": {
+     "alive": false
+    }
+   },
+   "loop_end": {
+    "reason": "KEY_DIED",
+    "defeat": true
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_25_1.png（2026-09-23 画像で照合）「[友好5]（1ループ1回制限）このループ中、主人公は死亡しない」／主人公の書 印刷p41 軍人「[脚本家]このループ中、主人公は死亡しなくなります。主人公を死亡させるような効果が発生した場合、代わりに何も起こりませんので、脚本家はそのような効果が発生した事実を伝える必要はありません」（死亡しないのは主人公のみ）／早見表 キーパーソン「【強制：このキャラクターの死亡時】主人公は敗北し、直ちにループを終了する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c25-immortal-reset-next-loop",
+  "desc": "「このループ中」→次のループの準備で主人公死亡しないは消える（女の子[1]の禁止エリア喪失も同様）",
+  "state": {
+   "loop": 1,
+   "day": 3,
+   "leader": "A",
+   "chars": {
+    "C25": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C27": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [],
+    "days": 3
+   },
+   "protagonists_immortal": true,
+   "unbound": [
+    "C27"
+   ],
+   "ability_used_loop": [
+    "C25#1"
+   ]
+  },
+  "declare": [],
+  "refuse": [],
+  "then": {
+   "phase": "loop_start"
+  },
+  "expect": {
+   "flags": {
+    "protagonists_immortal": false
+   },
+   "unbound": [],
+   "used_loop": []
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_25_1.png（2026-09-23 画像で照合）「[友好5]（1ループ1回制限）このループ中、主人公は死亡しない」／主人公の書 印刷p41 軍人「[脚本家]このループ中、主人公は死亡しなくなります。主人公を死亡させるような効果が発生した場合、代わりに何も起こりませんので、脚本家はそのような効果が発生した事実を伝える必要はありません」／カード画像 originals/tragedy_commons_5th/chara_cards/character_27_1.png（2026-09-23 画像で照合）「[友好1] このループ中、このキャラクターは禁止エリアを失い、学校以外に移動できるようになる」（禁止エリア 病院・神社・都市）／主人公の書 印刷p20 ループの準備",
+  "status": "confirmed"
+ },
+ {
+  "id": "c27-unbind",
+  "desc": "女の子 友好1→このループ中、禁止エリアを失う（state.unbound に C27）。1ループ1回制限なし",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C27": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C27",
+    0,
+    null
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "unbound": [
+    "C27"
+   ],
+   "used_loop": [],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_27_1.png（2026-09-23 画像で照合）「[友好1] このループ中、このキャラクターは禁止エリアを失い、学校以外に移動できるようになる」（禁止エリア 病院・神社・都市）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c27-unbound-moves",
+  "desc": "[1]使用後、女の子に移動↑↓→学校から神社へ移動できる",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C27": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   },
+   "unbound": [
+    "C27"
+   ]
+  },
+  "declare": [],
+  "refuse": [],
+  "then": {
+   "phase": "action",
+   "input": {
+    "placements": [
+     {
+      "by": "M",
+      "target": "C27",
+      "card": "MV_V"
+     },
+     {
+      "by": "M",
+      "target": "B:HOS",
+      "card": "PARX"
+     },
+     {
+      "by": "M",
+      "target": "B:CIT",
+      "card": "GWX"
+     },
+     {
+      "by": "A",
+      "target": "B:HOS",
+      "card": "GW1"
+     },
+     {
+      "by": "B",
+      "target": "B:SHR",
+      "card": "GW1"
+     },
+     {
+      "by": "C",
+      "target": "B:CIT",
+      "card": "GW1"
+     }
+    ]
+   }
+  },
+  "expect": {
+   "chars": {
+    "C27": {
+     "area": "SHR"
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_27_1.png（2026-09-23 画像で照合）「[友好1] このループ中、このキャラクターは禁止エリアを失い、学校以外に移動できるようになる」（禁止エリア 病院・神社・都市）／公式FAQ ルールの調整 2013/05/03「１：根幹ルール非優先の原則 … キャラクターの能力…により与えられる現象は、惨劇RoopeRの基本となるルールより優先される。例：医者の友好能力により入院患者が病院以外に移動できるようになったとする…入院患者は禁止エリアへと移動できる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c27-bound-stays",
+  "desc": "[1]未使用→移動↑↓でも学校に留まる（神社は禁止エリア）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C27": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [],
+  "refuse": [],
+  "then": {
+   "phase": "action",
+   "input": {
+    "placements": [
+     {
+      "by": "M",
+      "target": "C27",
+      "card": "MV_V"
+     },
+     {
+      "by": "M",
+      "target": "B:HOS",
+      "card": "PARX"
+     },
+     {
+      "by": "M",
+      "target": "B:CIT",
+      "card": "GWX"
+     },
+     {
+      "by": "A",
+      "target": "B:HOS",
+      "card": "GW1"
+     },
+     {
+      "by": "B",
+      "target": "B:SHR",
+      "card": "GW1"
+     },
+     {
+      "by": "C",
+      "target": "B:CIT",
+      "card": "GW1"
+     }
+    ]
+   }
+  },
+  "expect": {
+   "chars": {
+    "C27": {
+     "area": "SCH"
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_27_1.png（2026-09-23 画像で照合）「[友好1] このループ中、このキャラクターは禁止エリアを失い、学校以外に移動できるようになる」（禁止エリア 病院・神社・都市）（禁止エリア 病院・神社・都市）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c27-refused-unbind",
+  "desc": "キラーの女の子が[1]を拒否→禁止エリアは失わない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C27": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C27": "KILLER"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C27",
+    0,
+    null
+   ]
+  ],
+  "refuse": [
+   true
+  ],
+  "expect": {
+   "unbound": [],
+   "refused": true
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_27_1.png（2026-09-23 画像で照合）「[友好1] このループ中、このキャラクターは禁止エリアを失い、学校以外に移動できるようになる」（禁止エリア 病院・神社・都市）／主人公の書 印刷p23 4-6「拒否できるのは、友好無視を持つキャラクターの友好能力のみです。拒否が行われたとしても「1ループ1回制限」の能力は使用済になります」／公式FAQ Ch10",
+  "status": "confirmed"
+ },
+ {
+  "id": "c27-move-vertical",
+  "desc": "女の子 友好3→学校から縦に隣り合った神社へ移動（[1]を使わず禁止エリアへ）。★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C27": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C27",
+    1,
+    {
+     "board": "SHR"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C27": {
+     "area": "SHR"
+    }
+   },
+   "used_loop": [
+    "C27#1"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_27_1.png（2026-09-23 画像で照合）「[友好3]（1ループ1回制限）このキャラクターを現在地と隣り合ったボードに移動させる」／wiki/concepts/board.md（印刷p19 の図と照合済み）配置 病院・神社／都市・学校／公式FAQ ルールの調整 2013/05/03「１：根幹ルール非優先の原則 … キャラクターの能力…により与えられる現象は、惨劇RoopeRの基本となるルールより優先される。例：医者の友好能力により入院患者が病院以外に移動できるようになったとする…入院患者は禁止エリアへと移動できる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c27-move-horizontal",
+  "desc": "学校から横に隣り合った都市へ移動",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C27": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   },
+   "unbound": [
+    "C27"
+   ]
+  },
+  "declare": [
+   [
+    "C27",
+    1,
+    {
+     "board": "CIT"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C27": {
+     "area": "CIT"
+    }
+   },
+   "used_loop": [
+    "C27#1"
+   ]
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_27_1.png（2026-09-23 画像で照合）「[友好3]（1ループ1回制限）このキャラクターを現在地と隣り合ったボードに移動させる」／wiki/concepts/board.md（印刷p19 の図と照合済み）配置 病院・神社／都市・学校",
+  "status": "confirmed"
+ },
+ {
+  "id": "c27-move-diagonal",
+  "desc": "学校から斜めの病院へ移動できるか（2x2で角だけ接するボードは「隣り合った」か）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C27": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   },
+   "unbound": [
+    "C27"
+   ]
+  },
+  "declare": [
+   [
+    "C27",
+    1,
+    {
+     "board": "HOS"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "not adjacent"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_27_1.png（2026-09-23 画像で照合）「[友好3]（1ループ1回制限）このキャラクターを現在地と隣り合ったボードに移動させる」／wiki/concepts/board.md（印刷p19 の図と照合済み）配置 病院・神社／都市・学校／wiki/concepts/board.md 移動方向（移動↑↓・移動←→は主人公にもあるが、移動斜めは脚本家のみ） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "「隣り合った」の定義が一次資料に無い（女の子は主人公の書 印刷p37〜41 の友好能力リストに載っていない）。期待値は、辺を共有する縦横だけを隣り合うとする読み（斜めは角だけで接する）。移動札で縦横と斜めが区別されていることが傍証"
+ },
+ {
+  "id": "c27-move-same-board-error",
+  "desc": "現在地の学校を指定→error（隣り合ったボードへ移動）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C27": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C27",
+    1,
+    {
+     "board": "SCH"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "not adjacent"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_27_1.png（2026-09-23 画像で照合）「[友好3]（1ループ1回制限）このキャラクターを現在地と隣り合ったボードに移動させる」／wiki/concepts/board.md（印刷p19 の図と照合済み）配置 病院・神社／都市・学校",
+  "status": "confirmed"
+ },
+ {
+  "id": "c27-move-once-per-loop-error",
+  "desc": "このループで[3]使用済み→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C27": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   },
+   "ability_used_loop": [
+    "C27#1"
+   ]
+  },
+  "declare": [
+   [
+    "C27",
+    1,
+    {
+     "board": "SCH"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "once per loop"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_27_1.png（2026-09-23 画像で照合）「[友好3]（1ループ1回制限）このキャラクターを現在地と隣り合ったボードに移動させる」／wiki/concepts/board.md（印刷p19 の図と照合済み）配置 病院・神社／都市・学校",
+  "status": "confirmed"
+ },
+ {
+  "id": "c12-revive-gw4-error",
+  "desc": "異世界人 友好4→[5]は使えない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C12": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C12",
+    1,
+    {
+     "target": "C04"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "goodwill short"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_12_1.png（2026-09-23 画像で照合）「[友好5]（1ループ1回制限）同一エリアの死体1つを蘇生させる」／主人公の書 印刷p38 異世界人「[主人公]異世界人と同一エリアにある死体1つを選びます。[脚本家]選ばれた死体を蘇生させます」／haunted_p12（wiki/concepts/terminology.md）「死体が蘇生するとは、そのキャラクターカードが死亡した状態から、生存する状態に変化することを表します」",
+  "status": "confirmed"
+ }
+]

@@ -1,0 +1,67 @@
+{
+ "_source": "早見表 originals/summary.pdf（wiki/concepts/role-abilities.md・rule-role-matrix.md で照合済み）",
+ "roles": {
+  "PERSON": {
+   "name": "パーソン"
+  },
+  "KEY": {
+   "name": "キーパーソン",
+   "abilities": [
+    "強制:死亡時 主人公は敗北し直ちにループ終了"
+   ]
+  },
+  "KILLER": {
+   "name": "キラー",
+   "goodwill_refusal": "optional",
+   "abilities": [
+    "任意:ターン終了 同一エリアのキーパーソンに暗躍2以上→キーパーソン死亡",
+    "任意:ターン終了 自身に暗躍4以上→主人公死亡"
+   ]
+  },
+  "KUROMAKU": {
+   "name": "クロマク",
+   "goodwill_refusal": "optional",
+   "abilities": [
+    "任意:脚本家能力 同一エリアのキャラ1人かこのキャラのいるボードに暗躍1"
+   ]
+  },
+  "CULTIST": {
+   "name": "カルティスト",
+   "goodwill_refusal": "absolute"
+  },
+  "TT": {
+   "name": "タイムトラベラー"
+  },
+  "WITCH": {
+   "name": "ウィッチ",
+   "goodwill_refusal": "absolute"
+  },
+  "FRIEND": {
+   "name": "フレンド",
+   "limit": 2
+  },
+  "MISLEADER": {
+   "name": "ミスリーダー",
+   "limit": 1,
+   "abilities": [
+    "任意:脚本家能力 同一エリアのキャラ1人に不安1"
+   ]
+  },
+  "LOVERS": {
+   "name": "ラバーズ"
+  },
+  "MAIN_LOVERS": {
+   "name": "メインラバーズ"
+  },
+  "SK": {
+   "name": "シリアルキラー",
+   "abilities": [
+    "強制:ターン終了 同一エリアにいる（生存）キャラが1人だけ→その1人を死亡"
+   ]
+  },
+  "FACTOR": {
+   "name": "ファクター",
+   "goodwill_refusal": "optional"
+  }
+ }
+}

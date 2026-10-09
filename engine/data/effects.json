@@ -1,0 +1,219 @@
+{
+ "_source": "早見表 originals/summary.pdf（wiki/concepts/role-abilities.md・rule-role-matrix.md・incident-effects.md）。主人公の敗北に至る効果だけを、条件と効果の形に構造化したもの（勝ち筋の列挙用）",
+ "_format": "kill: 対象を死亡させる / protagonists_die: 主人公死亡（敗北・即ループ終了） / loss_at_loop_end: ループ終了時の敗北条件 / loss_on_death: その役職の死亡で敗北。conds は満たすべき条件: same_area[a,b]、counter[who,kind,min]、alone_with[self,target]（同一エリアの生存者が target だけ）、incident（事件の日・犯人の不安が臨界以上・犯人生存）",
+ "roles": {
+  "KEY": [
+   {
+    "effect": "loss_on_death",
+    "src": "キーパーソン【強制：このキャラクターの死亡時】主人公は敗北し、直ちにループを終了"
+   }
+  ],
+  "KILLER": [
+   {
+    "id": "KILLER_KEY",
+    "effect": "kill",
+    "target": "KEY",
+    "when": "turn_end",
+    "conds": [
+     [
+      "same_area",
+      "self",
+      "target"
+     ],
+     [
+      "counter",
+      "target",
+      "int",
+      2
+     ]
+    ],
+    "src": "キラー【任意能力：ターン終了フェイズ】同一エリアのキーパーソンに[暗躍C]が2つ以上→キーパーソンを死亡"
+   },
+   {
+    "id": "KILLER_PROT",
+    "effect": "protagonists_die",
+    "when": "turn_end",
+    "conds": [
+     [
+      "counter",
+      "self",
+      "int",
+      4
+     ]
+    ],
+    "src": "キラー【任意能力：ターン終了フェイズ】このキャラクターに[暗躍C]が4つ以上→主人公を死亡"
+   }
+  ],
+  "SK": [
+   {
+    "id": "SK_KILL",
+    "effect": "kill",
+    "target": "any",
+    "when": "turn_end",
+    "conds": [
+     [
+      "alone_with",
+      "self",
+      "target"
+     ]
+    ],
+    "src": "シリアルキラー【強制：ターン終了フェイズ】同一エリアにいるキャラクターが1人だけ→そのキャラクターを死亡"
+   }
+  ],
+  "MAIN_LOVERS": [
+   {
+    "id": "ML_PROT",
+    "effect": "protagonists_die",
+    "when": "turn_end",
+    "conds": [
+     [
+      "counter",
+      "self",
+      "int",
+      1
+     ],
+     [
+      "counter",
+      "self",
+      "par",
+      3
+     ]
+    ],
+    "src": "メインラバーズ【任意能力：ターン終了フェイズ】暗躍1以上かつ不安3以上→主人公を死亡"
+   }
+  ],
+  "FRIEND": [
+   {
+    "effect": "loss_at_loop_end",
+    "conds": [
+     [
+      "dead",
+      "self"
+     ]
+    ],
+    "src": "フレンド【敗北条件：ループ終了時】このカードが死亡している"
+   }
+  ],
+  "TT": [
+   {
+    "effect": "protagonists_lose",
+    "when": "last_day_turn_end",
+    "conds": [
+     [
+      "counter_max",
+      "self",
+      "gw",
+      2
+     ]
+    ],
+    "src": "タイムトラベラー【任意能力：最終日のターン終了フェイズ】友好2以下→敗北"
+   }
+  ]
+ },
+ "role_changes": {
+  "X_VIRUS": {
+   "from": "PERSON",
+   "to": "SK",
+   "conds": [
+    [
+     "counter",
+     "self",
+     "par",
+     3
+    ]
+   ],
+   "src": "妄想拡大ウイルス【強制：常時】パーソンは不安3以上の間シリアルキラー"
+  }
+ },
+ "incidents": {
+  "MURDER": {
+   "effect": "kill",
+   "target": "same_area_other",
+   "src": "殺人事件 犯人と同一エリアにいる犯人以外のキャラクター1人を死亡"
+  },
+  "SUICIDE": {
+   "effect": "kill",
+   "target": "culprit",
+   "src": "自殺 犯人は死亡"
+  },
+  "HOSPITAL": {
+   "effect": "kill_all_in",
+   "area": "HOS",
+   "conds": [
+    [
+     "board",
+     "HOS",
+     1
+    ]
+   ],
+   "effect2": "protagonists_die",
+   "conds2": [
+    [
+     "board",
+     "HOS",
+     2
+    ]
+   ],
+   "src": "病院の事件"
+  },
+  "REMOTE": {
+   "effect": "kill",
+   "target": "any",
+   "conds": [
+    [
+     "counter",
+     "target",
+     "int",
+     2
+    ]
+   ],
+   "src": "遠隔殺人 暗躍2以上のキャラクター1人を死亡"
+  }
+ },
+ "rules": {
+  "Y_SEAL": {
+   "effect": "loss_at_loop_end",
+   "conds": [
+    [
+     "board",
+     "SHR",
+     2
+    ]
+   ],
+   "src": "封印されしモノ【敗北条件：ループ終了時】神社に暗躍2以上"
+  },
+  "Y_CONTRACT": {
+   "effect": "loss_at_loop_end",
+   "conds": [
+    [
+     "counter",
+     "KEY",
+     "int",
+     2
+    ]
+   ],
+   "src": "僕と契約しようよ！【敗北条件：ループ終了時】キーパーソンに暗躍2以上"
+  },
+  "Y_FUTURE": {
+   "effect": "loss_at_loop_end",
+   "conds": [
+    [
+     "incident_occurred",
+     "BUTTERFLY"
+    ]
+   ],
+   "src": "未来改変プラン【敗北条件：ループ終了時】蝶の羽ばたきが発生"
+  },
+  "Y_BOMB": {
+   "effect": "loss_at_loop_end",
+   "conds": [
+    [
+     "board",
+     "WITCH_START",
+     2
+    ]
+   ],
+   "src": "巨大時限爆弾Xの存在【敗北条件：ループ終了時】ウィッチの初期エリアに暗躍2以上"
+  }
+ }
+}

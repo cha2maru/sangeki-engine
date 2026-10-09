@@ -1,0 +1,846 @@
+{
+ "C01": {
+  "name": "男子学生",
+  "card": "01",
+  "limit": 2,
+  "start": "SCH",
+  "forbidden": [],
+  "tags": [
+   "学生",
+   "少年"
+  ],
+  "traits": "",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 2,
+    "once": false,
+    "kind": "char",
+    "text": "同一エリアの自身以外の学生1人から不安カウンターを1つ取り除く。"
+   }
+  ],
+  "engine": true
+ },
+ "C02": {
+  "name": "女子学生",
+  "card": "02",
+  "limit": 3,
+  "start": "SCH",
+  "forbidden": [],
+  "tags": [
+   "学生",
+   "少女"
+  ],
+  "traits": "",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 2,
+    "once": false,
+    "kind": "char",
+    "text": "同一エリアの自身以外の学生1人から不安カウンターを1つ取り除く。"
+   }
+  ],
+  "engine": true
+ },
+ "C03": {
+  "name": "お嬢様",
+  "card": "03",
+  "limit": 1,
+  "start": "SCH",
+  "forbidden": [],
+  "tags": [
+   "学生",
+   "少女"
+  ],
+  "traits": "",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 3,
+    "once": false,
+    "kind": "char",
+    "text": "学校か都市にいないと使えない。同一エリアのキャラクター1人に友好カウンターを1つ置く。"
+   }
+  ],
+  "engine": true
+ },
+ "C04": {
+  "name": "巫女",
+  "card": "04",
+  "limit": 2,
+  "start": "SHR",
+  "forbidden": [
+   "CIT"
+  ],
+  "tags": [
+   "学生",
+   "少女"
+  ],
+  "traits": "",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 3,
+    "once": false,
+    "kind": "none",
+    "text": "神社にいないと使えない。神社から暗躍カウンターを1つ取り除く。"
+   },
+   {
+    "idx": 1,
+    "need": 5,
+    "once": true,
+    "kind": "char",
+    "text": "同一エリアのキャラクター1人の役職を知る。"
+   }
+  ],
+  "engine": true
+ },
+ "C05": {
+  "name": "刑事",
+  "card": "05",
+  "limit": 3,
+  "start": "CIT",
+  "forbidden": [],
+  "tags": [
+   "大人",
+   "男性"
+  ],
+  "traits": "",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 4,
+    "once": true,
+    "kind": "incident",
+    "text": "このループで発生した事件1つの犯人を知る。"
+   },
+   {
+    "idx": 1,
+    "need": 5,
+    "once": true,
+    "kind": "char",
+    "text": "同一エリアのキャラクター1人に護衛カウンターを1つ置く。護衛カウンターが置かれたキャラクターが死亡する場合、代わりに護衛カウンターを1つ取り除く。"
+   }
+  ],
+  "engine": true
+ },
+ "C06": {
+  "name": "サラリーマン",
+  "card": "06",
+  "limit": 2,
+  "start": "CIT",
+  "forbidden": [
+   "SCH"
+  ],
+  "tags": [
+   "大人",
+   "男性"
+  ],
+  "traits": "",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 3,
+    "once": false,
+    "kind": "none",
+    "text": "このキャラクターの役職を知る。"
+   }
+  ],
+  "engine": true
+ },
+ "C07": {
+  "name": "情報屋",
+  "card": "07",
+  "limit": 3,
+  "start": "CIT",
+  "forbidden": [],
+  "tags": [
+   "大人",
+   "女性"
+  ],
+  "traits": "",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 5,
+    "once": true,
+    "kind": "ruleX",
+    "text": "ルールXの名前1つを宣言する。脚本家は脚本に使われているルールXのうち、宣言された名前でないもの1つを公開する。"
+   }
+  ],
+  "engine": true
+ },
+ "C08": {
+  "name": "医者",
+  "card": "08",
+  "limit": 2,
+  "start": "HOS",
+  "forbidden": [],
+  "tags": [
+   "大人",
+   "男性"
+  ],
+  "traits": "",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 2,
+    "once": false,
+    "kind": "doctor",
+    "text": "同一エリアの自身以外のキャラクターから不安カウンターを1つ取り除く。または不安カウンターを1つ置く。このキャラクターが友好無視を持ち、さらに友好カウンターが2つ以上置かれている場合、脚本家はこの能力を脚本家能力フェイズに使用できる。"
+   },
+   {
+    "idx": 1,
+    "need": 3,
+    "once": false,
+    "kind": "none",
+    "text": "このループ中、入院患者は禁止エリアを失い、病院以外に移動できるようになる。"
+   }
+  ],
+  "engine": true
+ },
+ "C09": {
+  "name": "入院患者",
+  "card": "09",
+  "limit": 2,
+  "start": "HOS",
+  "forbidden": [
+   "SHR",
+   "CIT",
+   "SCH"
+  ],
+  "tags": [
+   "少年"
+  ],
+  "traits": "",
+  "abilities": [],
+  "engine": true
+ },
+ "C10": {
+  "name": "委員長",
+  "card": "10",
+  "limit": 2,
+  "start": "SCH",
+  "forbidden": [],
+  "tags": [
+   "学生",
+   "少女"
+  ],
+  "traits": "",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 2,
+    "once": true,
+    "kind": "card",
+    "text": "リーダーは自身の行動カードのうち、1ループ1回制限かつ使用済みのものを1つ選び、それを手札に戻す。"
+   }
+  ],
+  "engine": true
+ },
+ "C11": {
+  "name": "イレギュラー",
+  "card": "11",
+  "limit": 3,
+  "start": "SCH",
+  "forbidden": [],
+  "tags": [
+   "学生",
+   "少年"
+  ],
+  "traits": "脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、選ばれたルールにより追加されないいずれかの役職となる。",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 3,
+    "once": false,
+    "kind": "loop2",
+    "text": "第2ループ以降でないと使えない。このキャラクターの役職を知る。この能力は友好無視や絶対友好無視で拒否されない。"
+   }
+  ],
+  "engine": true
+ },
+ "C12": {
+  "name": "異世界人",
+  "card": "12",
+  "limit": 2,
+  "start": "SHR",
+  "forbidden": [
+   "HOS"
+  ],
+  "tags": [
+   "少女"
+  ],
+  "traits": "",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 4,
+    "once": true,
+    "kind": "char",
+    "text": "同一エリアの自身以外のキャラクター1人を死亡させる。"
+   },
+   {
+    "idx": 1,
+    "need": 5,
+    "once": true,
+    "kind": "corpse",
+    "text": "同一エリアの死体1つを蘇生させる。"
+   }
+  ],
+  "engine": true
+ },
+ "C13": {
+  "name": "神格",
+  "card": "13",
+  "limit": 3,
+  "start": "SHR",
+  "forbidden": [],
+  "tags": [
+   "男性",
+   "女性"
+  ],
+  "traits": "脚本作成時にループ数を1つ指定しておく。このキャラクターはそのループまでの間、ループの準備においてボードに配置しない。",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 3,
+    "once": true,
+    "kind": "sheet_incident",
+    "text": "事件1つの犯人を知る。"
+   },
+   {
+    "idx": 1,
+    "need": 5,
+    "once": false,
+    "kind": "char_or_board",
+    "text": "同一エリアのキャラクター1人か、自身のいるボードから暗躍カウンターを1つ取り除く。"
+   }
+  ],
+  "engine": true
+ },
+ "C14": {
+  "name": "アイドル",
+  "card": "14",
+  "limit": 2,
+  "start": "CIT",
+  "forbidden": [],
+  "tags": [
+   "学生",
+   "少女"
+  ],
+  "traits": "",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 3,
+    "once": false,
+    "kind": "char",
+    "text": "同一エリアの自身以外のキャラクター1人から不安カウンターを1つ取り除く。"
+   },
+   {
+    "idx": 1,
+    "need": 4,
+    "once": false,
+    "kind": "char",
+    "text": "同一エリアの自身以外のキャラクター1人に友好カウンターを1つ置く。"
+   }
+  ],
+  "engine": true
+ },
+ "C15": {
+  "name": "マスコミ",
+  "card": "15",
+  "limit": 2,
+  "start": "CIT",
+  "forbidden": [],
+  "tags": [
+   "大人",
+   "男性"
+  ],
+  "traits": "",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 2,
+    "once": false,
+    "kind": "any",
+    "text": "自身以外のキャラクター1人に不安カウンターを1つ置く。"
+   },
+   {
+    "idx": 1,
+    "need": 2,
+    "once": false,
+    "kind": "char_or_board",
+    "text": "同一エリアのキャラクター1人か、自身のいるボードに暗躍カウンターを1つ置く。"
+   }
+  ],
+  "engine": true
+ },
+ "C16": {
+  "name": "大物",
+  "card": "16",
+  "limit": 4,
+  "start": "CIT",
+  "forbidden": [],
+  "tags": [
+   "大人",
+   "男性"
+  ],
+  "traits": "脚本作成時にボードの名前を一つ指定しておく。ゲームの準備にそのボードに縄張りトークンを置く。以降そのボードは大物のテリトリーとして扱う。脚本家がこのキャラクターの能力を使う場合、テリトリーにいるものとして能力を使用してもよい。",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 5,
+    "once": true,
+    "kind": "territory",
+    "text": "テリトリーにいる自身以外のキャラクター1人の役職を知る。"
+   }
+  ],
+  "engine": true
+ },
+ "C17": {
+  "name": "ナース",
+  "card": "17",
+  "limit": 3,
+  "start": "HOS",
+  "forbidden": [],
+  "tags": [
+   "大人",
+   "女性"
+  ],
+  "traits": "",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 2,
+    "once": false,
+    "kind": "char",
+    "text": "同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人から不安カウンターを1つ取り除く。この能力は友好無視や絶対友好無視で拒否されない。"
+   }
+  ],
+  "engine": true
+ },
+ "C18": {
+  "name": "手先",
+  "card": "18",
+  "limit": 1,
+  "start": null,
+  "forbidden": [],
+  "tags": [
+   "大人",
+   "男性"
+  ],
+  "traits": "このキャラクターの初期エリアは、各ループの準備で脚本家が任意に決定する。",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 3,
+    "once": false,
+    "kind": "none",
+    "text": "このループ中、このキャラクターは自身が犯人の事件を発生させなくなる。"
+   }
+  ],
+  "engine": true
+ },
+ "C19": {
+  "name": "学者",
+  "card": "19",
+  "limit": 2,
+  "start": "HOS",
+  "forbidden": [],
+  "tags": [
+   "大人",
+   "男性"
+  ],
+  "traits": "各ループ開始時に、このキャラクターに友好カウンター、不安カウンター、暗躍カウンターのいずれかを1つ置く。",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 3,
+    "once": false,
+    "kind": "none",
+    "text": "このキャラクターから全てのカウンターを取り除く。その後、Exゲージを使用しているならば、その値を1増加または減少させる。"
+   }
+  ],
+  "engine": true
+ },
+ "C20": {
+  "name": "幻想",
+  "card": "20",
+  "limit": 3,
+  "start": "SHR",
+  "forbidden": [],
+  "tags": [
+   "虚構",
+   "女性"
+  ],
+  "traits": "行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 3,
+    "once": true,
+    "kind": "char_to_board",
+    "text": "同一エリアのキャラクター1人を任意のボードに移動させる。"
+   },
+   {
+    "idx": 1,
+    "need": 4,
+    "once": false,
+    "kind": "none",
+    "text": "このキャラクターをボードから取り除く。"
+   }
+  ],
+  "engine": true
+ },
+ "C21": {
+  "name": "鑑識官",
+  "card": "21",
+  "limit": 3,
+  "start": "CIT",
+  "forbidden": [],
+  "tags": [
+   "大人",
+   "男性"
+  ],
+  "traits": "",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 2,
+    "once": true,
+    "kind": "transfer",
+    "text": "同一エリアの自身以外のキャラクター2人の間で、任意のカウンター1つを移動させる。"
+   },
+   {
+    "idx": 1,
+    "need": 5,
+    "once": true,
+    "kind": "corpse_any",
+    "text": "死体1つの役職を知る。"
+   }
+  ],
+  "engine": true
+ },
+ "C22": {
+  "name": "A.I.",
+  "card": "22",
+  "limit": 4,
+  "start": "CIT",
+  "forbidden": [
+   "HOS",
+   "SHR",
+   "SCH"
+  ],
+  "tags": [
+   "造物"
+  ],
+  "traits": "脚本作成時、このキャラクターは「パーソン」にできない。 ／ このキャラクターが犯人の事件の発生を判定する場合、全てのカウンターを不安カウンターとしても扱う。",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 3,
+    "once": true,
+    "kind": "sheet_incident",
+    "text": "公開シートに書かれた事件1つを選び、その事件効果を解決する。犯人はA.I.であるかのように扱い、脚本家が行うすべての決定は代わりにリーダーが行う（事件が発生したとはみなされない）。"
+   }
+  ],
+  "engine": true
+ },
+ "C23": {
+  "name": "教師",
+  "card": "23",
+  "limit": 2,
+  "start": "SCH",
+  "forbidden": [],
+  "tags": [
+   "大人",
+   "女性"
+  ],
+  "traits": "",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 3,
+    "once": false,
+    "kind": "student",
+    "text": "同一エリアの学生1人から不安カウンターを1つ取り除く。または不安カウンターを1つ置く。"
+   },
+   {
+    "idx": 1,
+    "need": 4,
+    "once": true,
+    "kind": "student",
+    "text": "同一エリアの学生1人の役職を知る。"
+   }
+  ],
+  "engine": true
+ },
+ "C24": {
+  "name": "転校生",
+  "card": "24",
+  "limit": 2,
+  "start": "SCH",
+  "forbidden": [],
+  "tags": [
+   "学生",
+   "少女"
+  ],
+  "traits": "脚本作成時に日数を1つ指定しておく。このキャラクターはループの準備においてボードに配置されず、代わりにその日のターン開始フェイズに配置される。",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 2,
+    "once": false,
+    "kind": "char",
+    "text": "同一エリアの自身以外のキャラクター1人に置かれた暗躍カウンター1つを友好カウンターに置き換える。"
+   }
+  ],
+  "engine": true
+ },
+ "C25": {
+  "name": "軍人",
+  "card": "25",
+  "limit": 3,
+  "start": "HOS",
+  "forbidden": [],
+  "tags": [
+   "大人",
+   "男性"
+  ],
+  "traits": "",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 2,
+    "once": true,
+    "kind": "char",
+    "text": "同一エリアのキャラクター1人に不安カウンターを2つ置く。"
+   },
+   {
+    "idx": 1,
+    "need": 5,
+    "once": true,
+    "kind": "none",
+    "text": "このループ中、主人公は死亡しない。"
+   }
+  ],
+  "engine": true
+ },
+ "C26": {
+  "name": "黒猫",
+  "card": "26",
+  "limit": 0,
+  "start": "SHR",
+  "forbidden": [],
+  "tags": [
+   "動物"
+  ],
+  "traits": "各ループ開始時に、神社に暗躍カウンターを1つ置く。 ／ このキャラクターが犯人の事件の事件効果は「何も起きない」に変更される。",
+  "abilities": [],
+  "engine": true
+ },
+ "C27": {
+  "name": "女の子",
+  "card": "27",
+  "limit": 1,
+  "start": "SCH",
+  "forbidden": [
+   "HOS",
+   "SHR",
+   "CIT"
+  ],
+  "tags": [
+   "学生",
+   "少女"
+  ],
+  "traits": "",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 1,
+    "once": false,
+    "kind": "none",
+    "text": "このループ中、このキャラクターは禁止エリアを失い、学校以外に移動できるようになる。"
+   },
+   {
+    "idx": 1,
+    "need": 3,
+    "once": true,
+    "kind": "board",
+    "text": "このキャラクターを現在地と隣り合ったボードに移動させる。"
+   }
+  ],
+  "engine": true
+ },
+ "C28": {
+  "name": "コピーキャット",
+  "card": "28",
+  "limit": 2,
+  "start": "CIT",
+  "forbidden": [],
+  "tags": [
+   "学生",
+   "少年"
+  ],
+  "traits": "脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、他のキャラクター1人と同じ役職となる（人数上限無視）。",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 3,
+    "once": false,
+    "kind": "loop2",
+    "text": "第2ループ以降でないと使えない。このキャラクターと同じ役職のキャラクター全員の名前を知る。この能力は友好無視や絶対友好無視で拒否されない。"
+   }
+  ],
+  "engine": true
+ },
+ "C29": {
+  "name": "教祖",
+  "card": "29",
+  "limit": 3,
+  "start": "SHR",
+  "forbidden": [],
+  "tags": [
+   "大人",
+   "女性"
+  ],
+  "traits": "このキャラクターが犯人の事件が発生するならば、事件効果を代わりに2回解決する。",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 3,
+    "once": false,
+    "kind": "critical_any",
+    "text": "自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人に友好カウンターを1つ置く。"
+   },
+   {
+    "idx": 1,
+    "need": 4,
+    "once": true,
+    "kind": "critical_here",
+    "text": "同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人の役職を知る。"
+   }
+  ],
+  "engine": true
+ },
+ "C30": {
+  "name": "ご神木",
+  "card": "30",
+  "limit": 4,
+  "start": "SHR",
+  "forbidden": [
+   "HOS",
+   "CIT",
+   "SCH"
+  ],
+  "tags": [
+   "樹木"
+  ],
+  "traits": "主人公は各ターンの主人公能力フェイズに、このキャラクターの上のカウンター1つを同一エリアの他のキャラクター1人に移してもよい。このキャラクターが友好無視を持つ場合、脚本家能力フェイズに脚本家もこの特性を用いる（強制）。",
+  "abilities": [],
+  "engine": true
+ },
+ "C31": {
+  "name": "妹",
+  "card": "31",
+  "limit": 3,
+  "start": "SHR",
+  "forbidden": [],
+  "tags": [
+   "少女",
+   "妹"
+  ],
+  "traits": "脚本作成時、このキャラクターは友好無視を持つ役職にできない。",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 5,
+    "once": false,
+    "kind": "proxy",
+    "text": "同一エリアの大人1人は友好能力1つを、十分な友好カウンターがあるかのように使用する。その能力は友好無視や絶対友好無視で拒否されないが、回数制限は参照する。"
+   }
+  ],
+  "engine": true
+ },
+ "C32": {
+  "name": "アルバイト",
+  "card": "32",
+  "limit": 1,
+  "start": "CIT",
+  "forbidden": [],
+  "tags": [
+   "大人",
+   "男性"
+  ],
+  "traits": "このカードは配役を無視してパーソンとなる。 ／ ターン終了フェイズにこのキャラクターに合計3つ以上のカウンターが置かれている場合、このキャラクターは死亡する。 ／ ターン開始フェイズにこのカードが死亡している場合、都市にアルバイト？を配置する。",
+  "abilities": [],
+  "engine": true
+ },
+ "C33": {
+  "name": "アルバイト？",
+  "card": "33",
+  "limit": 3,
+  "start": "CIT",
+  "forbidden": [],
+  "tags": [
+   "少女"
+  ],
+  "traits": "このキャラクターの配役ならびに事件の犯人かどうかはアルバイトと一致する。",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 3,
+    "once": true,
+    "kind": "char",
+    "text": "このキャラクターの役職を知り、同一エリアのキャラクター1人に友好カウンターを2つ置く。"
+   }
+  ],
+  "engine": true
+ },
+ "C34": {
+  "name": "従者",
+  "card": "34",
+  "limit": 3,
+  "start": null,
+  "forbidden": [],
+  "tags": [
+   "大人",
+   "女性"
+  ],
+  "traits": "同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 4,
+    "once": true,
+    "kind": "any_other",
+    "text": "ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する。"
+   }
+  ],
+  "engine": true
+ },
+ "C35": {
+  "name": "上位存在",
+  "card": "35",
+  "limit": 2,
+  "start": "SHR",
+  "forbidden": [],
+  "tags": [
+   "少女"
+  ],
+  "traits": "",
+  "abilities": [
+   {
+    "idx": 0,
+    "need": 3,
+    "once": true,
+    "kind": null,
+    "text": "同一エリアのキャラクター1人に希望カウンターか絶望カウンターを1つ置く。このキャラクターが友好無視を持ち、さらに友好カウンターが1つ以上置かれている場合、脚本家はこの能力を脚本家能力フェイズに使用できる。"
+   }
+  ],
+  "engine": false
+ }
+}

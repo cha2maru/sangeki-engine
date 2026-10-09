@@ -1,0 +1,6459 @@
+[
+ {
+  "_interface": "キャラクター第2陣a（C13 神格・C18 手先・C19 学者・C22 A.I.・C24 転校生・C26 黒猫・C29 教祖・C31 妹）の特性と友好能力。エンジンのコードを見ずに一次資料から先に書いた期待値。state は README の完全な状態（abilities.json と同じ追加フィールド: ability_used_today・ability_used_loop・incident_log・unbound）に次を加える提案。【登場の指定】脚本の追加項目 script.appear: {C13: {loop: N}}（神格の登場ループ）・{C24: {day: D}}（転校生の登場日）。【盤面にいないキャラクター】chars[cid] に present: false・area: null を持たせる（present が無ければ true）。盤面にいないキャラクターはどのエリアにもいないので「同一エリア」に数えず、事件・能力の対象にならない。カウンターは0のまま。loop_start は script.appear を見て present を決める（神格: 字面では loop ≤ N の間は配置しない。境界は unresolved）。転校生は毎ループの準備で present:false に戻し、新設の ph.turn_start(state) が state.day == D のとき初期エリア（学校）に生存・カウンター無しで配置する。【ループの準備】loop_start は ph.loop_start(state, init, choice) とする提案。init は ph.default_init(state.chars) を choice.init で上書きしたもの（手先 C18 は脚本家が毎ループ決めるので default_init に含めず、choice.init.C18 が無ければ error）。choice.scholar: 'gw'|'par'|'int'（学者のループ開始時のカウンター。学者がいて無ければ error）。黒猫がいれば 3-3 の除去の後に神社に暗躍1。choice が無いケースは {} とみなす。【手先[3]】state.suppressed_culprits（このループ中、犯人として事件を発生させないキャラの列）に C18 を足す。incident_occurs はこれを最優先で見る（公式FAQ 不可能優先の原則）。loop_start で空にする。expect.suppressed_culprits は全体（並びは問わない。キーが無ければ空とみなす）。【事件】phase: incident は later_stages と同じ（ph.incident_today → incident_occurs → run_incident(state, inc, choice)）。A.I. が犯人のとき incident_occurs は par+gw+int+guard(guard は unresolved) の合計を臨界と比べる。黒猫が犯人の事件は発生を通常どおり判定し（incident_log に occurred:true を残す）、効果だけ何もしない（choice は null）。教祖が犯人で発生したら効果を2回解決する: choice は2要素の列 [1回目の選択, 2回目の選択]（HOSPITAL・SUICIDE・CORRUPT は [null, null]。2回目に対象がいなければ null）。incident_log の記録は1回。【友好能力】declare: [[cid, idx, arg], ...] と refuse は chars_batch1 と同じ（use_ability(state, cid, idx, arg, refuse)）。idx はカード上から 0,1。神格[3] {incident, day}（公開シートの事件。発生の有無・未来を問わない）→ reveal.culprit。神格[5] {target: キャラ | \"B:<自身のエリア>\"}。手先[3] null。学者[3] null（Exゲージの部分はこの惨劇セットに無い）。A.I.[3] {incident, day, choice}: choice は事件の脚本家の選択と同じ形（s5_roles_incidents の _interface）をリーダーが与えたもの。犯人は A.I. として解決し、incident_log には記録しない（発生とみなさない）。死亡は既存の kill の1か所を通す。転校生[2] {target}。教祖[3][4] {target}。妹[5] {target: 同一エリアの大人, idx, arg}（target の能力 idx を arg で、友好の条件を無視して使う。拒否されない＝その宣言では絶対友好無視の自動拒否もしない。★は target の cid#idx で使用済みになる）。大人かどうかは data の属性（カードの 大人 表記）で見る。【then】chars_batch1 の then に加えて {phase:\"loop_start\", choice}（ph.loop_start(state, init, choice)）と {phase:\"loop_end\"}（ph.loop_end_loss(state) → expect.loss / reasons）。【その他の phase】phase: loop_start（choice を上記のとおり渡す）/ turn_start（ph.turn_start(state)）/ action（resolve_actions。input.placements）/ final（ab.final_battle(state, guesses)）。expect: chars は載せたキャラの載せた項目だけ（present は無ければ true とみなして比べる）、boards は全体、used_loop は全体（並びは問わない）、refused・reveal・occurred・loop_end は chars_batch1 と同じ、incident_log はその各記録が含まれること、incident_log_excludes はその各記録が含まれないこと、loss・reasons は s5_loop_end と同じ、error は状態を変えないこと。status: confirmed（一次資料で確定）/ unresolved（一次資料で決まらない。期待値は字面どおりの読みで、理由は unresolved 欄。試験は xfail）/ not_applicable（Basic Tragedy X に無い要素。試験は skip）。"
+ },
+ {
+  "id": "c13-absent-before-loop",
+  "desc": "神格（登場ループ3）。ループ1→2の準備で盤面に配置されない（present:false）",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C13": {
+     "area": null,
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": false
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [],
+    "appear": {
+     "C13": {
+      "loop": 3
+     }
+    }
+   }
+  },
+  "expect": {
+   "loop": 2,
+   "day": 1,
+   "chars": {
+    "C13": {
+     "present": false
+    },
+    "C01": {
+     "area": "SCH",
+     "present": true
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_13_1.png（2026-09-23 画像で照合）「特性: 脚本作成時にループ数を1つ指定しておく。このキャラクターはそのループまでの間、ループの準備においてボードに配置しない。[友好3]（1ループ1回制限）事件1つの犯人を知る。[友好5] 同一エリアのキャラクター1人か、自身のいるボードから暗躍カウンターを1つ取り除く」／主人公の書 印刷p20 §3 ループの準備 3-2 キャラクターの配置・3-3 カウンターの除去と配置（wiki/concepts/loop.md 照合済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c13-appear-boundary-loop",
+  "desc": "神格（登場ループ3）。ループ2→3の準備：字面「そのループまでの間…配置しない」ならループ3も配置しない",
+  "phase": "loop_start",
+  "state": {
+   "loop": 2,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C13": {
+     "area": null,
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": false
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [],
+    "appear": {
+     "C13": {
+      "loop": 3
+     }
+    }
+   }
+  },
+  "expect": {
+   "loop": 3,
+   "day": 1,
+   "chars": {
+    "C13": {
+     "present": true,
+     "area": "SHR",
+     "alive": true
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_13_1.png（2026-09-23 画像で照合）「特性: 脚本作成時にループ数を1つ指定しておく。このキャラクターはそのループまでの間、ループの準備においてボードに配置しない。[友好3]（1ループ1回制限）事件1つの犯人を知る。[友好5] 同一エリアのキャラクター1人か、自身のいるボードから暗躍カウンターを1つ取り除く」／主人公の書 印刷p20 §3 ループの準備 3-2 キャラクターの配置・3-3 カウンターの除去と配置（wiki/concepts/loop.md 照合済み） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "「そのループまでの間」が指定ループを含むか（指定ループで登場するのか、その次のループで登場するのか）が一次資料で決まらない。期待値は字面（指定ループまで配置しない＝ループ3も不在）"
+ },
+ {
+  "id": "c13-present-after-loop",
+  "desc": "神格（登場ループ3）。ループ3→4の準備では初期エリア神社に生存・カウンター無しで配置（どちらの読みでも登場済み）",
+  "phase": "loop_start",
+  "state": {
+   "loop": 3,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C13": {
+     "area": null,
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": false
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [],
+    "appear": {
+     "C13": {
+      "loop": 3
+     }
+    }
+   }
+  },
+  "expect": {
+   "loop": 4,
+   "day": 1,
+   "chars": {
+    "C13": {
+     "present": true,
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_13_1.png（2026-09-23 画像で照合）「特性: 脚本作成時にループ数を1つ指定しておく。このキャラクターはそのループまでの間、ループの準備においてボードに配置しない。[友好3]（1ループ1回制限）事件1つの犯人を知る。[友好5] 同一エリアのキャラクター1人か、自身のいるボードから暗躍カウンターを1つ取り除く」／主人公の書 印刷p20 §3 ループの準備 3-2 キャラクターの配置・3-3 カウンターの除去と配置（wiki/concepts/loop.md 照合済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c13-absent-not-murder-target",
+  "desc": "盤面にいない神格は、神社の犯人の殺人事件の対象にならない（どのエリアにもいない）→error",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "SHR",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C13": {
+     "area": null,
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": false
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C07"
+     }
+    ],
+    "appear": {
+     "C13": {
+      "loop": 3
+     }
+    }
+   }
+  },
+  "choice": {
+   "target": "C13"
+  },
+  "expect": {
+   "error": "盤面にいないキャラクターは同一エリアにいない"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_13_1.png（2026-09-23 画像で照合）「特性: 脚本作成時にループ数を1つ指定しておく。このキャラクターはそのループまでの間、ループの準備においてボードに配置しない。[友好3]（1ループ1回制限）事件1つの犯人を知る。[友好5] 同一エリアのキャラクター1人か、自身のいるボードから暗躍カウンターを1つ取り除く」（ボードに配置しない＝どのエリアにもいない）／早見表 殺人事件「犯人と同一エリアにいる犯人以外のキャラクター1人を死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c13-absent-action-target",
+  "desc": "盤面にいない神格に行動カード（不安+1）をセットできるか→字面では盤面のキャラクターでないのでerror",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C13": {
+     "area": null,
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": false
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [],
+    "appear": {
+     "C13": {
+      "loop": 3
+     }
+    }
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C13",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "C01",
+     "card": "INT1"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "MV_V"
+    },
+    {
+     "by": "A",
+     "target": "C01",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:CIT",
+     "card": "INTX"
+    },
+    {
+     "by": "C",
+     "target": "B:HOS",
+     "card": "MV_H"
+    }
+   ]
+  },
+  "expect": {
+   "error": "盤面にいないキャラクターにはセットできない"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_13_1.png（2026-09-23 画像で照合）「特性: 脚本作成時にループ数を1つ指定しておく。このキャラクターはそのループまでの間、ループの準備においてボードに配置しない。[友好3]（1ループ1回制限）事件1つの犯人を知る。[友好5] 同一エリアのキャラクター1人か、自身のいるボードから暗躍カウンターを1つ取り除く」 ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "盤面にいないキャラクターが行動カードのセット先になれるかの明文が無い（主人公の書 印刷p21 は「キャラクターかボード」とだけ言う。幻想の「キャラクターではなくなります」印刷p41 は幻想だけの記述）。期待値は「盤面に無いカードにはセットできない」"
+ },
+ {
+  "id": "c13-absent-final-battle",
+  "desc": "最終ループでも神格が未登場のまま最後の戦い。神格の役職を宣言せずに終えられるか→字面「キャラクター全員」なら宣言が要る（未宣言で終えるのはerror）",
+  "phase": "final",
+  "state": {
+   "loop": 3,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C13": {
+     "area": null,
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": false
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C07": "KUROMAKU",
+     "C13": "KEY"
+    },
+    "incidents": [],
+    "appear": {
+     "C13": {
+      "loop": 4
+     }
+    }
+   }
+  },
+  "guesses": [
+   {
+    "char": "C01",
+    "role": "PERSON"
+   },
+   {
+    "char": "C07",
+    "role": "KUROMAKU"
+   }
+  ],
+  "expect": {
+   "error": "神格の役職が未宣言"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_13_1.png（2026-09-23 画像で照合）「特性: 脚本作成時にループ数を1つ指定しておく。このキャラクターはそのループまでの間、ループの準備においてボードに配置しない。[友好3]（1ループ1回制限）事件1つの犯人を知る。[友好5] 同一エリアのキャラクター1人か、自身のいるボードから暗躍カウンターを1つ取り除く」／主人公の書 印刷p25「キャラクター全員について役職を正答できた場合、主人公の勝利」／ユーザー裁定 2026-09-23（全員分を宣言しないで終えられない） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "not_applicable",
+  "ruling_note": "最後の戦いの「キャラクター全員」に、盤面に一度も配置されていない神格を含むかが一次資料で決まらない"
+ },
+ {
+  "id": "c13-know-culprit-future",
+  "desc": "神格[3] まだ起きていない4日目の自殺の犯人（男子学生）を知る。刑事と違い「このループで発生したもの」に限られない。★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C13": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 4,
+      "id": "SUICIDE",
+      "culprit": "C01"
+     }
+    ]
+   }
+  },
+  "declare": [
+   [
+    "C13",
+    0,
+    {
+     "incident": "SUICIDE",
+     "day": 4
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "reveal": {
+    "culprit": {
+     "incident": "SUICIDE",
+     "char": "C01"
+    }
+   },
+   "used_loop": [
+    "C13#0"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_13_1.png（2026-09-23 画像で照合）「特性: 脚本作成時にループ数を1つ指定しておく。このキャラクターはそのループまでの間、ループの準備においてボードに配置しない。[友好3]（1ループ1回制限）事件1つの犯人を知る。[友好5] 同一エリアのキャラクター1人か、自身のいるボードから暗躍カウンターを1つ取り除く」／主人公の書 印刷p38 神格「[主人公]公開シートに書かれた事件1つを選びます。[脚本家]選ばれた事件の犯人を伝えます」「[主人公]神格と同一エリアにいるキャラクター1人か、神格のいるボードを選びます。そのキャラクターやボードに暗躍カウンターが置かれていなくても構いません。[脚本家]選ばれたキャラクターまたはボードに暗躍カウンターがあるならば、それを1つ取り除きます」（刑事 印刷p38 の「未来に予定されている事件や、発生しなかった事件を選ぶことはできません」に当たる制限が無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c13-know-culprit-not-on-sheet",
+  "desc": "神格[3] 公開シートに無い事件（邪気の汚染）は選べない→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C13": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 4,
+      "id": "SUICIDE",
+      "culprit": "C01"
+     }
+    ]
+   }
+  },
+  "declare": [
+   [
+    "C13",
+    0,
+    {
+     "incident": "CORRUPT",
+     "day": 3
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "公開シートに無い事件"
+  },
+  "source": "主人公の書 印刷p38 神格「[主人公]公開シートに書かれた事件1つを選びます。[脚本家]選ばれた事件の犯人を伝えます」「[主人公]神格と同一エリアにいるキャラクター1人か、神格のいるボードを選びます。そのキャラクターやボードに暗躍カウンターが置かれていなくても構いません。[脚本家]選ばれたキャラクターまたはボードに暗躍カウンターがあるならば、それを1つ取り除きます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c13-know-culprit-used",
+  "desc": "神格[3] このループに使用済み→error（1ループ1回制限）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C13": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 4,
+      "id": "SUICIDE",
+      "culprit": "C01"
+     }
+    ]
+   },
+   "ability_used_loop": [
+    "C13#0"
+   ]
+  },
+  "declare": [
+   [
+    "C13",
+    0,
+    {
+     "incident": "MURDER",
+     "day": 1
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "1ループ1回制限を使用済み"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_13_1.png（2026-09-23 画像で照合）「特性: 脚本作成時にループ数を1つ指定しておく。このキャラクターはそのループまでの間、ループの準備においてボードに配置しない。[友好3]（1ループ1回制限）事件1つの犯人を知る。[友好5] 同一エリアのキャラクター1人か、自身のいるボードから暗躍カウンターを1つ取り除く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c13-remove-int-char",
+  "desc": "神格[5] 同じ神社の黒猫から暗躍1つを取り除く（2→1）。★ではない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C13": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C26": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C13",
+    1,
+    {
+     "target": "C26"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C26": {
+     "int": 1
+    }
+   },
+   "used_loop": [],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_13_1.png（2026-09-23 画像で照合）「特性: 脚本作成時にループ数を1つ指定しておく。このキャラクターはそのループまでの間、ループの準備においてボードに配置しない。[友好3]（1ループ1回制限）事件1つの犯人を知る。[友好5] 同一エリアのキャラクター1人か、自身のいるボードから暗躍カウンターを1つ取り除く」／主人公の書 印刷p38 神格「[主人公]公開シートに書かれた事件1つを選びます。[脚本家]選ばれた事件の犯人を伝えます」「[主人公]神格と同一エリアにいるキャラクター1人か、神格のいるボードを選びます。そのキャラクターやボードに暗躍カウンターが置かれていなくても構いません。[脚本家]選ばれたキャラクターまたはボードに暗躍カウンターがあるならば、それを1つ取り除きます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c13-remove-int-board",
+  "desc": "神格[5] 自身のいる神社のボードから暗躍1つを取り除く（2→1）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C13": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 2,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C13",
+    1,
+    {
+     "target": "B:SHR"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "boards": {
+    "HOS": 0,
+    "SHR": 1,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used_loop": [],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_13_1.png（2026-09-23 画像で照合）「特性: 脚本作成時にループ数を1つ指定しておく。このキャラクターはそのループまでの間、ループの準備においてボードに配置しない。[友好3]（1ループ1回制限）事件1つの犯人を知る。[友好5] 同一エリアのキャラクター1人か、自身のいるボードから暗躍カウンターを1つ取り除く」／主人公の書 印刷p38 神格「[主人公]公開シートに書かれた事件1つを選びます。[脚本家]選ばれた事件の犯人を伝えます」「[主人公]神格と同一エリアにいるキャラクター1人か、神格のいるボードを選びます。そのキャラクターやボードに暗躍カウンターが置かれていなくても構いません。[脚本家]選ばれたキャラクターまたはボードに暗躍カウンターがあるならば、それを1つ取り除きます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c13-remove-int-zero",
+  "desc": "神格[5] 暗躍の無いキャラクターも選べる。何も変わらない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C13": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C26": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C13",
+    1,
+    {
+     "target": "C26"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C26": {
+     "int": 0
+    }
+   },
+   "refused": false
+  },
+  "source": "主人公の書 印刷p38 神格「[主人公]公開シートに書かれた事件1つを選びます。[脚本家]選ばれた事件の犯人を伝えます」「[主人公]神格と同一エリアにいるキャラクター1人か、神格のいるボードを選びます。そのキャラクターやボードに暗躍カウンターが置かれていなくても構いません。[脚本家]選ばれたキャラクターまたはボードに暗躍カウンターがあるならば、それを1つ取り除きます」（「暗躍カウンターが置かれていなくても構いません」）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c13-remove-int-self",
+  "desc": "神格[5] 自身の暗躍も取り除ける（「同一エリアのキャラクター」は自身を含む）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C13": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 1,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C13",
+    1,
+    {
+     "target": "C13"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C13": {
+     "int": 0
+    }
+   },
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_13_1.png（2026-09-23 画像で照合）「特性: 脚本作成時にループ数を1つ指定しておく。このキャラクターはそのループまでの間、ループの準備においてボードに配置しない。[友好3]（1ループ1回制限）事件1つの犯人を知る。[友好5] 同一エリアのキャラクター1人か、自身のいるボードから暗躍カウンターを1つ取り除く」／公式FAQ Ch01「その能力を使うキャラクターを含みます。含まない場合は男子学生のように「自身以外の」と記述されます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c13-remove-other-board-error",
+  "desc": "神格[5] 神格のいない都市のボードは選べない→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C13": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 2,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C13",
+    1,
+    {
+     "target": "B:CIT"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "神格のいるボードではない"
+  },
+  "source": "主人公の書 印刷p38 神格「[主人公]公開シートに書かれた事件1つを選びます。[脚本家]選ばれた事件の犯人を伝えます」「[主人公]神格と同一エリアにいるキャラクター1人か、神格のいるボードを選びます。そのキャラクターやボードに暗躍カウンターが置かれていなくても構いません。[脚本家]選ばれたキャラクターまたはボードに暗躍カウンターがあるならば、それを1つ取り除きます」（「神格のいるボード」）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c18-init-chosen",
+  "desc": "手先の初期エリアはループの準備で脚本家が決める（choice.init.C18=神社）。前ループのエリア（都市）とは無関係に神社で開始",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C18": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_CIRCLE"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "choice": {
+   "init": {
+    "C18": "SHR"
+   }
+  },
+  "expect": {
+   "loop": 2,
+   "day": 1,
+   "chars": {
+    "C18": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_18_1.png（2026-09-23 画像で照合）「特性: このキャラクターの初期エリアは、各ループの準備で脚本家が任意に決定する。[友好3] このループ中、このキャラクターは自身が犯人の事件を発生させなくなる」／主人公の書 印刷p20 §3 ループの準備 3-2 キャラクターの配置・3-3 カウンターの除去と配置（wiki/concepts/loop.md 照合済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c18-init-missing-error",
+  "desc": "手先の初期エリアの選択が無い→error（脚本家の決定が要る）",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C18": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "choice": {},
+  "expect": {
+   "error": "手先の初期エリアが未決定"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_18_1.png（2026-09-23 画像で照合）「特性: このキャラクターの初期エリアは、各ループの準備で脚本家が任意に決定する。[友好3] このループ中、このキャラクターは自身が犯人の事件を発生させなくなる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c18-stop-incident",
+  "desc": "手先[3] を使ったループでは、手先が犯人の殺人事件は不安臨界以上でも発生しない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C18": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C18"
+     }
+    ]
+   }
+  },
+  "declare": [
+   [
+    "C18",
+    0,
+    null
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "then": {
+   "phase": "incident",
+   "choice": null
+  },
+  "expect": {
+   "refused": false,
+   "occurred": false,
+   "chars": {
+    "C06": {
+     "alive": true
+    }
+   },
+   "suppressed_culprits": [
+    "C18"
+   ]
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_18_1.png（2026-09-23 画像で照合）「特性: このキャラクターの初期エリアは、各ループの準備で脚本家が任意に決定する。[友好3] このループ中、このキャラクターは自身が犯人の事件を発生させなくなる」／主人公の書 印刷p41 手先「[主人公]能力の使用を宣言してください。[脚本家]このループ中、犯人が手先である事件は発生しなくなります」／公式FAQ 不可能優先の原則「例：手先の友好能力が使用されているとする。この時…手先が犯人である事件は発生しない」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c18-refused-incident-occurs",
+  "desc": "手先がキラー（友好無視）で[3]を拒否→効果なし。その日の殺人事件は発生する",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C18": {
+     "area": "CIT",
+     "alive": true,
+     "par": 1,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C18": "KILLER"
+    },
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C18"
+     }
+    ]
+   }
+  },
+  "declare": [
+   [
+    "C18",
+    0,
+    null
+   ]
+  ],
+  "refuse": [
+   true
+  ],
+  "then": {
+   "phase": "incident",
+   "choice": {
+    "target": "C06"
+   }
+  },
+  "expect": {
+   "refused": true,
+   "occurred": true,
+   "chars": {
+    "C06": {
+     "alive": false
+    }
+   },
+   "suppressed_culprits": []
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_18_1.png（2026-09-23 画像で照合）「特性: このキャラクターの初期エリアは、各ループの準備で脚本家が任意に決定する。[友好3] このループ中、このキャラクターは自身が犯人の事件を発生させなくなる」／主人公の書 印刷p23 4-6「拒否できるのは、友好無視を持つキャラクターの友好能力のみです。拒否が行われたとしても「1ループ1回制限」の能力は使用済になります」／主人公の書 印刷p24 事件フェイズ（犯人が生存し、不安臨界以上の不安カウンター→必ず発生。wiki/concepts/turn-phases.md 照合済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c18-other-culprit-unaffected",
+  "desc": "手先[3] は手先が犯人の事件だけを止める。情報屋が犯人の殺人事件は発生する",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C18": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "declare": [
+   [
+    "C18",
+    0,
+    null
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "then": {
+   "phase": "incident",
+   "choice": {
+    "target": "C06"
+   }
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C06": {
+     "alive": false
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_18_1.png（2026-09-23 画像で照合）「特性: このキャラクターの初期エリアは、各ループの準備で脚本家が任意に決定する。[友好3] このループ中、このキャラクターは自身が犯人の事件を発生させなくなる」／主人公の書 印刷p41 手先「[主人公]能力の使用を宣言してください。[脚本家]このループ中、犯人が手先である事件は発生しなくなります」／公式FAQ 不可能優先の原則「例：手先の友好能力が使用されているとする。この時…手先が犯人である事件は発生しない」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c18-reset-next-loop",
+  "desc": "手先[3] の効果は「このループ中」だけ。次のループの準備で解除される",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C18": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   },
+   "suppressed_culprits": [
+    "C18"
+   ]
+  },
+  "choice": {
+   "init": {
+    "C18": "CIT"
+   }
+  },
+  "expect": {
+   "loop": 2,
+   "day": 1,
+   "suppressed_culprits": []
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_18_1.png（2026-09-23 画像で照合）「特性: このキャラクターの初期エリアは、各ループの準備で脚本家が任意に決定する。[友好3] このループ中、このキャラクターは自身が犯人の事件を発生させなくなる」／主人公の書 印刷p20 §3 ループの準備 3-2 キャラクターの配置・3-3 カウンターの除去と配置（wiki/concepts/loop.md 照合済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c19-loop-start-gw",
+  "desc": "学者 ループ開始時に脚本家が友好を選ぶ→病院に友好1だけ（前ループのカウンターは除去済み）",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C19": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 2,
+     "int": 1,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_CIRCLE"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "choice": {
+   "scholar": "gw"
+  },
+  "expect": {
+   "loop": 2,
+   "day": 1,
+   "chars": {
+    "C19": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_19_1.png（2026-09-23 画像で照合）「特性: 各ループ開始時に、このキャラクターに友好カウンター、不安カウンター、暗躍カウンターのいずれかを1つ置く。[友好3] このキャラクターから全てのカウンターを取り除く。その後、Exゲージを使用しているならば、その値を1増加または減少させる」／主人公の書 印刷p20 §3 ループの準備 3-2 キャラクターの配置・3-3 カウンターの除去と配置（wiki/concepts/loop.md 照合済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c19-loop-start-missing-error",
+  "desc": "学者のカウンターの選択が無い→error",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C19": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 2,
+     "int": 1,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "choice": {},
+  "expect": {
+   "error": "学者のカウンターが未選択"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_19_1.png（2026-09-23 画像で照合）「特性: 各ループ開始時に、このキャラクターに友好カウンター、不安カウンター、暗躍カウンターのいずれかを1つ置く。[友好3] このキャラクターから全てのカウンターを取り除く。その後、Exゲージを使用しているならば、その値を1増加または減少させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c19-loop-start-with-thread",
+  "desc": "因果の糸＋学者。前ループ終了時に友好があった学者に不安2、さらに脚本家が不安を選ぶ→不安3",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C19": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 2,
+     "int": 1,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "choice": {
+   "scholar": "par"
+  },
+  "expect": {
+   "loop": 2,
+   "day": 1,
+   "chars": {
+    "C19": {
+     "par": 3,
+     "gw": 0,
+     "int": 0
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_19_1.png（2026-09-23 画像で照合）「特性: 各ループ開始時に、このキャラクターに友好カウンター、不安カウンター、暗躍カウンターのいずれかを1つ置く。[友好3] このキャラクターから全てのカウンターを取り除く。その後、Exゲージを使用しているならば、その値を1増加または減少させる」／早見表 因果の糸「【強制：ループ開始時】ひとつ前のループ終了時に[友好C]の置かれていた全キャラクターに[不安C]を2つ置く」／主人公の書 印刷p20 §3 ループの準備 3-2 キャラクターの配置・3-3 カウンターの除去と配置（wiki/concepts/loop.md 照合済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c19-remove-all",
+  "desc": "学者[3] 自身の友好・不安・暗躍をすべて取り除く",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C19": {
+     "area": "HOS",
+     "alive": true,
+     "par": 2,
+     "gw": 3,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C19",
+    0,
+    null
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C19": {
+     "par": 0,
+     "gw": 0,
+     "int": 0
+    }
+   },
+   "refused": false,
+   "used_loop": []
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_19_1.png（2026-09-23 画像で照合）「特性: 各ループ開始時に、このキャラクターに友好カウンター、不安カウンター、暗躍カウンターのいずれかを1つ置く。[友好3] このキャラクターから全てのカウンターを取り除く。その後、Exゲージを使用しているならば、その値を1増加または減少させる」／主人公の書 印刷p41 学者「[脚本家]学者に置かれた全てのカウンターを取り除いてください。さらにExゲージを使用しているならば、それを1増加または1減少させます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c19-remove-all-then-thread",
+  "desc": "学者[3] で友好も取り除いたので、次のループの因果の糸は学者に不安を置かない（脚本家は友好を選ぶ）",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C19": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C19",
+    0,
+    null
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "then": {
+   "phase": "loop_start",
+   "choice": {
+    "scholar": "gw"
+   }
+  },
+  "expect": {
+   "chars": {
+    "C19": {
+     "par": 0,
+     "gw": 1,
+     "int": 0
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_19_1.png（2026-09-23 画像で照合）「特性: 各ループ開始時に、このキャラクターに友好カウンター、不安カウンター、暗躍カウンターのいずれかを1つ置く。[友好3] このキャラクターから全てのカウンターを取り除く。その後、Exゲージを使用しているならば、その値を1増加または減少させる」／早見表 因果の糸／主人公の書 印刷p20 §3 ループの準備 3-2 キャラクターの配置・3-3 カウンターの除去と配置（wiki/concepts/loop.md 照合済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c19-remove-guard",
+  "desc": "学者[3] 護衛カウンターも「全てのカウンター」として取り除くか→字面では取り除く",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C19": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 1
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C19",
+    0,
+    null
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C19": {
+     "gw": 0,
+     "guard": 0
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_19_1.png（2026-09-23 画像で照合）「特性: 各ループ開始時に、このキャラクターに友好カウンター、不安カウンター、暗躍カウンターのいずれかを1つ置く。[友好3] このキャラクターから全てのカウンターを取り除く。その後、Exゲージを使用しているならば、その値を1増加または減少させる」／主人公の書 印刷p18 カウンター欄（護衛カウンターは進行管理用のカウンターとして挙がる。wiki/concepts/counters.md） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "「全てのカウンター」に護衛カウンター（刑事[5]）を含むかが一次資料で決まらない。印刷p18 では護衛カウンターは友好・不安・暗躍と別の「進行管理用」に分類される。期待値は字面（含む）"
+ },
+ {
+  "id": "c19-refused",
+  "desc": "学者がクロマクで[3]を拒否→カウンターはそのまま",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C19": {
+     "area": "HOS",
+     "alive": true,
+     "par": 1,
+     "gw": 3,
+     "int": 1,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C19": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C19",
+    0,
+    null
+   ]
+  ],
+  "refuse": [
+   true
+  ],
+  "expect": {
+   "chars": {
+    "C19": {
+     "par": 1,
+     "gw": 3,
+     "int": 1
+    }
+   },
+   "refused": true
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_19_1.png（2026-09-23 画像で照合）「特性: 各ループ開始時に、このキャラクターに友好カウンター、不安カウンター、暗躍カウンターのいずれかを1つ置く。[友好3] このキャラクターから全てのカウンターを取り除く。その後、Exゲージを使用しているならば、その値を1増加または減少させる」／主人公の書 印刷p23 4-6「拒否できるのは、友好無視を持つキャラクターの友好能力のみです。拒否が行われたとしても「1ループ1回制限」の能力は使用済になります」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c19-ex-gauge",
+  "desc": "学者[3] の後半「Exゲージを使用しているならば1増減」→ Basic Tragedy X にExゲージは無い",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C19": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C19",
+    0,
+    null
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C19": {
+     "gw": 0
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_19_1.png（2026-09-23 画像で照合）「特性: 各ループ開始時に、このキャラクターに友好カウンター、不安カウンター、暗躍カウンターのいずれかを1つ置く。[友好3] このキャラクターから全てのカウンターを取り除く。その後、Exゲージを使用しているならば、その値を1増加または減少させる」／主人公の書 印刷p41 学者「[脚本家]学者に置かれた全てのカウンターを取り除いてください。さらにExゲージを使用しているならば、それを1増加または1減少させます」",
+  "status": "not_applicable"
+ },
+ {
+  "id": "c22-occurs-mixed-counters",
+  "desc": "A.I.が犯人。不安2・友好1・暗躍1＝4つ→不安臨界4以上として発生",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C22": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 1,
+     "int": 1,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C22": "KUROMAKU"
+    },
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C22"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C06"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C06": {
+     "alive": false
+    }
+   },
+   "loop_end": null
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_22_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは「パーソン」にできない。特性: このキャラクターが犯人の事件の発生を判定する場合、全てのカウンターを不安カウンターとしても扱う。[友好3]（1ループ1回制限）公開シートに書かれた事件1つを選び、その事件効果を解決する。犯人はA.I.であるかのように扱い、脚本家が行うすべての決定は代わりにリーダーが行う（事件が発生したとはみなされない）」／主人公の書 印刷p24 事件フェイズ（犯人が生存し、不安臨界以上の不安カウンター→必ず発生。wiki/concepts/turn-phases.md 照合済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c22-occurs-gw-only",
+  "desc": "A.I.が犯人。友好4だけ（不安0）でも発生",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C22": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C22": "KUROMAKU"
+    },
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C22"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C06"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C06": {
+     "alive": false
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_22_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは「パーソン」にできない。特性: このキャラクターが犯人の事件の発生を判定する場合、全てのカウンターを不安カウンターとしても扱う。[友好3]（1ループ1回制限）公開シートに書かれた事件1つを選び、その事件効果を解決する。犯人はA.I.であるかのように扱い、脚本家が行うすべての決定は代わりにリーダーが行う（事件が発生したとはみなされない）」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c22-below-limit",
+  "desc": "A.I.が犯人。不安2・友好1＝3つ→発生しない（「としても扱う」で同じカウンターを二重には数えない）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C22": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C22": "KUROMAKU"
+    },
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C22"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": false,
+   "chars": {
+    "C06": {
+     "alive": true
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_22_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは「パーソン」にできない。特性: このキャラクターが犯人の事件の発生を判定する場合、全てのカウンターを不安カウンターとしても扱う。[友好3]（1ループ1回制限）公開シートに書かれた事件1つを選び、その事件効果を解決する。犯人はA.I.であるかのように扱い、脚本家が行うすべての決定は代わりにリーダーが行う（事件が発生したとはみなされない）」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c22-guard-counts",
+  "desc": "A.I.が犯人。不安2・友好1・護衛1→字面「全てのカウンター」なら4つで発生",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C22": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 1,
+     "int": 0,
+     "guard": 1
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C22": "KUROMAKU"
+    },
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C22"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C06"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C06": {
+     "alive": false
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_22_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは「パーソン」にできない。特性: このキャラクターが犯人の事件の発生を判定する場合、全てのカウンターを不安カウンターとしても扱う。[友好3]（1ループ1回制限）公開シートに書かれた事件1つを選び、その事件効果を解決する。犯人はA.I.であるかのように扱い、脚本家が行うすべての決定は代わりにリーダーが行う（事件が発生したとはみなされない）」／主人公の書 印刷p18（護衛カウンターは進行管理用のカウンター） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "「全てのカウンター」に護衛カウンターを含むかが一次資料で決まらない（学者[3] と同じ問い）。期待値は字面（含む）"
+ },
+ {
+  "id": "c22-other-culprit-normal",
+  "desc": "犯人が情報屋（A.I.以外）なら友好は数えない。不安2・友好1 は臨界3未満→発生しない",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C22": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C22": "KUROMAKU"
+    },
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_22_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは「パーソン」にできない。特性: このキャラクターが犯人の事件の発生を判定する場合、全てのカウンターを不安カウンターとしても扱う。[友好3]（1ループ1回制限）公開シートに書かれた事件1つを選び、その事件効果を解決する。犯人はA.I.であるかのように扱い、脚本家が行うすべての決定は代わりにリーダーが行う（事件が発生したとはみなされない）」（「このキャラクターが犯人の事件」だけ）／主人公の書 印刷p24 事件フェイズ（犯人が生存し、不安臨界以上の不安カウンター→必ず発生。wiki/concepts/turn-phases.md 照合済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c22-ab-murder",
+  "desc": "A.I.[3] 殺人事件を選び、リーダーがA.I.と同じ都市のサラリーマンを選ぶ→死亡。事件は発生したとはみなされない（incident_log に記録しない）。★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C22": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C22": "KUROMAKU"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 3,
+      "id": "SPREAD",
+      "culprit": "C01"
+     },
+     {
+      "day": 4,
+      "id": "HOSPITAL",
+      "culprit": "C08"
+     },
+     {
+      "day": 5,
+      "id": "SUICIDE",
+      "culprit": "C22"
+     },
+     {
+      "day": 6,
+      "id": "MISSING",
+      "culprit": "C01"
+     }
+    ]
+   },
+   "incident_log": []
+  },
+  "declare": [
+   [
+    "C22",
+    0,
+    {
+     "incident": "MURDER",
+     "day": 1,
+     "choice": {
+      "target": "C06"
+     }
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C06": {
+     "alive": false
+    }
+   },
+   "used_loop": [
+    "C22#0"
+   ],
+   "refused": false,
+   "incident_log_excludes": [
+    {
+     "loop": 1,
+     "id": "MURDER",
+     "occurred": true
+    }
+   ]
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_22_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは「パーソン」にできない。特性: このキャラクターが犯人の事件の発生を判定する場合、全てのカウンターを不安カウンターとしても扱う。[友好3]（1ループ1回制限）公開シートに書かれた事件1つを選び、その事件効果を解決する。犯人はA.I.であるかのように扱い、脚本家が行うすべての決定は代わりにリーダーが行う（事件が発生したとはみなされない）」／主人公の書 印刷p40 A.I.「[主人公]公開シートに書かれた名前の事件1つを選びます。さらにその事件の事件効果でリーダーの選択が必要な場合（例えば、殺人事件で殺す相手を選ぶなど）、それらの選択も全て伝えます。その際、犯人が誰であるかを参照するならば、A.I.が犯人であるかのように扱います。[脚本家]選ばれた事件の事件効果を解決します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c22-ab-murder-self-error",
+  "desc": "A.I.[3] 殺人事件で犯人扱いのA.I.自身は選べない→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C22": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C22": "KUROMAKU"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 3,
+      "id": "SPREAD",
+      "culprit": "C01"
+     },
+     {
+      "day": 4,
+      "id": "HOSPITAL",
+      "culprit": "C08"
+     },
+     {
+      "day": 5,
+      "id": "SUICIDE",
+      "culprit": "C22"
+     },
+     {
+      "day": 6,
+      "id": "MISSING",
+      "culprit": "C01"
+     }
+    ]
+   },
+   "incident_log": []
+  },
+  "declare": [
+   [
+    "C22",
+    0,
+    {
+     "incident": "MURDER",
+     "day": 1,
+     "choice": {
+      "target": "C22"
+     }
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "殺人事件の対象は犯人以外"
+  },
+  "source": "主人公の書 印刷p40 A.I.「[主人公]公開シートに書かれた名前の事件1つを選びます。さらにその事件の事件効果でリーダーの選択が必要な場合（例えば、殺人事件で殺す相手を選ぶなど）、それらの選択も全て伝えます。その際、犯人が誰であるかを参照するならば、A.I.が犯人であるかのように扱います。[脚本家]選ばれた事件の事件効果を解決します」／早見表 殺人事件「犯人以外の」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c22-ab-spread",
+  "desc": "A.I.[3] 不安拡大。リーダーが不安2の対象（男子学生）と暗躍1の対象（情報屋）を選ぶ",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C22": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C22": "KUROMAKU"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 3,
+      "id": "SPREAD",
+      "culprit": "C01"
+     },
+     {
+      "day": 4,
+      "id": "HOSPITAL",
+      "culprit": "C08"
+     },
+     {
+      "day": 5,
+      "id": "SUICIDE",
+      "culprit": "C22"
+     },
+     {
+      "day": 6,
+      "id": "MISSING",
+      "culprit": "C01"
+     }
+    ]
+   },
+   "incident_log": []
+  },
+  "declare": [
+   [
+    "C22",
+    0,
+    {
+     "incident": "SPREAD",
+     "day": 3,
+     "choice": {
+      "par": "C01",
+      "int": "C07"
+     }
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C01": {
+     "par": 2
+    },
+    "C07": {
+     "int": 1
+    }
+   },
+   "used_loop": [
+    "C22#0"
+   ]
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_22_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは「パーソン」にできない。特性: このキャラクターが犯人の事件の発生を判定する場合、全てのカウンターを不安カウンターとしても扱う。[友好3]（1ループ1回制限）公開シートに書かれた事件1つを選び、その事件効果を解決する。犯人はA.I.であるかのように扱い、脚本家が行うすべての決定は代わりにリーダーが行う（事件が発生したとはみなされない）」／主人公の書 印刷p40 A.I.「[主人公]公開シートに書かれた名前の事件1つを選びます。さらにその事件の事件効果でリーダーの選択が必要な場合（例えば、殺人事件で殺す相手を選ぶなど）、それらの選択も全て伝えます。その際、犯人が誰であるかを参照するならば、A.I.が犯人であるかのように扱います。[脚本家]選ばれた事件の事件効果を解決します」／早見表 不安拡大",
+  "status": "confirmed"
+ },
+ {
+  "id": "c22-ab-hospital-protagonist",
+  "desc": "A.I.[3] 病院の事件。病院に暗躍2→病院の医者が死亡し、主人公も死亡してループ終了",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C22": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 2,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C22": "KUROMAKU"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 3,
+      "id": "SPREAD",
+      "culprit": "C01"
+     },
+     {
+      "day": 4,
+      "id": "HOSPITAL",
+      "culprit": "C08"
+     },
+     {
+      "day": 5,
+      "id": "SUICIDE",
+      "culprit": "C22"
+     },
+     {
+      "day": 6,
+      "id": "MISSING",
+      "culprit": "C01"
+     }
+    ]
+   },
+   "incident_log": []
+  },
+  "declare": [
+   [
+    "C22",
+    0,
+    {
+     "incident": "HOSPITAL",
+     "day": 4,
+     "choice": null
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C08": {
+     "alive": false
+    }
+   },
+   "loop_end": {
+    "reason": "PROTAGONIST_DIED",
+    "defeat": true
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_22_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは「パーソン」にできない。特性: このキャラクターが犯人の事件の発生を判定する場合、全てのカウンターを不安カウンターとしても扱う。[友好3]（1ループ1回制限）公開シートに書かれた事件1つを選び、その事件効果を解決する。犯人はA.I.であるかのように扱い、脚本家が行うすべての決定は代わりにリーダーが行う（事件が発生したとはみなされない）」／主人公の書 印刷p40 A.I.「[主人公]公開シートに書かれた名前の事件1つを選びます。さらにその事件の事件効果でリーダーの選択が必要な場合（例えば、殺人事件で殺す相手を選ぶなど）、それらの選択も全て伝えます。その際、犯人が誰であるかを参照するならば、A.I.が犯人であるかのように扱います。[脚本家]選ばれた事件の事件効果を解決します」／早見表 病院の事件",
+  "status": "confirmed"
+ },
+ {
+  "id": "c22-ab-suicide-key",
+  "desc": "A.I.[3] 自殺。犯人扱いのA.I.（キーパーソン）が死亡→ループ終了",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C22": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C22": "KEY"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 3,
+      "id": "SPREAD",
+      "culprit": "C01"
+     },
+     {
+      "day": 4,
+      "id": "HOSPITAL",
+      "culprit": "C08"
+     },
+     {
+      "day": 5,
+      "id": "SUICIDE",
+      "culprit": "C22"
+     },
+     {
+      "day": 6,
+      "id": "MISSING",
+      "culprit": "C01"
+     }
+    ]
+   },
+   "incident_log": []
+  },
+  "declare": [
+   [
+    "C22",
+    0,
+    {
+     "incident": "SUICIDE",
+     "day": 5,
+     "choice": null
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C22": {
+     "alive": false
+    }
+   },
+   "loop_end": {
+    "reason": "KEY_DIED",
+    "defeat": true
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_22_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは「パーソン」にできない。特性: このキャラクターが犯人の事件の発生を判定する場合、全てのカウンターを不安カウンターとしても扱う。[友好3]（1ループ1回制限）公開シートに書かれた事件1つを選び、その事件効果を解決する。犯人はA.I.であるかのように扱い、脚本家が行うすべての決定は代わりにリーダーが行う（事件が発生したとはみなされない）」／主人公の書 印刷p40 A.I.「[主人公]公開シートに書かれた名前の事件1つを選びます。さらにその事件の事件効果でリーダーの選択が必要な場合（例えば、殺人事件で殺す相手を選ぶなど）、それらの選択も全て伝えます。その際、犯人が誰であるかを参照するならば、A.I.が犯人であるかのように扱います。[脚本家]選ばれた事件の事件効果を解決します」／早見表 自殺「犯人は死亡する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c22-ab-missing-stay",
+  "desc": "A.I.[3] 行方不明。A.I.は都市以外が禁止エリアなので都市に留まり、都市に暗躍1",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C22": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C22": "KUROMAKU"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 3,
+      "id": "SPREAD",
+      "culprit": "C01"
+     },
+     {
+      "day": 4,
+      "id": "HOSPITAL",
+      "culprit": "C08"
+     },
+     {
+      "day": 5,
+      "id": "SUICIDE",
+      "culprit": "C22"
+     },
+     {
+      "day": 6,
+      "id": "MISSING",
+      "culprit": "C01"
+     }
+    ]
+   },
+   "incident_log": []
+  },
+  "declare": [
+   [
+    "C22",
+    0,
+    {
+     "incident": "MISSING",
+     "day": 6,
+     "choice": {
+      "board": "CIT"
+     }
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C22": {
+     "area": "CIT"
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 1,
+    "SCH": 0
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_22_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは「パーソン」にできない。特性: このキャラクターが犯人の事件の発生を判定する場合、全てのカウンターを不安カウンターとしても扱う。[友好3]（1ループ1回制限）公開シートに書かれた事件1つを選び、その事件効果を解決する。犯人はA.I.であるかのように扱い、脚本家が行うすべての決定は代わりにリーダーが行う（事件が発生したとはみなされない）」（禁止エリア 病院・神社・学校）／主人公の書 印刷p40 A.I.「[主人公]公開シートに書かれた名前の事件1つを選びます。さらにその事件の事件効果でリーダーの選択が必要な場合（例えば、殺人事件で殺す相手を選ぶなど）、それらの選択も全て伝えます。その際、犯人が誰であるかを参照するならば、A.I.が犯人であるかのように扱います。[脚本家]選ばれた事件の事件効果を解決します」／早見表 行方不明「犯人を任意のボードに移動させる。その後、犯人のいるボードに[暗躍C]を1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c22-ab-not-on-sheet",
+  "desc": "A.I.[3] 公開シートに無い事件（邪気の汚染）は選べない→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C22": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C22": "KUROMAKU"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 3,
+      "id": "SPREAD",
+      "culprit": "C01"
+     },
+     {
+      "day": 4,
+      "id": "HOSPITAL",
+      "culprit": "C08"
+     },
+     {
+      "day": 5,
+      "id": "SUICIDE",
+      "culprit": "C22"
+     },
+     {
+      "day": 6,
+      "id": "MISSING",
+      "culprit": "C01"
+     }
+    ]
+   },
+   "incident_log": []
+  },
+  "declare": [
+   [
+    "C22",
+    0,
+    {
+     "incident": "CORRUPT",
+     "day": 2,
+     "choice": null
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "公開シートに無い事件"
+  },
+  "source": "主人公の書 印刷p40 A.I.「[主人公]公開シートに書かれた名前の事件1つを選びます。さらにその事件の事件効果でリーダーの選択が必要な場合（例えば、殺人事件で殺す相手を選ぶなど）、それらの選択も全て伝えます。その際、犯人が誰であるかを参照するならば、A.I.が犯人であるかのように扱います。[脚本家]選ばれた事件の事件効果を解決します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c22-ab-refused",
+  "desc": "A.I.がクロマク（友好無視）で[3]を拒否→何も起きず★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C22": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C22": "KUROMAKU"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 3,
+      "id": "SPREAD",
+      "culprit": "C01"
+     },
+     {
+      "day": 4,
+      "id": "HOSPITAL",
+      "culprit": "C08"
+     },
+     {
+      "day": 5,
+      "id": "SUICIDE",
+      "culprit": "C22"
+     },
+     {
+      "day": 6,
+      "id": "MISSING",
+      "culprit": "C01"
+     }
+    ]
+   },
+   "incident_log": []
+  },
+  "declare": [
+   [
+    "C22",
+    0,
+    {
+     "incident": "MURDER",
+     "day": 1,
+     "choice": {
+      "target": "C06"
+     }
+    }
+   ]
+  ],
+  "refuse": [
+   true
+  ],
+  "expect": {
+   "chars": {
+    "C06": {
+     "alive": true
+    }
+   },
+   "used_loop": [
+    "C22#0"
+   ],
+   "refused": true
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_22_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは「パーソン」にできない。特性: このキャラクターが犯人の事件の発生を判定する場合、全てのカウンターを不安カウンターとしても扱う。[友好3]（1ループ1回制限）公開シートに書かれた事件1つを選び、その事件効果を解決する。犯人はA.I.であるかのように扱い、脚本家が行うすべての決定は代わりにリーダーが行う（事件が発生したとはみなされない）」／主人公の書 印刷p23 4-6「拒否できるのは、友好無視を持つキャラクターの友好能力のみです。拒否が行われたとしても「1ループ1回制限」の能力は使用済になります」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c22-ab-butterfly-future",
+  "desc": "未来改変プラン。A.I.（役職なしにできないのでタイムトラベラー）が[3]で蝶の羽ばたきを解決しても「発生した」とみなされない→ループ終了時に敗北しない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C22": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C22": "TT"
+    },
+    "incidents": [
+     {
+      "day": 4,
+      "id": "BUTTERFLY",
+      "culprit": "C07"
+     }
+    ],
+    "days": 5
+   },
+   "incident_log": []
+  },
+  "declare": [
+   [
+    "C22",
+    0,
+    {
+     "incident": "BUTTERFLY",
+     "day": 4,
+     "choice": {
+      "target": "C06",
+      "counter": "par"
+     }
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "then": {
+   "phase": "loop_end"
+  },
+  "expect": {
+   "chars": {
+    "C06": {
+     "par": 1
+    }
+   },
+   "refused": false,
+   "loss": false,
+   "reasons": []
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_22_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは「パーソン」にできない。特性: このキャラクターが犯人の事件の発生を判定する場合、全てのカウンターを不安カウンターとしても扱う。[友好3]（1ループ1回制限）公開シートに書かれた事件1つを選び、その事件効果を解決する。犯人はA.I.であるかのように扱い、脚本家が行うすべての決定は代わりにリーダーが行う（事件が発生したとはみなされない）」／主人公の書 印刷p40 A.I.「[主人公]公開シートに書かれた名前の事件1つを選びます。さらにその事件の事件効果でリーダーの選択が必要な場合（例えば、殺人事件で殺す相手を選ぶなど）、それらの選択も全て伝えます。その際、犯人が誰であるかを参照するならば、A.I.が犯人であるかのように扱います。[脚本家]選ばれた事件の事件効果を解決します」／早見表 未来改変プラン「【敗北条件：ループ終了時】このループ中に蝶の羽ばたきが発生している」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c22-ab-real-culprit-blackcat",
+  "desc": "A.I.[3] 脚本上の犯人が黒猫の殺人事件でも、犯人はA.I.として扱うので「何も起きない」にならず死亡する",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C22": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C26": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C22": "KUROMAKU"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C26"
+     }
+    ]
+   },
+   "incident_log": []
+  },
+  "declare": [
+   [
+    "C22",
+    0,
+    {
+     "incident": "MURDER",
+     "day": 1,
+     "choice": {
+      "target": "C06"
+     }
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C06": {
+     "alive": false
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_22_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは「パーソン」にできない。特性: このキャラクターが犯人の事件の発生を判定する場合、全てのカウンターを不安カウンターとしても扱う。[友好3]（1ループ1回制限）公開シートに書かれた事件1つを選び、その事件効果を解決する。犯人はA.I.であるかのように扱い、脚本家が行うすべての決定は代わりにリーダーが行う（事件が発生したとはみなされない）」／カード画像 originals/tragedy_commons_5th/chara_cards/character_26_1.png（2026-09-23 画像で照合）「不安臨界0。特性: 各ループ開始時に、神社に暗躍カウンターを1つ置く。特性: このキャラクターが犯人の事件の事件効果は「何も起きない」に変更される」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c22-ab-henchman-stopped",
+  "desc": "手先[3] 使用済みで脚本上の犯人が手先の殺人事件も、A.I.[3] では解決される（発生ではなく、犯人はA.I.扱い）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C22": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C18": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C22": "KUROMAKU"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C18"
+     }
+    ]
+   },
+   "incident_log": [],
+   "suppressed_culprits": [
+    "C18"
+   ]
+  },
+  "declare": [
+   [
+    "C22",
+    0,
+    {
+     "incident": "MURDER",
+     "day": 1,
+     "choice": {
+      "target": "C06"
+     }
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C06": {
+     "alive": false
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_22_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは「パーソン」にできない。特性: このキャラクターが犯人の事件の発生を判定する場合、全てのカウンターを不安カウンターとしても扱う。[友好3]（1ループ1回制限）公開シートに書かれた事件1つを選び、その事件効果を解決する。犯人はA.I.であるかのように扱い、脚本家が行うすべての決定は代わりにリーダーが行う（事件が発生したとはみなされない）」／主人公の書 印刷p41 手先「[主人公]能力の使用を宣言してください。[脚本家]このループ中、犯人が手先である事件は発生しなくなります」／公式FAQ 不可能優先の原則「例：手先の友好能力が使用されているとする。この時…手先が犯人である事件は発生しない」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c24-absent-at-loop-start",
+  "desc": "転校生（登場3日目）。ループの準備では配置されない（present:false）",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    },
+    "C24": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [],
+    "appear": {
+     "C24": {
+      "day": 3
+     }
+    }
+   }
+  },
+  "expect": {
+   "loop": 2,
+   "day": 1,
+   "chars": {
+    "C24": {
+     "present": false
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_24_1.png（2026-09-23 画像で照合）「特性: 脚本作成時に日数を1つ指定しておく。このキャラクターはループの準備においてボードに配置されず、代わりにその日のターン開始フェイズに配置される。[友好2] 同一エリアの自身以外のキャラクター1人に置かれた暗躍カウンター1つを友好カウンターに置き換える」／主人公の書 印刷p20 §3 ループの準備 3-2 キャラクターの配置・3-3 カウンターの除去と配置（wiki/concepts/loop.md 照合済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c24-turn-start-appear",
+  "desc": "転校生（登場3日目）。3日目のターン開始フェイズに初期エリア学校へカウンター無しで配置",
+  "phase": "turn_start",
+  "state": {
+   "loop": 1,
+   "day": 3,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C24": {
+     "area": null,
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": false
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [],
+    "appear": {
+     "C24": {
+      "day": 3
+     }
+    }
+   }
+  },
+  "expect": {
+   "chars": {
+    "C24": {
+     "present": true,
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_24_1.png（2026-09-23 画像で照合）「特性: 脚本作成時に日数を1つ指定しておく。このキャラクターはループの準備においてボードに配置されず、代わりにその日のターン開始フェイズに配置される。[友好2] 同一エリアの自身以外のキャラクター1人に置かれた暗躍カウンター1つを友好カウンターに置き換える」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c24-turn-start-before-day",
+  "desc": "転校生（登場3日目）。2日目のターン開始フェイズでは配置されない",
+  "phase": "turn_start",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C24": {
+     "area": null,
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": false
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [],
+    "appear": {
+     "C24": {
+      "day": 3
+     }
+    }
+   }
+  },
+  "expect": {
+   "chars": {
+    "C24": {
+     "present": false
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_24_1.png（2026-09-23 画像で照合）「特性: 脚本作成時に日数を1つ指定しておく。このキャラクターはループの準備においてボードに配置されず、代わりにその日のターン開始フェイズに配置される。[友好2] 同一エリアの自身以外のキャラクター1人に置かれた暗躍カウンター1つを友好カウンターに置き換える」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c24-absent-action-target",
+  "desc": "登場前の転校生に行動カードをセット→字面では盤面に無いのでerror",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C24": {
+     "area": null,
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": false
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [],
+    "appear": {
+     "C24": {
+      "day": 3
+     }
+    }
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C24",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "C01",
+     "card": "INT1"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "MV_V"
+    },
+    {
+     "by": "A",
+     "target": "C01",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:CIT",
+     "card": "INTX"
+    },
+    {
+     "by": "C",
+     "target": "B:HOS",
+     "card": "MV_H"
+    }
+   ]
+  },
+  "expect": {
+   "error": "盤面にいないキャラクターにはセットできない"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_24_1.png（2026-09-23 画像で照合）「特性: 脚本作成時に日数を1つ指定しておく。このキャラクターはループの準備においてボードに配置されず、代わりにその日のターン開始フェイズに配置される。[友好2] 同一エリアの自身以外のキャラクター1人に置かれた暗躍カウンター1つを友好カウンターに置き換える」 ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "c13-absent-action-target と同じ。盤面にいないキャラクターがセット先になれるかの明文が無い"
+ },
+ {
+  "id": "c24-convert",
+  "desc": "転校生[2] 同じ学校の男子学生の暗躍1つを友好に置き換える（暗躍2→1、友好0→1）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C24": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C24",
+    0,
+    {
+     "target": "C01"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C01": {
+     "int": 1,
+     "gw": 1
+    }
+   },
+   "used_loop": [],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_24_1.png（2026-09-23 画像で照合）「特性: 脚本作成時に日数を1つ指定しておく。このキャラクターはループの準備においてボードに配置されず、代わりにその日のターン開始フェイズに配置される。[友好2] 同一エリアの自身以外のキャラクター1人に置かれた暗躍カウンター1つを友好カウンターに置き換える」／主人公の書 印刷p38 転校生「[主人公]転校生と同一エリアにいる他のキャラクター1人を選びます。そのキャラクターに暗躍カウンターが置かれていなくても使用できます。[脚本家]選ばれたキャラクターに暗躍カウンターがあるならば、それを1つ取り除き、そのキャラクターに友好カウンターを1つ置きます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c24-convert-zero",
+  "desc": "転校生[2] 暗躍の無いキャラクターも選べる。友好は増えない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C24": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C24",
+    0,
+    {
+     "target": "C01"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C01": {
+     "int": 0,
+     "gw": 0
+    }
+   },
+   "refused": false
+  },
+  "source": "主人公の書 印刷p38 転校生「[主人公]転校生と同一エリアにいる他のキャラクター1人を選びます。そのキャラクターに暗躍カウンターが置かれていなくても使用できます。[脚本家]選ばれたキャラクターに暗躍カウンターがあるならば、それを1つ取り除き、そのキャラクターに友好カウンターを1つ置きます」（「暗躍カウンターがあるならば、それを1つ取り除き、そのキャラクターに友好カウンターを1つ置きます」）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c24-self-error",
+  "desc": "転校生[2] 自身は選べない→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C24": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 1,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C24",
+    0,
+    {
+     "target": "C24"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "自身以外"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_24_1.png（2026-09-23 画像で照合）「特性: 脚本作成時に日数を1つ指定しておく。このキャラクターはループの準備においてボードに配置されず、代わりにその日のターン開始フェイズに配置される。[友好2] 同一エリアの自身以外のキャラクター1人に置かれた暗躍カウンター1つを友好カウンターに置き換える」（「自身以外の」）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c26-loop-start-shrine",
+  "desc": "黒猫 ループ開始時に神社に暗躍1（前ループの神社の暗躍3は除去済み）",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C26": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 3,
+    "CIT": 1,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "expect": {
+   "loop": 2,
+   "day": 1,
+   "boards": {
+    "HOS": 0,
+    "SHR": 1,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "chars": {
+    "C26": {
+     "area": "SHR",
+     "int": 0
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_26_1.png（2026-09-23 画像で照合）「不安臨界0。特性: 各ループ開始時に、神社に暗躍カウンターを1つ置く。特性: このキャラクターが犯人の事件の事件効果は「何も起きない」に変更される」／主人公の書 印刷p20 §3 ループの準備 3-2 キャラクターの配置・3-3 カウンターの除去と配置（wiki/concepts/loop.md 照合済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c26-loop-start-dead",
+  "desc": "黒猫が前ループで死亡していても、次のループ開始時に生存で配置され神社に暗躍1",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C26": {
+     "area": "SHR",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "expect": {
+   "loop": 2,
+   "day": 1,
+   "boards": {
+    "HOS": 0,
+    "SHR": 1,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "chars": {
+    "C26": {
+     "alive": true
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_26_1.png（2026-09-23 画像で照合）「不安臨界0。特性: 各ループ開始時に、神社に暗躍カウンターを1つ置く。特性: このキャラクターが犯人の事件の事件効果は「何も起きない」に変更される」／主人公の書 印刷p20 §3 ループの準備 3-2 キャラクターの配置・3-3 カウンターの除去と配置（wiki/concepts/loop.md 照合済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c26-murder-nothing",
+  "desc": "黒猫が犯人の殺人事件。不安0でも臨界0以上で発生するが、効果は「何も起きない」（同じ神社のサラリーマンは生存）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C26": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C26"
+     }
+    ]
+   },
+   "incident_log": []
+  },
+  "choice": null,
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C06": {
+     "alive": true
+    }
+   },
+   "loop_end": null,
+   "incident_log": [
+    {
+     "loop": 1,
+     "id": "MURDER",
+     "occurred": true
+    }
+   ]
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_26_1.png（2026-09-23 画像で照合）「不安臨界0。特性: 各ループ開始時に、神社に暗躍カウンターを1つ置く。特性: このキャラクターが犯人の事件の事件効果は「何も起きない」に変更される」／主人公の書 印刷p24 事件フェイズ（犯人が生存し、不安臨界以上の不安カウンター→必ず発生。wiki/concepts/turn-phases.md 照合済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c26-hospital-nothing",
+  "desc": "黒猫が犯人の病院の事件。病院に暗躍2でも何も起きない（主人公は死亡しない）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C26": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 2,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "HOSPITAL",
+      "culprit": "C26"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C08": {
+     "alive": true
+    }
+   },
+   "loop_end": null
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_26_1.png（2026-09-23 画像で照合）「不安臨界0。特性: 各ループ開始時に、神社に暗躍カウンターを1つ置く。特性: このキャラクターが犯人の事件の事件効果は「何も起きない」に変更される」／早見表 病院の事件",
+  "status": "confirmed"
+ },
+ {
+  "id": "c26-dead-no-incident",
+  "desc": "黒猫が死亡していれば発生しない（臨界0でも犯人の生存が条件）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C26": {
+     "area": "SHR",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "CORRUPT",
+      "culprit": "C26"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": false,
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_26_1.png（2026-09-23 画像で照合）「不安臨界0。特性: 各ループ開始時に、神社に暗躍カウンターを1つ置く。特性: このキャラクターが犯人の事件の事件効果は「何も起きない」に変更される」／主人公の書 印刷p24 事件フェイズ（犯人が生存し、不安臨界以上の不安カウンター→必ず発生。wiki/concepts/turn-phases.md 照合済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c26-butterfly-future-loss",
+  "desc": "未来改変プラン。黒猫が犯人の蝶の羽ばたきは効果が無くても「発生」する→ループ終了時に敗北",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C26": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C06": "TT"
+    },
+    "incidents": [
+     {
+      "day": 2,
+      "id": "BUTTERFLY",
+      "culprit": "C26"
+     }
+    ],
+    "days": 5
+   },
+   "incident_log": []
+  },
+  "choice": null,
+  "then": {
+   "phase": "loop_end"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C06": {
+     "par": 0,
+     "gw": 0,
+     "int": 0
+    }
+   },
+   "incident_log": [
+    {
+     "loop": 1,
+     "id": "BUTTERFLY",
+     "occurred": true
+    }
+   ],
+   "loss": true,
+   "reasons": [
+    "Y_FUTURE"
+   ]
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_26_1.png（2026-09-23 画像で照合）「不安臨界0。特性: 各ループ開始時に、神社に暗躍カウンターを1つ置く。特性: このキャラクターが犯人の事件の事件効果は「何も起きない」に変更される」／早見表 未来改変プラン「このループ中に蝶の羽ばたきが発生している」／主人公の書 印刷p24 事件フェイズ（犯人が生存し、不安臨界以上の不安カウンター→必ず発生。wiki/concepts/turn-phases.md 照合済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c29-murder-twice",
+  "desc": "教祖が犯人の殺人事件→効果を2回解決。1回目サラリーマン、2回目情報屋が死亡。発生の記録は1回",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C29": {
+     "area": "SHR",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C29"
+     }
+    ]
+   },
+   "incident_log": []
+  },
+  "choice": [
+   {
+    "target": "C06"
+   },
+   {
+    "target": "C07"
+   }
+  ],
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C06": {
+     "alive": false
+    },
+    "C07": {
+     "alive": false
+    }
+   },
+   "incident_log": [
+    {
+     "loop": 1,
+     "id": "MURDER",
+     "occurred": true
+    }
+   ]
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_29_1.png（2026-09-23 画像で照合）「特性: このキャラクターが犯人の事件が発生するならば、事件効果を代わりに2回解決する。[友好3] 自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人に友好カウンターを1つ置く。[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人の役職を知る」（主人公の書の友好能力リスト 印刷p37〜41 に教祖の項は無い）／主人公の書 印刷p24 事件フェイズ（犯人が生存し、不安臨界以上の不安カウンター→必ず発生。wiki/concepts/turn-phases.md 照合済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c29-murder-guard",
+  "desc": "教祖の殺人事件を護衛1のサラリーマンに2回→1回目は護衛を取り除き、2回目で死亡",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C29": {
+     "area": "SHR",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 1
+    },
+    "C07": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C29"
+     }
+    ]
+   }
+  },
+  "choice": [
+   {
+    "target": "C06"
+   },
+   {
+    "target": "C06"
+   }
+  ],
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C06": {
+     "alive": false,
+     "guard": 0
+    },
+    "C07": {
+     "alive": true
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_29_1.png（2026-09-23 画像で照合）「特性: このキャラクターが犯人の事件が発生するならば、事件効果を代わりに2回解決する。[友好3] 自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人に友好カウンターを1つ置く。[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人の役職を知る」（主人公の書の友好能力リスト 印刷p37〜41 に教祖の項は無い）／主人公の書 印刷p38 刑事「護衛カウンターが置かれたキャラクターが死亡する場合、それを解決する代わりにその護衛カウンターを取り除いてください」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c29-murder-second-no-target",
+  "desc": "教祖の殺人事件。同じ神社に他に1人だけ→1回目で死亡し、2回目は対象がいないので何も起きない",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C29": {
+     "area": "SHR",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C29"
+     }
+    ]
+   }
+  },
+  "choice": [
+   {
+    "target": "C06"
+   },
+   null
+  ],
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C06": {
+     "alive": false
+    },
+    "C29": {
+     "alive": true
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_29_1.png（2026-09-23 画像で照合）「特性: このキャラクターが犯人の事件が発生するならば、事件効果を代わりに2回解決する。[友好3] 自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人に友好カウンターを1つ置く。[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人の役職を知る」（主人公の書の友好能力リスト 印刷p37〜41 に教祖の項は無い）／公式FAQ Af01（誰も死亡しなくても事件は発生）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c29-spread-twice",
+  "desc": "教祖の不安拡大を2回。サラリーマンに不安2＋2、情報屋と男子学生に暗躍1ずつ",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C29": {
+     "area": "SHR",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "SPREAD",
+      "culprit": "C29"
+     }
+    ]
+   }
+  },
+  "choice": [
+   {
+    "par": "C06",
+    "int": "C07"
+   },
+   {
+    "par": "C06",
+    "int": "C01"
+   }
+  ],
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C06": {
+     "par": 4
+    },
+    "C07": {
+     "int": 1
+    },
+    "C01": {
+     "int": 1
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_29_1.png（2026-09-23 画像で照合）「特性: このキャラクターが犯人の事件が発生するならば、事件効果を代わりに2回解決する。[友好3] 自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人に友好カウンターを1つ置く。[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人の役職を知る」（主人公の書の友好能力リスト 印刷p37〜41 に教祖の項は無い）／早見表 不安拡大",
+  "status": "confirmed"
+ },
+ {
+  "id": "c29-missing-twice",
+  "desc": "教祖の行方不明を2回。1回目学校へ移動し学校に暗躍1、2回目都市へ移動し都市に暗躍1",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C29": {
+     "area": "SHR",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MISSING",
+      "culprit": "C29"
+     }
+    ]
+   }
+  },
+  "choice": [
+   {
+    "board": "SCH"
+   },
+   {
+    "board": "CIT"
+   }
+  ],
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C29": {
+     "area": "CIT"
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 1,
+    "SCH": 1
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_29_1.png（2026-09-23 画像で照合）「特性: このキャラクターが犯人の事件が発生するならば、事件効果を代わりに2回解決する。[友好3] 自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人に友好カウンターを1つ置く。[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人の役職を知る」（主人公の書の友好能力リスト 印刷p37〜41 に教祖の項は無い）／早見表 行方不明",
+  "status": "confirmed"
+ },
+ {
+  "id": "c29-suicide-twice",
+  "desc": "教祖の自殺を2回。1回目で死亡し、2回目は何も起きない（error にしない）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C29": {
+     "area": "SHR",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "SUICIDE",
+      "culprit": "C29"
+     }
+    ]
+   }
+  },
+  "choice": [
+   null,
+   null
+  ],
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C29": {
+     "alive": false
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_29_1.png（2026-09-23 画像で照合）「特性: このキャラクターが犯人の事件が発生するならば、事件効果を代わりに2回解決する。[友好3] 自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人に友好カウンターを1つ置く。[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人の役職を知る」（主人公の書の友好能力リスト 印刷p37〜41 に教祖の項は無い）／早見表 自殺",
+  "status": "confirmed"
+ },
+ {
+  "id": "c29-not-occurring",
+  "desc": "教祖が不安2（臨界3未満）→発生しない。2回解決もしない",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C29": {
+     "area": "SHR",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "CORRUPT",
+      "culprit": "C29"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": false,
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_29_1.png（2026-09-23 画像で照合）「特性: このキャラクターが犯人の事件が発生するならば、事件効果を代わりに2回解決する。[友好3] 自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人に友好カウンターを1つ置く。[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人の役職を知る」（主人公の書の友好能力リスト 印刷p37〜41 に教祖の項は無い）（「発生するならば」）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c29-ab3-gw",
+  "desc": "教祖[3] 別エリアでも可。学校の男子学生（不安2＝臨界2）に友好1",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C29": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C29",
+    0,
+    {
+     "target": "C01"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C01": {
+     "gw": 1
+    }
+   },
+   "used_loop": [],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_29_1.png（2026-09-23 画像で照合）「特性: このキャラクターが犯人の事件が発生するならば、事件効果を代わりに2回解決する。[友好3] 自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人に友好カウンターを1つ置く。[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人の役職を知る」（主人公の書の友好能力リスト 印刷p37〜41 に教祖の項は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c29-ab3-below-error",
+  "desc": "教祖[3] 不安1（臨界2未満）の男子学生は選べない→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C29": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C29",
+    0,
+    {
+     "target": "C01"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "不安臨界以上ではない"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_29_1.png（2026-09-23 画像で照合）「特性: このキャラクターが犯人の事件が発生するならば、事件効果を代わりに2回解決する。[友好3] 自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人に友好カウンターを1つ置く。[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人の役職を知る」（主人公の書の友好能力リスト 印刷p37〜41 に教祖の項は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c29-ab3-self-error",
+  "desc": "教祖[3] 自身（不安3＝臨界3）は選べない→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C29": {
+     "area": "SHR",
+     "alive": true,
+     "par": 3,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C29",
+    0,
+    {
+     "target": "C29"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "自身以外"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_29_1.png（2026-09-23 画像で照合）「特性: このキャラクターが犯人の事件が発生するならば、事件効果を代わりに2回解決する。[友好3] 自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人に友好カウンターを1つ置く。[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人の役職を知る」（主人公の書の友好能力リスト 印刷p37〜41 に教祖の項は無い）（「自身以外の」）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c29-ab3-blackcat-zero",
+  "desc": "教祖[3] 不安0の黒猫（臨界0）は「不安臨界以上の不安カウンターが置かれている」か→数の比較（0≥0）なら選べて友好1",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C29": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C26": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C29",
+    0,
+    {
+     "target": "C26"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "不安が1つ以上必要（臨界0・不安0は選べない）"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_29_1.png（2026-09-23 画像で照合）「特性: このキャラクターが犯人の事件が発生するならば、事件効果を代わりに2回解決する。[友好3] 自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人に友好カウンターを1つ置く。[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人の役職を知る」（主人公の書の友好能力リスト 印刷p37〜41 に教祖の項は無い）／主人公の書 印刷p40 ナース「不安臨界が0のキャラクターに限り、不安カウンターが置かれていなくても構いません」（ナースには明記があるが教祖には無い） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "臨界0で不安0のキャラクターが「不安臨界以上の不安カウンターが置かれているもの」に当たるか。ナースは明記で許すが教祖のカードにその一文が無い。期待値は数の比較（選べる）"
+ },
+ {
+  "id": "c29-ab4-role",
+  "desc": "教祖[4] 同じ神社の情報屋（不安3＝臨界3）の役職（クロマク）を知る。★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C29": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "SHR",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C07": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C29",
+    1,
+    {
+     "target": "C07"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "reveal": {
+    "role": {
+     "char": "C07",
+     "role": "KUROMAKU"
+    }
+   },
+   "used_loop": [
+    "C29#1"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_29_1.png（2026-09-23 画像で照合）「特性: このキャラクターが犯人の事件が発生するならば、事件効果を代わりに2回解決する。[友好3] 自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人に友好カウンターを1つ置く。[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人の役職を知る」（主人公の書の友好能力リスト 印刷p37〜41 に教祖の項は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c29-ab4-other-area-error",
+  "desc": "教祖[4] 別エリア（都市）の情報屋は選べない→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C29": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C29",
+    1,
+    {
+     "target": "C07"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "同一エリアではない"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_29_1.png（2026-09-23 画像で照合）「特性: このキャラクターが犯人の事件が発生するならば、事件効果を代わりに2回解決する。[友好3] 自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人に友好カウンターを1つ置く。[友好4]（1ループ1回制限）同一エリアの自身以外のキャラクターのうち、不安臨界以上の不安カウンターが置かれているもの1人の役職を知る」（主人公の書の友好能力リスト 印刷p37〜41 に教祖の項は無い）（「同一エリアの」）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c31-doctor-no-gw",
+  "desc": "妹[5] 同じ神社の医者（友好0）に[2]を使わせ、男子学生に不安1を置く",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C31": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C31",
+    0,
+    {
+     "target": "C08",
+     "idx": 0,
+     "arg": {
+      "target": "C01",
+      "mode": "place"
+     }
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C01": {
+     "par": 1
+    }
+   },
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_31_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは友好無視を持つ役職にできない。[友好5] 同一エリアの大人1人は友好能力1つを、十分な友好カウンターがあるかのように使用する。その能力は友好無視や絶対友好無視で拒否されないが、回数制限は参照する」（主人公の書の友好能力リスト 印刷p37〜41 に妹の項は無い）／主人公の書 印刷p40 医者",
+  "status": "confirmed"
+ },
+ {
+  "id": "c31-cultist-not-refused",
+  "desc": "妹[5] 医者がカルティスト（絶対友好無視）でも拒否されない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C31": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SHR",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_SEAL",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "CULTIST"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C31",
+    0,
+    {
+     "target": "C08",
+     "idx": 0,
+     "arg": {
+      "target": "C01",
+      "mode": "remove"
+     }
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C01": {
+     "par": 1
+    }
+   },
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_31_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは友好無視を持つ役職にできない。[友好5] 同一エリアの大人1人は友好能力1つを、十分な友好カウンターがあるかのように使用する。その能力は友好無視や絶対友好無視で拒否されないが、回数制限は参照する」（主人公の書の友好能力リスト 印刷p37〜41 に妹の項は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c31-star-marks-used",
+  "desc": "妹[5] 刑事（友好0）に[5]（★）を使わせる→サラリーマンに護衛1、刑事[5]は使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C31": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C31",
+    0,
+    {
+     "target": "C05",
+     "idx": 1,
+     "arg": {
+      "target": "C06"
+     }
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C06": {
+     "guard": 1
+    }
+   },
+   "used_loop": [
+    "C05#1"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_31_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは友好無視を持つ役職にできない。[友好5] 同一エリアの大人1人は友好能力1つを、十分な友好カウンターがあるかのように使用する。その能力は友好無視や絶対友好無視で拒否されないが、回数制限は参照する」（主人公の書の友好能力リスト 印刷p37〜41 に妹の項は無い）／主人公の書 印刷p38 刑事",
+  "status": "confirmed"
+ },
+ {
+  "id": "c31-star-used-error",
+  "desc": "妹[5] 刑事[5]がこのループ使用済み→回数制限を参照するので使えない→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C31": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   },
+   "ability_used_loop": [
+    "C05#1"
+   ]
+  },
+  "declare": [
+   [
+    "C31",
+    0,
+    {
+     "target": "C05",
+     "idx": 1,
+     "arg": {
+      "target": "C06"
+     }
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "1ループ1回制限を使用済み"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_31_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは友好無視を持つ役職にできない。[友好5] 同一エリアの大人1人は友好能力1つを、十分な友好カウンターがあるかのように使用する。その能力は友好無視や絶対友好無視で拒否されないが、回数制限は参照する」（主人公の書の友好能力リスト 印刷p37〜41 に妹の項は無い）（「回数制限は参照する」）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c31-non-adult-error",
+  "desc": "妹[5] 大人でない男子学生（学生/少年）は選べない→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C31": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C31",
+    0,
+    {
+     "target": "C01",
+     "idx": 0,
+     "arg": {
+      "target": "C31"
+     }
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "大人ではない"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_31_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは友好無視を持つ役職にできない。[友好5] 同一エリアの大人1人は友好能力1つを、十分な友好カウンターがあるかのように使用する。その能力は友好無視や絶対友好無視で拒否されないが、回数制限は参照する」（主人公の書の友好能力リスト 印刷p37〜41 に妹の項は無い）（「大人1人」）／男子学生の属性 学生・少年（wiki/characters/character-01.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c31-dead-adult-error",
+  "desc": "妹[5] 死体の医者は選べない→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C31": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "SHR",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C31",
+    0,
+    {
+     "target": "C08",
+     "idx": 0,
+     "arg": {
+      "target": "C01",
+      "mode": "place"
+     }
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "死体は対象にできない"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_31_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは友好無視を持つ役職にできない。[友好5] 同一エリアの大人1人は友好能力1つを、十分な友好カウンターがあるかのように使用する。その能力は友好無視や絶対友好無視で拒否されないが、回数制限は参照する」（主人公の書の友好能力リスト 印刷p37〜41 に妹の項は無い）／公式FAQ Ru05「死体…キャラクターを対象とした能力の対象として選ぶことは出来ません」・Ru06「死体は能力を使用できません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c31-henchman-kuromaku",
+  "desc": "妹[5] クロマクの手先に[3]を使わせる→拒否されず、手先が犯人の事件は発生しない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C31": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C18": {
+     "area": "SHR",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C18": "KUROMAKU"
+    },
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C18"
+     }
+    ]
+   }
+  },
+  "declare": [
+   [
+    "C31",
+    0,
+    {
+     "target": "C18",
+     "idx": 0,
+     "arg": null
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "then": {
+   "phase": "incident",
+   "choice": null
+  },
+  "expect": {
+   "refused": false,
+   "occurred": false,
+   "chars": {
+    "C06": {
+     "alive": true
+    }
+   },
+   "suppressed_culprits": [
+    "C18"
+   ]
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_31_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは友好無視を持つ役職にできない。[友好5] 同一エリアの大人1人は友好能力1つを、十分な友好カウンターがあるかのように使用する。その能力は友好無視や絶対友好無視で拒否されないが、回数制限は参照する」（主人公の書の友好能力リスト 印刷p37〜41 に妹の項は無い）／主人公の書 印刷p41 手先「[主人公]能力の使用を宣言してください。[脚本家]このループ中、犯人が手先である事件は発生しなくなります」／公式FAQ 不可能優先の原則「例：手先の友好能力が使用されているとする。この時…手先が犯人である事件は発生しない」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c31-same-ability-twice-phase",
+  "desc": "医者（友好2）が自分で[2]を使った同じフェイズに、妹[5]で医者に[2]をもう一度使わせる→字面では妹の能力による別の使用なので可",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C31": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SHR",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   },
+   "ability_used_today": [
+    "C08#0"
+   ]
+  },
+  "declare": [
+   [
+    "C31",
+    0,
+    {
+     "target": "C08",
+     "idx": 0,
+     "arg": {
+      "target": "C01",
+      "mode": "place"
+     }
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C01": {
+     "par": 2
+    }
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_31_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは友好無視を持つ役職にできない。[友好5] 同一エリアの大人1人は友好能力1つを、十分な友好カウンターがあるかのように使用する。その能力は友好無視や絶対友好無視で拒否されないが、回数制限は参照する」（主人公の書の友好能力リスト 印刷p37〜41 に妹の項は無い）／主人公の書 印刷p23 4-6「複数の能力が使える場合、自由な順番でそれらを1回ずつ使えます」 ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "妹[5] で使わせる能力が、そのフェイズに既に使われた能力でもよいか（「1回ずつ」の制限が妹経由の使用にも掛かるか）が一次資料で決まらない。期待値は字面（妹のカードは回数制限＝1ループ1回制限だけを参照すると言う）"
+ },
+ {
+  "id": "c31-sister-cultist",
+  "desc": "妹がカルティスト（絶対友好無視）に配役された脚本で[5]を宣言→字面では絶対友好無視は「友好無視」と別の条文なので配役でき、必ず拒否される",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C31": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_SEAL",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C31": "CULTIST"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C31",
+    0,
+    {
+     "target": "C08",
+     "idx": 0,
+     "arg": {
+      "target": "C01",
+      "mode": "place"
+     }
+    }
+   ]
+  ],
+  "refuse": [
+   true
+  ],
+  "expect": {
+   "chars": {
+    "C01": {
+     "par": 0
+    }
+   },
+   "refused": true
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_31_1.png（2026-09-23 画像で照合）「特性: 脚本作成時、このキャラクターは友好無視を持つ役職にできない。[友好5] 同一エリアの大人1人は友好能力1つを、十分な友好カウンターがあるかのように使用する。その能力は友好無視や絶対友好無視で拒否されないが、回数制限は参照する」（主人公の書の友好能力リスト 印刷p37〜41 に妹の項は無い）／早見表 カルティスト「絶対友好無視」（wiki/concepts/role-abilities.md）／主人公の書 印刷p40 ナース「友好無視、絶対友好無視を持つ役職」（両者を並べて書き分けている） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "not_applicable",
+  "ruling_note": "妹の特性「友好無視を持つ役職にできない」が絶対友好無視（カルティスト・ウィッチ）も含むかが一次資料で決まらない。含むならこの脚本は作れない（not_applicable）"
+ }
+]

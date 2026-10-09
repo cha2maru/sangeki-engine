@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>惨劇RoopeR 盤面</title>
+<style>
+:root { --bg:#141312; --fg:#ece8e0; --mut:#a39d91; --line:#3d3a35; --panel:#1e1d1b; --acc:#e0a24a;
+  --par:#b06ae0; --gw:#e0628f; --int:#555; --guard:#4aa3e0; --warn:#e05a4a; }
+body { margin:0; background:var(--bg); color:var(--fg); font:13px/1.5 system-ui, sans-serif; }
+#band { position:sticky; top:0; z-index:5; background:#000; border-bottom:2px solid var(--acc); padding:6px 12px;
+  display:flex; flex-wrap:wrap; gap:4px 18px; align-items:baseline; }
+#band .ph { font-size:18px; font-weight:700; color:var(--acc); }
+#band .wait { color:#fff; background:#7a2a1a; padding:1px 8px; border-radius:3px; }
+#band a { color:var(--mut); margin-left:auto; }
+/* 1画面の配置: 盤面＋畳める3枚の欄（操作・推理・ログ）。欄を畳むと空いた幅だけ盤面が大きくなる。
+   盤面は縦横比（2×2 のボード＝1519:1076）を保ち、幅と高さの両方に収まる大きさにする */
+#wrap { display:flex; gap:8px; padding:8px; height:calc(100dvh - var(--bandh, 52px)); box-sizing:border-box; }
+/* 左の列は盤面とその下のログ。ログは盤面の下の空きを埋め、畳むと盤面が縦にも大きくなる */
+#stage { flex:1 1 0; min-width:0; min-height:0; display:flex; flex-direction:column; align-items:center; gap:8px; }
+#board { --logh:var(--logopen, 150px); width:min(100%, calc((100dvh - var(--bandh, 52px) - 24px - var(--logh)) * 1.412));
+  display:grid; grid-template-columns:1fr 1fr; gap:4px; flex:0 0 auto; }
+body.log-closed #board { --logh:38px; }
+#stage > #p-log { width:100%; flex:1 1 0; min-height:38px; }
+#stage > #p-log.closed { flex:0 0 auto; height:auto; }
+#stage > #p-log.closed > .ph { flex-direction:row; height:auto; padding:4px 6px; }
+#stage > #p-log.closed > .ph .tog { writing-mode:horizontal-tb; flex:1; }
+#panes { flex:0 0 auto; display:flex; gap:8px; min-height:0; }
+.pane { width:var(--pw, clamp(250px, 22vw, 380px)); display:flex; flex-direction:column; min-height:0; background:var(--panel);
+  border:1px solid var(--line); border-radius:4px; transition:width .15s; }
+#p-sheet { --pw:clamp(280px, 27vw, 460px); }
+.pane > .ph { display:flex; align-items:center; gap:6px; padding:4px 6px; border-bottom:1px solid var(--line); background:#000; border-radius:4px 4px 0 0; }
+.pane > .ph .tog { background:none; border:none; color:var(--acc); font-weight:700; padding:2px 4px; text-align:left; flex:1; }
+.pane > .ph .tog:focus-visible { outline:2px solid var(--acc); }
+.pane > .body { flex:1; overflow-y:auto; min-height:0; padding:6px; }
+.pane.closed { width:30px; }
+.pane.closed > .body, .pane.closed > .ph .extra { display:none; }
+.pane.closed > .ph { flex-direction:column; height:100%; border-bottom:none; border-radius:4px; padding:6px 0; }
+.pane.closed > .ph .tog { writing-mode:vertical-rl; text-align:start; flex:0; }
+.pane.now > .ph { box-shadow:inset 0 -2px 0 var(--acc); }
+.pane.now.closed > .ph .tog::after { content:' ●'; color:#ff3b3b; }
+summary { cursor:pointer; color:var(--acc); }
+@media (max-width:900px) {  /* 狭い画面: 盤面の下に欄を積む。畳んだ欄は見出しの1行だけ */
+  #wrap { flex-direction:column; height:auto; }
+  #stage { display:contents; }  /* 狭い画面では 盤面 → 操作 → 推理 → ログ の順（入力する欄を上に） */
+  #board { order:1; } #panes { order:2; } #stage > #p-log { order:3; }
+  #board { width:100%; }
+  #stage > #p-log { flex:none; height:38vh; }
+  #stage > #p-log.closed { height:auto; }
+  #panes { flex-direction:column; }
+  .pane, .pane.closed, #p-sheet { width:auto; }
+  .pane > .body { max-height:70vh; }
+  .pane.closed > .ph { flex-direction:row; height:auto; }
+  .pane.closed > .ph .tog { writing-mode:horizontal-tb; flex:1; }
+}
+.area { position:relative; aspect-ratio:1519/1076; background-size:cover; border:2px solid #000; container-type:inline-size; }
+.area.tgt:hover { outline:2px solid var(--acc); }
+.slots { position:absolute; top:22%; display:flex; gap:clamp(2px,1cqi,5px); align-items:center; background:rgba(0,0,0,.8); padding:clamp(1px,.8cqi,4px) clamp(3px,1.6cqi,8px); border-radius:4px; font-size:clamp(10px,3cqi,15px); font-weight:700; }
+.slots.l { left:3%; } .slots.r { right:3%; }
+.slot { width:clamp(9px,4cqi,20px); height:clamp(9px,4cqi,20px); border-radius:50%; border:2px solid #888; }
+.slot.on { background:#fff; border-color:#fff; box-shadow:0 0 0 2px var(--warn); }
+.acards { position:absolute; top:3%; display:flex; gap:2px; } .acards.l { left:30%; } .acards.r { right:30%; }
+.chars { position:absolute; left:1%; right:1%; bottom:2%; top:30%; display:flex; flex-wrap:wrap; align-content:flex-end; gap:clamp(2px,.8cqi,4px); }
+.ch { position:relative; width:clamp(48px,21cqi,112px); background:rgba(0,0,0,.8); border:1px solid #666; border-radius:4px; padding:2px; cursor:context-menu; }
+.ch:hover { border-color:var(--acc); }
+.ch.dead img.st { filter:grayscale(1) brightness(.45); }
+.ch.dead::after { content:'死亡'; position:absolute; top:30%; left:0; right:0; text-align:center; color:var(--warn); font-weight:700; font-size:22px; text-shadow:0 0 4px #000; }
+.ch img.st { display:block; height:clamp(40px,19.5cqi,104px); margin:0 auto; }
+.area.crowd .ch { width:clamp(40px,15.5cqi,90px); } .area.crowd .ch img.st { height:clamp(32px,13.5cqi,80px); }
+.area.crowd2 .ch { width:clamp(34px,12cqi,72px); } .area.crowd2 .ch img.st { height:clamp(28px,10.5cqi,64px); }
+.area.crowd .ch .lim, .area.crowd2 .ch .lim { top:2px; }
+.ch .lim { position:absolute; right:3px; top:clamp(18px,9.5cqi,52px); background:rgba(0,0,0,.85); border:1px solid var(--par); border-radius:4px; padding:0 4px; font-size:13px; color:#ddd; line-height:1.3; text-align:center; }
+.ch .lim b { display:block; font-size:clamp(11px,4cqi,22px); color:#fff; line-height:1.1; }
+.ch .nm { text-align:center; font-size:clamp(9px,2.6cqi,14px); font-weight:700; white-space:nowrap; overflow:hidden; }
+.ch .cnt { display:flex; flex-wrap:wrap; gap:3px; justify-content:center; }
+.b { font-size:clamp(9px,2.8cqi,15px); font-weight:700; padding:1px 7px; border-radius:10px; color:#fff; }
+.b.p { background:var(--par); } .b.g { background:var(--gw); } .b.i { background:var(--int); border:1px solid #aaa; } .b.gd { background:var(--guard); }
+.b.crit { outline:2px solid var(--warn); }
+.ccards { position:absolute; top:-8px; right:-8px; display:flex; gap:1px; }
+img.card { width:44px; height:62px; border-radius:2px; box-shadow:0 1px 3px #000; }
+img.card.nul { opacity:.45; }
+/* 脚本家の札は赤い太枠と光で目立たせる。置かれたキャラクターの駒も赤枠にする */
+img.card.mm { outline:3px solid #ff3b3b; outline-offset:1px; box-shadow:0 0 12px 3px rgba(255,59,59,.85); }
+img.card.pc { outline:2px solid #6fc3ff; outline-offset:1px; }
+.ch.hasm { border:3px solid #ff3b3b; box-shadow:0 0 14px 2px rgba(255,59,59,.7); }
+.area.hasm { box-shadow:inset 0 0 0 4px #ff3b3b; }
+img.card.sent { outline:2px solid #6fc3ff; outline-offset:1px; opacity:.9; }
+#sent { margin-top:6px; font-size:12px; } #sent .h { color:#6fc3ff; font-weight:700; } #sent li { margin:1px 0; }
+img.card.pend { outline:2px dashed var(--acc); }
+.hand img.card { cursor:pointer; } .hand img.card.armed { outline:3px solid var(--acc); outline-offset:1px; transform:translateY(-3px); }
+.hand img.card:focus-visible, .ch:focus-visible, .area:focus-visible { outline:3px solid #6fc3ff; outline-offset:1px; }
+body.arming .area, body.arming .ch { cursor:crosshair; }
+.ccards img.card { width:clamp(18px,7.5cqi,40px); height:auto; aspect-ratio:373/526; }
+.hand img.card { flex:1 1 0; min-width:0; max-width:34px; width:auto; height:auto; aspect-ratio:373/526; }
+.hand { flex-wrap:wrap; } .hand .cards { display:flex; gap:3px; width:100%; }
+.cardzoom { position:fixed; z-index:30; width:220px; pointer-events:none; box-shadow:0 4px 20px #000; border-radius:6px; }
+.pane section { border-bottom:1px solid var(--line); padding:6px 2px 8px; }
+.pane section:last-child { border-bottom:none; }
+.pane h3 { margin:0 0 6px; font-size:13px; color:var(--acc); }
+.hand { display:flex; flex-wrap:wrap; gap:3px; margin:2px 0 6px; align-items:center; }
+.hand .who { width:100%; font-weight:700; font-size:12px; }
+.hand img.card.used { filter:grayscale(1) brightness(.4); }
+#pending li { margin:2px 0; } #pending button { margin-left:6px; }
+button { font:inherit; background:#333; color:var(--fg); border:1px solid #666; border-radius:3px; padding:2px 10px; cursor:pointer; }
+button.go { background:var(--acc); color:#000; border-color:var(--acc); font-weight:700; }
+#log { font-size:12px; }
+#log div { padding:2px 0; border-bottom:1px solid var(--line); cursor:pointer; }
+#log div:hover { background:#2a2826; } #log div.sel { background:#3a3020; outline:1px solid var(--acc); }
+#log .n { color:var(--mut); margin-right:4px; } #log .basis { color:var(--mut); display:block; padding-left:1.5em; }
+#log .fix { color:var(--acc); }
+#reply { white-space:pre-wrap; }
+#abil td { font-size:12px; vertical-align:middle; } #abil tr.off td { color:var(--mut); }
+#abil tr.ok td { background:rgba(80,200,120,.18); color:#fff; font-weight:700; } #abil tr.ok td:first-child { border-left:4px solid #50c878; }
+.okbadge { background:#1f7a45; color:#fff; font-weight:700; padding:1px 8px; border-radius:10px; font-size:12px; } #abil button { padding:0 6px; white-space:nowrap; }
+#abilsec.now { border-color:var(--acc); box-shadow:0 0 0 1px var(--acc); }
+table.inc { width:100%; border-collapse:collapse; } table.inc td { border-bottom:1px solid var(--line); padding:1px 4px; }
+.today { color:var(--acc); font-weight:700; }
+#menu { position:fixed; z-index:20; background:#222; border:1px solid var(--acc); border-radius:4px; min-width:180px; overflow:auto; display:none; box-shadow:0 4px 16px #000; }
+#menu .t { padding:4px 10px; color:var(--acc); font-weight:700; border-bottom:1px solid var(--line); }
+#menu div.o { padding:4px 10px; cursor:pointer; } #menu div.o:hover { background:#444; }
+#menu div.o.dim { color:var(--mut); }
+#msg { width:100%; box-sizing:border-box; background:#111; color:var(--fg); border:1px solid #555; }
+.mut { color:var(--mut); font-size:12px; }
+/* 推理の欄。エンジンの候補（ボタンで出し入れ）は、確定=緑・強い候補=橙・消えた=灰の取り消し線 */
+table.sh { width:100%; border-collapse:collapse; font-size:12px; } table.sh td, table.sh th { border-bottom:1px solid var(--line); padding:2px 3px; vertical-align:top; text-align:left; }
+table.sh th { color:var(--mut); font-weight:400; }
+table.sh select, table.sh input { font:inherit; font-size:12px; background:#111; color:var(--fg); border:1px solid #555; max-width:100%; }
+table.sh input { width:100%; box-sizing:border-box; }
+.eng { display:none; } body.eng-on .eng { display:table-cell; } body.eng-on span.eng { display:inline; }
+.e-yes { color:#50c878; font-weight:700; } .e-hi { color:var(--acc); font-weight:700; } .e-no { color:var(--mut); text-decoration:line-through; } .e-mid { color:var(--fg); }
+.bar { display:inline-block; height:6px; background:var(--acc); vertical-align:middle; margin-left:3px; border-radius:2px; }
+#engbtn[aria-pressed=true] { background:var(--acc); color:#000; }
+.engnote { display:none; } body.eng-on .engnote { display:block; }
+.commit { font-family:monospace; font-size:10px; word-break:break-all; color:var(--mut); }
+#today .tph { font-weight: 600; margin-top: 6px; }
+#today .tday { margin: 2px 0 0 1em; padding: 0; font-size: 12px; }
+#sh-mat th:not(:first-child) { writing-mode: vertical-rl; white-space: nowrap; font-size: 11px; padding: 2px 1px; }
+#sh-mat td:not(:first-child) { text-align: center; }
+#sh-mat td:first-child { white-space: nowrap; }
+#board .area { position: relative; }
+#board .area .turf { position: absolute; right: 6px; bottom: 6px; width: 44px; height: 44px; border-radius: 50%; pointer-events: none; }
+</style>
+
+<div id="band"></div>
+<div id="wrap">
+  <main id="stage"><div id="board"></div>
+   <section class="pane" id="p-log"><div class="ph"><button class="tog" aria-expanded="true">ログ</button></div><div class="body"><div id="log"></div></div></section>
+  </main>
+  <div id="panes">
+   <section class="pane" id="p-ops"><div class="ph"><button class="tog" aria-expanded="true">操作</button></div><div class="body">
+    <section><h3>今日の出来事 <span class="mut" id="today-h"></span></h3><div id="today"></div></section>
+    <section><h3>送信待ち</h3><ul id="pending"></ul><div id="sent"></div>
+      <button class="go" id="send">確定して送る</button> <button id="clear">取り消す</button></section>
+    <section><h3>脚本家の返答</h3><div id="reply" class="mut">—</div></section>
+    <section id="abilsec"><h3>友好能力 <span id="abilcount"></span> <span class="mut">（リーダーが1件ずつ宣言）</span></h3>
+      <details class="mut" style="margin-bottom:4px"><summary>使い方</summary>行の『宣言』を押す（またはキャラクターを右クリック → 友好能力）→ 対象などを選ぶと、その1件が脚本家へ送られる。
+      脚本家が解決か拒否を「脚本家の返答」に返したら、次の1件を宣言する。使い終えたら『能力フェイズを終える』。
+      同じ能力は1日1回まで、★は1ループ1回まで（主人公の書 印刷p23）。友好の数が足りないものは灰色だが、宣言は止めない。</details>
+      <table class="inc" id="abil"></table></section>
+    <section><h3>手札</h3><div id="hands"></div></section>
+    <section><h3>事件予定</h3><table class="inc" id="inc"></table></section>
+    <section><h3>脚本家に伝える</h3><textarea id="msg" rows="2" placeholder="質問・宣言など（Enterで送信、Shift+Enterで改行）"></textarea></section>
+    <section><details><summary>操作と記号</summary><div class="mut">右クリック: キャラクター・エリア → 札を置く／友好能力／役職の指摘。ログの行をクリック → その時点の盤面、右クリック → 異議。
+      ボード左右の丸はエリアの暗躍。駒の <span class="b p">不</span> 不安 <span class="b g">友</span> 友好 <span class="b i">暗</span> 暗躍 <span class="b gd">護</span> 護衛、赤枠は不安臨界以上。
+      手札の札をクリックしてからキャラクターかエリアをクリックしても置ける（タップ・Enter も可、Esc で解除）。
+      右の欄は見出しで畳める。畳むと盤面が大きくなる。</div></details></section>
+    <section><details><summary>ハッシュでの固定</summary><div id="commits" class="commit"></div></details></section>
+   </div></section>
+   <section class="pane" id="p-sheet"><div class="ph"><button class="tog" aria-expanded="true">推理</button>
+     <button id="engbtn" class="extra" aria-pressed="false" title="公開された出来事から、ルール上ありうる組み合わせを数えた割合を重ねて表示する">エンジンの候補</button></div><div class="body">
+    <section><h3>公開シート</h3><div id="sh-pub" class="mut"></div></section>
+    <p class="mut engnote" id="engmeta"></p>
+    <section><h3>ルール <span class="mut">（Basic Tragedy X。印は自分で付ける）</span></h3><table class="sh" id="sh-rules"></table></section>
+    <section><h3>マトリクス ― ルールと役職の員数</h3><table class="sh" id="sh-mat"></table></section>
+    <section><h3>役職の能力 <span class="mut">（早見表）</span></h3><table class="sh" id="sh-rabil"></table></section>
+    <section><h3>敗北条件 <span class="mut">（ループごとに、起きたかを自分で付ける）</span></h3><table class="sh" id="sh-loss"></table></section>
+    <section><h3>事件 ― 誰が犯人か</h3><table class="sh" id="sh-inc"></table></section>
+    <section><h3>登場人物 ― 役職の推測</h3><table class="sh" id="sh-chars"></table></section>
+    <p class="mut">書き込みは自動で保存される。<a href="/sheet" target="_blank" style="color:var(--mut)">旧推理シート ↗</a></p>
+   </div></section>
+  </div>
+</div>
+<p class="mut" style="margin:8px 12px">画像: <a href="http://bakafire.main.jp/rooper/sr_dl_04_sozai.htm" target="_blank" style="color:var(--mut)">惨劇コモンズ5th</a>（惨劇コモンズ作成: BakaFire・紺ノ玲、CC BY-SA 2.1 JP）</p>
+<div id="menu"></div>
+
+<script>
+const IMG = '/img/';
+// 出典: originals/tragedy_commons_5th/action_cards の画像で対応を確認
+const PCARDS = [['不安+1','01'],['不安-1','02',1],['友好+1','03'],['友好+2','04',1],['暗躍禁止','05'],['移動↑↓','06'],['移動←→','07'],['移動禁止','08',1]];
+const MCARDS = {'不安+1':'01','不安-1':'03','不安禁止':'04','友好禁止':'05','暗躍+1':'06','暗躍+2':'07','移動↑↓':'08','移動←→':'09','移動斜め':'10'};
+const cardImg = (owner, name) => owner === 'M'
+  ? IMG + 'action_cards/mastermind_cards_' + (name ? MCARDS[name] : '0b') + '.png'
+  : IMG + `action_cards/protagonist${owner}_cards_` + (name ? PCARDS.find(c => c[0] === name)[1] : '0b') + '.png';
+// 盤面の並びは実物どおり 病院・神社 / 都市・学校。暗躍の置き場は 病院・都市が左上、神社・学校が右上
+const AREAS = [['病院','hospital','l'],['神社','shrine','r'],['都市','city','l'],['学校','school','r']];
+// 友好能力の入力の型。出典: キャラクターカード（wiki/characters/ で画像照合済み）
+// arg: char=対象キャラ / none / incident=このループの事件 / ruleX=ルールXの名前 / doctor=対象＋置く/取り除く
+// [表示, 入力の型, 必要な友好, 1ループ1回]
+const ABIL = {
+  '男子学生':[['[2] 同一エリアの自身以外の学生1人の不安-1','char',2]], '女子学生':[['[2] 同一エリアの自身以外の学生1人の不安-1','char',2]],
+  'お嬢様':[['[3] 同一エリアの1人に友好+1（学校か都市にいるとき）','char',3]],
+  '巫女':[['[3] 神社の暗躍-1（神社にいるとき）','none',3],['[5]★ 同一エリアの1人の役職を知る','char',5,1]],
+  '刑事':[['[4]★ このループで発生した事件1つの犯人を知る','incident',4,1],['[5]★ 同一エリアの1人に護衛','char',5,1]],
+  'サラリーマン':[['[3] 自身の役職を知る','none',3]],
+  '情報屋':[['[5]★ ルールXを1つ宣言','ruleX',5,1]],
+  '医者':[['[2] 同一エリアの自身以外の1人の不安を取り除く／置く','doctor',2],['[3] このループ中、入院患者の禁止エリアを外す','none',3]],
+  '入院患者':[],
+};
+// 上の9人以外（第1陣・第2陣のキャラクター）の友好能力は、公開のキャラクター情報（/chars）から補う
+const KIND = {none: 'none', char: 'char', student: 'char', any: 'char', critical_any: 'char', critical_here: 'char', corpse: 'char',
+  corpse_any: 'char', char_or_board: 'char', transfer: 'transfer', doctor: 'doctor', incident: 'incident', sheet_incident: 'incident', ruleX: 'ruleX'};
+const CHARPUB = {};  // 名前 → 公開のキャラクター情報（不安臨界・初期エリア・禁止エリア・属性・特性・友好能力）
+fetch('/chars').then(r => r.json()).then(cs => {
+  for (const c of Object.values(cs)) CHARPUB[c.name] = c;
+  if (typeof renderSheet === 'function') renderSheet();
+  for (const c of Object.values(cs)) {
+    if (ABIL[c.name] || !c.abilities) continue;
+    ABIL[c.name] = c.abilities.map(a => [`[${a.need}]${a.once ? '★' : ''} ${a.text}`, KIND[a.kind] || 'none', a.need, a.once ? 1 : 0]);
+  }
+}).catch(() => {});
+const RULEX = ['友情サークル','恋愛風景','潜む殺人鬼','不穏な噂','妄想拡大ウイルス','因果の糸','不定因子χ'];
+const ROLES = ['パーソン','キーパーソン','キラー','クロマク','カルティスト','タイムトラベラー','ウィッチ','フレンド','ミスリーダー','ラバーズ','メインラバーズ','シリアルキラー','ファクター'];
+
+let S = {}, LOG = [], pending = [];
+let armed = null;  // 手札から選んだ札 {actor, card}。キャラクターかエリアをクリックすると送信待ちに入る（タップ・キーボード操作用）
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ---- 描画 ----
+function render() {
+  const w = S.waiting || {};
+  $('band').innerHTML = S.loop ? `<span>ループ <b>${S.loop}</b>/${S.loops}</span><span>日 <b>${S.day ?? '-'}</b>/${S.days}</span>
+    <span class="ph">${esc(S.phaseName)}</span><span>リーダー <b>${esc(S.leader)}</b></span>
+    <span class="wait">${esc(w.text || '入力待ちなし')}</span>`
+    : '状態を読み込み中…';
+  $('board').innerHTML = AREAS.map(([name, img, side]) => {
+    const b = (S.boards || {})[name] || {};
+    const slots = '暗躍 ' + [0,1,2].map(i => `<span class="slot ${i < (b.intrigue || 0) ? 'on' : ''}"></span>`).join('')
+      + ((b.intrigue || 0) > 3 ? `<span class="b i">${b.intrigue}</span>` : '');
+    const cards = allCards().filter(c => c.target === 'board:' + name).map(cardTag).join('');
+    const chars = (S.characters || []).filter(c => c.area === name).map(charTag).join('');
+    const areaM = (S.cards || []).some(c => c.owner === 'M' && c.target === 'board:' + name);
+    // 人数が多いエリアは駒を小さくする（折り返した駒が暗躍の欄やボードの札を覆い、ボードを狙えなくなっていた）
+    const n = (S.characters || []).filter(c => c.area === name).length;
+    const crowd = n > 6 ? 'crowd2' : n > 4 ? 'crowd' : '';
+    // 大物のテリトリー（公開情報。ゲームの準備に縄張りトークンを置く＝大物の特性）。文字だけだと見つからなかった（ユーザー指摘）
+    const turf = (S.publicSheet || {}).territory === name ? `<img class="turf" src="${IMG}tokens/turf.png" title="縄張りトークン（大物のテリトリー）" alt="縄張り">` : '';
+    return `<div class="area tgt ${areaM ? 'hasm' : ''} ${crowd}" data-area="${name}" tabindex="0" aria-label="${name}" style="background-image:url(${IMG}board/${img}.png)">
+      <div class="slots ${side}">${slots}</div><div class="acards ${side}">${cards}</div><div class="chars">${chars}</div>${turf}</div>`;
+  }).join('');
+  $('hands').innerHTML = ['A','B','C'].map(p => `<div class="hand"><span class="who">主人公${p}${S.leader === p ? '★' : ''}</span>` +
+    '<div class="cards">' + PCARDS.map(([n, , lim]) => `<img class="card ${lim && (S.used?.[p] || []).includes(n) ? 'used' : ''} ${armed && armed.actor === p && armed.card === n ? 'armed' : ''}" tabindex="0" role="button" aria-pressed="${!!(armed && armed.actor === p && armed.card === n)}" data-armp="${p}" data-armc="${n}" title="${n}${lim ? '（1ループ1回）' : ''} ― 選んでからキャラクターかエリアをクリックすると置ける" src="${cardImg(p, n)}">`).join('') + '</div></div>').join('')
+    + (armed ? `<div class="mut">選択中: 主人公${armed.actor} の ${esc(armed.card)} ― 置き先をクリック（Esc で解除）</div>` : '')
+    + `<div class="hand"><span class="who">脚本家</span><span class="mut">使用済み: ${esc((S.used?.M || []).join('・') || 'なし')}</span></div>`;
+  $('inc').innerHTML = (S.incidents || []).map(i => `<tr class="${i.day === S.day ? 'today' : ''}"><td>${i.day}日</td><td>${esc(i.name)}</td><td>${esc(i.result || '')}</td></tr>`).join('');
+  $('reply').textContent = S.reply || '—';
+  // 友好能力の一覧。used は脚本家が state に書く: abilityUsedToday / abilityUsedLoop に "キャラ#番号"
+  $('abilsec').classList.toggle('now', w.kind === 'ability');
+  const rows = (S.characters || []).flatMap(c => (ABIL[c.name] || []).map(([label, arg, need, lim], idx) => {
+    const key = c.name + '#' + idx;
+    const st = c.alive === false ? '死亡' : (S.abilityUsedLoop || []).includes(key) ? '★使用済' : (S.abilityUsedToday || []).includes(key) ? '本日使用済'
+      : (c.goodwill || 0) < need ? `友好${c.goodwill || 0}/${need}` : '使える';
+    return { c, label, idx, st, ok: st === '使える' };
+  }));
+  const ended = (S.phaseName || '').startsWith('ゲーム終了');
+  if (ended) rows.forEach(r => { r.ok = false; if (r.st === '使える') r.st = '終了'; });  // 終わった後に「使える」と出さない
+  const okN = rows.filter(r => r.ok).length;
+  // 使える能力を上に並べ、緑で目立たせる。件数は見出しと帯にも出す
+  $('abilcount').innerHTML = okN ? `<span class="okbadge">使える ${okN}件</span>` : '<span class="mut">いま使える能力はない</span>';
+  const offN = rows.length - okN;
+  $('abil').innerHTML = [...rows.filter(r => r.ok), ...(showAllAbil ? rows.filter(r => !r.ok) : [])].map(({ c, label, idx, st, ok }) =>
+    `<tr class="${ok ? 'ok' : 'off'}"><td>${esc(c.name)}</td><td>${esc(label)}</td><td>${ok ? '✔ 使える' : st}</td>
+      <td><button data-abil="${idx}" data-ch="${esc(c.name)}" class="${ok ? 'go' : ''}">宣言</button></td></tr>`).join('')
+    + (offN ? `<tr><td colspan="4"><button id="abilmore" aria-expanded="${showAllAbil}">${showAllAbil ? '使えない能力を隠す' : `使えない能力も表示（${offN}件）`}</button></td></tr>` : '');
+  if (okN) $('band').insertAdjacentHTML('beforeend', `<span class="okbadge">友好能力 ${okN}件 使える</span>`);
+  $('commits').innerHTML = (S.commitments || []).map(c => `${esc(c.label)}<br>${esc(c.sha256)}${c.revealed ? ' ✔公開済' : ''}`).join('<hr>');
+  renderSent();
+  const dupT = pending.map(p => p.target).filter((t, i, a) => a.indexOf(t) !== i);
+  $('pending').innerHTML = pending.map((p, i) => `<li>${esc(describe(p))}<button data-del="${i}">×</button>`
+    + (dupT.includes(p.target) ? ' <b style="color:var(--warn)">主人公どうしは同じ場所に置けない</b>' : '') + '</li>').join('') || '<li class="mut">なし</li>';
+  // 入力を待っている欄に印（畳んでいても分かるように、見出しに●）
+  $('p-ops').classList.toggle('now', ['cards', 'ability', 'final'].includes(w.kind) || (w.options || []).length > 0);
+  document.documentElement.style.setProperty('--bandh', $('band').offsetHeight + 'px');
+  renderSheet();
+}
+
+// ---- 欄の開け閉め（畳むと盤面が大きくなる。状態はこの端末にだけ覚える）----
+const PANE_KEY = 'panes';
+let closedPanes = []; try { closedPanes = JSON.parse(localStorage.getItem(PANE_KEY) || '[]'); } catch {}
+const qClosed = new URLSearchParams(location.search).get('closed');  // ?closed=p-ops,p-log で畳んで開く（ブックマーク用）
+if (qClosed != null) closedPanes = qClosed.split(',').filter(Boolean);
+function applyPanes() {
+  document.querySelectorAll('.pane').forEach(p => {
+    const c = closedPanes.includes(p.id);
+    p.classList.toggle('closed', c);
+    p.querySelector('.tog').setAttribute('aria-expanded', String(!c));
+    p.querySelector('.tog').title = c ? '開く' : '畳む（盤面が大きくなる）';
+  });
+  document.body.classList.toggle('log-closed', closedPanes.includes('p-log'));
+}
+document.querySelectorAll('.pane .tog').forEach(b => b.onclick = () => {
+  const id = b.closest('.pane').id;
+  closedPanes = closedPanes.includes(id) ? closedPanes.filter(x => x !== id) : [...closedPanes, id];
+  try { localStorage.setItem(PANE_KEY, JSON.stringify(closedPanes)); } catch {}
+  applyPanes();
+});
+applyPanes();
+
+// ---- 推理の欄（どの脚本でも、盤面の登場人物・事件予定とルールの表から作る）----
+let RULESDATA = {}, ROLENAMES = {}, NOTES = {}, DED = {};
+fetch('/data/rules').then(r => r.json()).then(d => { RULESDATA = d.rules || {}; renderSheet(); }).catch(() => {});
+fetch('/data/roles').then(r => r.json()).then(d => { for (const [k, v] of Object.entries(d.roles || {})) ROLENAMES[k] = v.name || v; renderSheet(); }).catch(() => {});
+fetch('/notes').then(r => r.json()).then(n => { NOTES = n || {}; renderSheet(); }).catch(() => {});
+let engOn = false; try { engOn = localStorage.getItem('eng') === '1'; } catch {}
+const qEng = new URLSearchParams(location.search).get('eng'); if (qEng != null) engOn = qEng === '1';
+function applyEng() { document.body.classList.toggle('eng-on', engOn); $('engbtn').setAttribute('aria-pressed', String(engOn)); }
+$('engbtn').onclick = () => { engOn = !engOn; try { localStorage.setItem('eng', engOn ? '1' : '0'); } catch {} applyEng(); };
+applyEng();
+const pct = p => `${Math.round(p * 100)}%`;
+const cls = p => p >= 0.999 ? 'e-yes' : p <= 0 ? 'e-no' : p >= 0.5 ? 'e-hi' : 'e-mid';
+const noteSel = (key, opts) => `<select data-note="${esc(key)}">${opts.map(o => `<option ${NOTES[key] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+const noteInp = key => `<input data-note="${esc(key)}" value="${esc(NOTES[key] || '')}">`;
+const ROLE_ABIL = [["キーパーソン", "—", "—", "【強制: このキャラクターの死亡時】主人公は敗北し、直ちにループを終了する。"], ["キラー", "—", "友好無視", "【任意能力: ターン終了フェイズ】同一エリアのキーパーソンに暗躍が2つ以上→キーパーソンを死亡させる。\n【任意能力: ターン終了フェイズ】このキャラクターに暗躍が4つ以上→主人公を死亡させる。"], ["クロマク", "—", "友好無視", "【任意能力: 脚本家能力フェイズ】同一エリアのキャラクター1人、またはこのキャラクターのいるボードに暗躍を1つ置く。"], ["カルティスト", "—", "絶対友好無視", "【任意能力: 行動解決フェイズ】同一エリアのキャラクター、またはこのキャラクターのいるボードへの暗躍禁止を無視してもよい。"], ["タイムトラベラー", "—", "—", "【強制: 常時】このキャラクターは死亡しない。\n【強制: 行動解決フェイズ】このキャラクターへの友好禁止を無視する。\n【任意能力: 最終日のターン終了フェイズ】このキャラクターに友好が2つ以下→主人公は敗北し、直ちにループを終了する。"], ["ウィッチ", "—", "絶対友好無視", "（能力欄は空。ルールY「巨大時限爆弾Xの存在」の敗北条件が初期エリアを参照する）"], ["フレンド", "2", "—", "【敗北条件: ループ終了時】このカードが死亡している。その場合、このカードの役職を公開する。\n【強制: ループ開始時】このキャラクターの役職が公開されたことがある→このキャラクターに友好を1つ置く。"], ["ミスリーダー", "1", "—", "【任意能力: 脚本家能力フェイズ】同一エリアのキャラクター1人に不安を1つ置く。"], ["ラバーズ", "—", "—", "【強制: メインラバーズの死亡時】このキャラクターに不安を6つ置く。"], ["メインラバーズ", "—", "—", "【強制: ラバーズの死亡時】このキャラクターに不安を6つ置く。\n【任意能力: ターン終了フェイズ】このキャラクターに暗躍が1つ以上かつ不安が3つ以上→主人公を死亡させる。"], ["シリアルキラー", "—", "—", "【強制: ターン終了フェイズ】このキャラクターと同一エリアにいるキャラクターが1人だけ→そのキャラクターを死亡させる。"], ["ファクター", "—", "友好無視", "【強制: 常時】学校に暗躍が2つ以上→このキャラクターはミスリーダーの能力を得る。（役職自体は変化しない。）\n【強制: 常時】都市に暗躍が2つ以上→このキャラクターはキーパーソンの能力を得る。（役職自体は変化しない。）"]];  // wiki/concepts/role-abilities.md（早見表と照合済み）から生成
+const LOSS = [
+  ['キーパーソンが死亡する（死因は問わない）', '直ちに', 'キーパーソン（殺人計画・契約）／ファクター（都市に暗躍2以上でキーパーソンの能力）', ['role','キーパーソン','ファクター']],
+  ['キラーと同一エリアのキーパーソンに暗躍2以上 → キーパーソン死亡', 'ターン終了', 'キラー（殺人計画）', ['role','キラー']],
+  ['キラーに暗躍4以上 → 主人公死亡', 'ターン終了', 'キラー（殺人計画）', ['role','キラー']],
+  ['シリアルキラーと2人きり → その人が死亡', 'ターン終了', 'シリアルキラー（潜む殺人鬼・妄想拡大ウイルス）', ['role','シリアルキラー']],
+  ['メインラバーズに暗躍1以上かつ不安3以上 → 主人公死亡', 'ターン終了', 'メインラバーズ（恋愛風景）', ['role','メインラバーズ']],
+  ['タイムトラベラーの友好が2以下', '最終日のターン終了', 'タイムトラベラー（未来改変プラン）', ['role','タイムトラベラー']],
+  ['フレンドが死亡している', 'ループ終了時', 'フレンド（友情サークル・潜む殺人鬼）', ['role','フレンド']],
+  ['神社に暗躍2以上', 'ループ終了時', '封印されしモノ', ['rule','封印されしモノ']],
+  ['キーパーソンに暗躍2以上', 'ループ終了時', '僕と契約しようよ！', ['rule','僕と契約しようよ！']],
+  ['このループ中に蝶の羽ばたきが発生', 'ループ終了時', '未来改変プラン', ['rule','未来改変プラン']],
+  ['ウィッチの初期エリアに暗躍2以上', 'ループ終了時', '巨大時限爆弾Xの存在', ['rule','巨大時限爆弾Xの存在']],
+  ['事件の効果で主人公死亡・キーパーソン死亡', '事件フェイズ', '事件（殺人事件・遠隔殺人・病院の事件・自殺 など）', null],
+];
+function renderSheet() {
+  if (document.activeElement && document.activeElement.closest && document.activeElement.closest('#p-sheet table')) return;  // 書いている途中は描き直さない
+  const d = DED || {}, has = !!d.roles;
+  $('engmeta').textContent = has ? `最後に出来事があった L${d.loop}D${d.day} までの公開情報で、ルール上ありうる組み合わせ ${d.hypotheses} 通りの中での割合（脚本家の狙いは考えていない）。「狙い込み」は、これまでの伏せ札の対象が近い勝ち筋に関わる組み合わせほど重くした見込み` : S.publicSheet ? 'エンジンの候補は、最初の出来事が起きると出る' : 'エンジンの候補は、対AIモード（ai_gm.py）の対戦でだけ出る';
+  const rr = Object.entries(RULESDATA);
+  $('sh-rules').innerHTML = '<tr><th>ルール</th><th>加わる役職</th><th>印</th><th class="eng">エンジン</th></tr>' + rr.map(([id, r]) => {
+    const e = has ? d.rules[r.name] : null, ei = has && d.intent ? d.intent.rules[r.name] || 0 : null;
+    return `<tr><td>${r.type} ${esc(r.name)}</td><td>${esc(Object.entries(r.roles || {}).map(([k, n]) => (ROLENAMES[k] || k) + (n > 1 ? '×' + n : '')).join('・') || 'なし')}</td>
+      <td>${noteSel('g.rule.' + id, ['不明', '候補', '消えた', '確定'])}</td>
+      <td class="eng">${e == null ? '' : `<span class="${cls(e)}">${e >= 0.999 ? '確定' : e <= 0 ? '消えた' : pct(e)}</span><span class="bar" style="width:${Math.round(e * 40)}px"></span>`}${ei == null || e <= 0 || e >= 0.999 ? '' : `<div class="mut" title="脚本家の伏せ札の対象から狙いを読んだ見込み">狙い込み ${pct(ei)}</div>`}</td></tr>`;
+  }).join('');
+  // マトリクス: 行＝ルール、列＝役職（早見表の員数。wiki/concepts/rule-role-matrix.md で照合済み）
+  const roleIds = [...new Set(rr.flatMap(([, r]) => Object.keys(r.roles || {})))];
+  const engP = p => p == null ? '' : `<span class="${cls(p)}">${p >= 0.999 ? '確定' : p <= 0 ? '消えた' : pct(p)}</span>`;
+  // 役職の見込み人数＝各人物がその役職である確率の和（上限1の役職なら「いる確率」と同じ）
+  const expRole = rn => has ? Object.values(d.roles || {}).reduce((a, m) => a + (m[rn] || 0), 0) : null;
+  const engN = n => n == null ? '' : `<span class="${n >= 0.999 ? 'e-yes' : n <= 0.001 ? 'e-no' : 'e-mid'}">${n <= 0.001 ? 'いない' : n.toFixed(n >= 0.995 && Math.abs(n - Math.round(n)) < 0.005 ? 0 : 2) + '人'}</span>`;
+  $('sh-mat').innerHTML = '<tr><th>ルール</th>' + roleIds.map(k => `<th>${esc(ROLENAMES[k] || k)}</th>`).join('') + '<th class="eng">エンジン</th></tr>'
+    + rr.map(([id, r]) => `<tr><td>${r.type} ${esc(r.name)}</td>` + roleIds.map(k => `<td>${r.roles && r.roles[k] ? r.roles[k] : ''}</td>`).join('')
+      + `<td class="eng">${engP(has ? d.rules[r.name] : null)}</td></tr>`).join('')
+    + (has ? '<tr><td class="eng">見込み人数</td>' + roleIds.map(k => `<td class="eng">${engN(expRole(ROLENAMES[k] || k))}</td>`).join('') + '<td class="eng"></td></tr>' : '');
+  $('sh-rabil').innerHTML = '<tr><th>役職</th><th>上限</th><th>条文能力</th><th>能力</th><th class="eng">エンジン</th></tr>'
+    + ROLE_ABIL.map(([n, cap, cond, ab]) => `<tr><td>${esc(n)}</td><td>${esc(cap)}</td><td>${esc(cond)}</td><td style="white-space:pre-line">${esc(ab)}</td><td class="eng">${engN(expRole(n))}</td></tr>`).join('');
+  // 敗北条件: 早見表のルールの追加ルールと役職の能力（wiki/concepts/rule-role-matrix.md・role-abilities.md で照合済み）
+  const loops = S.loops || (S.publicSheet || {}).loops || 3;
+  // エンジン: その敗北条件のもとになる役職の見込み人数、またはルールの確率
+  const lossEng = src => !has || !src ? '' : src[0] === 'rule' ? engP(d.rules[src[1]]) : engN(src.slice(1).reduce((a, rn) => a + expRole(rn), 0));
+  $('sh-loss').innerHTML = '<tr><th>敗北条件</th><th>いつ</th><th>もと</th>' + Array.from({ length: loops }, (_, i) => `<th>L${i + 1}</th>`).join('') + '<th class="eng">エンジン</th></tr>'
+    + LOSS.map(([what, when, from, src], j) => `<tr><td>${esc(what)}</td><td class="mut">${esc(when)}</td><td class="mut">${esc(from)}</td>`
+      + Array.from({ length: loops }, (_, i) => `<td>${noteSel(`g.loss.${j}.L${i + 1}`, ['—', '起きた', '起きていない'])}</td>`).join('') + `<td class="eng">${lossEng(src)}</td></tr>`).join('');
+  const names = (S.characters || []).map(c => c.name);
+  const ps = S.publicSheet;
+  $('sh-pub').innerHTML = ps ? `<b style="color:var(--fg)">${esc(ps.set)}</b>　ループ ${ps.loops} 回 × ${ps.days} 日`
+    + (ps.territory ? `<br>テリトリー（大物）: ${esc(ps.territory)}` : '')
+    + (ps.appear || []).map(a => `<br>${esc(a)}`).join('')
+    + `<br>特殊ルール: ${esc(ps.special || 'なし')}`
+    : `ループ ${S.loops ?? '?'} 回 × ${S.days ?? '?'} 日（手動モードでは、ほかの項目は脚本家が公開ログに書く）`;
+  $('sh-inc').innerHTML = '<tr><th>日</th><th>事件</th><th>結果</th><th>犯人（推測）</th><th class="eng">エンジン</th></tr>' + (S.incidents || []).map(i => {
+    const key = `${i.day}日 ${i.name}`, c = has ? d.culprits[key] : null;
+    return `<tr class="${i.day === S.day ? 'today' : ''}"><td>${i.day}</td><td>${esc(i.name)}${i.effect ? `<div class="mut">${esc(i.effect)}</div>` : ''}</td><td>${esc(i.result || '')}</td>
+      <td>${noteSel('g.cul.' + key, ['未定', ...names])}</td>
+      <td class="eng">${c == null ? '<span class="mut">未判定</span>' : c.length === 1 ? `<span class="e-yes">${esc(c[0])}</span>` : `<span class="mut">${c.length}人:</span> ${esc(c.join('・'))}`}</td></tr>`;
+  }).join('');
+  const roleOpts = ['未定', ...Object.values(ROLENAMES)];
+  const AJ = { HOS: '病院', SHR: '神社', CIT: '都市', SCH: '学校' };
+  const areaJ = a => AJ[a] || a || '脚本家が決める';
+  $('sh-chars').innerHTML = '<tr><th>人物</th><th>臨界</th><th>役職（推測）</th><th>メモ</th><th class="eng">エンジン</th></tr>' + (S.characters || []).map(ch => {
+    const cp = CHARPUB[ch.name] || {};
+    const card = cp.name ? `<details class="mut"><summary>初期 ${esc(areaJ(cp.start))}・禁止 ${esc((cp.forbidden || []).map(areaJ).join('・') || 'なし')}・${esc((cp.tags || []).join('・'))}</summary>`
+      + (cp.traits ? `<div>特性: ${esc(cp.traits)}</div>` : '')
+      + (cp.abilities || []).map(a => `<div>友好${a.need}${a.once ? '★' : ''}: ${esc(a.text)}</div>`).join('') + '</details>' : '';
+    const e = has ? Object.entries(d.roles[ch.name] || {}).sort((a, b) => b[1] - a[1]) : [];
+    const ei = has && d.intent ? Object.entries(d.intent.roles[ch.name] || {}).sort((a, b) => b[1] - a[1]) : [];
+    const top = e.slice(0, 3).map(([r, p]) => `<span class="${cls(p)}">${esc(r)}${p >= 0.999 ? '' : ' ' + pct(p)}</span>`).join(' ')
+      + (e.length > 3 ? ` <span class="mut">他${e.length - 3}</span>` : '')
+      + (ei.length && !(e[0] && e[0][1] >= 0.999) ? `<div class="mut" title="脚本家の伏せ札の対象から狙いを読んだ見込み">狙い込み: ${ei.slice(0, 2).map(([r, p]) => esc(r) + ' ' + pct(p)).join(' ')}</div>` : '');
+    return `<tr><td>${esc(ch.name)}${ch.alive === false ? ' <span class="mut">死亡</span>' : ''}${card}</td><td>${ch.limit}</td>
+      <td>${noteSel('g.role.' + ch.name, roleOpts)}</td><td>${noteInp('g.memo.' + ch.name)}</td><td class="eng">${top}</td></tr>`;
+  }).join('');
+}
+// 書き込みの保存: 旧推理シートと同じ notes.json を使うので、読み直してから自分の項目だけ差し替える
+let saveT = null;
+$('p-sheet').addEventListener('change', e => { const k = e.target.dataset.note; if (!k) return; NOTES[k] = e.target.value; queueSave(); });
+$('p-sheet').addEventListener('input', e => { const k = e.target.dataset.note; if (!k || e.target.tagName !== 'INPUT') return; NOTES[k] = e.target.value; queueSave(); });
+function queueSave() {
+  clearTimeout(saveT);
+  saveT = setTimeout(async () => {
+    try {
+      const cur = await (await fetch('/notes')).json();
+      const mine = Object.fromEntries(Object.entries(NOTES).filter(([k]) => k.startsWith('g.')));
+      await fetch('/notes', { method: 'POST', body: JSON.stringify({ ...cur, ...mine }) });
+    } catch { alert('推理の書き込みを保存できなかった'); }
+  }, 600);
+}
+$('p-sheet').addEventListener('focusout', () => setTimeout(renderSheet, 0));
+// 送信前の札も、点線の枠で盤面に出す
+// 送信済みの札は、脚本家がフェイズを進める（phaseId が変わる）まで盤面に残す
+const sentCards = () => sent.filter(x => x.game === S.game && x.phaseId === S.phaseId && x.placements).flatMap(x => x.placements)
+  .map(p => ({ owner: p.actor, target: p.target, card: p.card, sent: true }));
+const allCards = () => [...(S.cards || []), ...sentCards(), ...pending.map(p => ({ owner: p.actor, target: p.target, card: p.card, pending: true }))];
+function cardTag(c) {
+  return `<img class="card ${c.owner === 'M' ? 'mm' : 'pc'} ${c.nullified ? 'nul' : ''} ${c.pending ? 'pend' : ''} ${c.sent ? 'sent' : ''}" title="${esc(c.owner === 'M' ? '脚本家' : '主人公' + c.owner)}${c.card ? '：' + esc(c.card) : '（伏せ）'}" src="${cardImg(c.owner, c.card)}">`;
+}
+function charTag(c) {
+  const crit = c.paranoia >= c.limit ? 'crit' : '';
+  const cnt = [c.paranoia && `<span class="b p ${crit}">不${c.paranoia}</span>`, c.goodwill && `<span class="b g">友${c.goodwill}</span>`,
+    c.intrigue && `<span class="b i">暗${c.intrigue}</span>`, c.guard && `<span class="b gd">護${c.guard}</span>`].filter(Boolean).join('');
+  const cards = allCards().filter(x => x.target === c.name).map(cardTag).join('');
+  const hasM = (S.cards || []).some(x => x.owner === 'M' && x.target === c.name);
+  const cp = CHARPUB[c.name] || {};
+  const tip = [`${c.name} 不安臨界${c.limit}`, cp.forbidden?.length ? '禁止エリア: ' + cp.forbidden.map(a => ({ HOS: '病院', SHR: '神社', CIT: '都市', SCH: '学校' })[a]).join('・') : '',
+    (cp.tags || []).join('・'), cp.traits ? '特性: ' + cp.traits : '', ...(cp.abilities || []).map(a => `友好${a.need}${a.once ? '★' : ''}: ${a.text}`)].filter(Boolean).join('\n');
+  return `<div class="ch ${c.alive === false ? 'dead' : ''} ${hasM ? 'hasm' : ''}" data-char="${esc(c.name)}" tabindex="0" aria-label="${esc(c.name)}" title="${esc(tip)}${c.role ? ' / 役職:' + esc(c.role) : ''}">
+    <div class="ccards">${cards}</div><img class="st" src="${IMG}chara_stand/chara_stand_${c.card}.png">
+    <span class="lim" title="不安臨界">臨<b>${c.limit}</b></span><div class="nm">${esc(c.name)}</div><div class="cnt">${cnt}</div></div>`;
+}
+let logFollow = true;
+// 今日の出来事: 公開ログのうち、いちばん新しい日の分をフェイズごとにまとめて操作欄に出す（ログだけだと見づらい。ユーザー要望）
+function renderToday() {
+  const last = [...LOG].reverse().find(l => l.loop != null && l.day != null);
+  if (!last) { $('today').innerHTML = '<span class="mut">—</span>'; return; }
+  $('today-h').textContent = `L${last.loop}D${last.day}`;
+  const rows = LOG.filter(l => l.loop === last.loop && l.day === last.day);
+  let html = '', open = false;
+  for (const l of rows) {
+    const m = /^── L\d+D\d+ (.+?) ──(.*)$/.exec(l.text);
+    if (m) { if (open) html += '</ul>'; html += `<div class="tph">${esc(m[1])}<span class="mut">${esc(m[2])}</span></div><ul class="tday">`; open = true; }
+    else { if (!open) { html += '<ul class="tday">'; open = true; } html += `<li>${esc(l.text)}</li>`; }
+  }
+  $('today').innerHTML = html + (open ? '</ul>' : '');
+}
+function renderLog() {
+  $('log').innerHTML = LOG.map(l => `<div data-log="${l.n}" class="${l.kind === 'correction' ? 'fix' : ''}"><span class="n">#${l.n} L${l.loop ?? '-'}D${l.day ?? '-'}</span>${esc(l.text)}${l.basis ? `<span class="basis">根拠: ${esc(l.basis)}</span>` : ''}</div>`).join('');
+  renderToday();
+  const box = $('log').closest('.body');  // スクロールするのは欄の本体。最下部付近にいたときだけ最新へ送る（読み返し中は動かさない）
+  if (logFollow) box.scrollTop = box.scrollHeight;
+}
+function describe(p) {
+  if (p.type === 'card') return `主人公${p.actor}: ${p.card} → ${p.target.replace('board:', '')}`;
+  return JSON.stringify(p);
+}
+
+// ---- メニュー ----
+function menu(x, y, title, opts) {
+  const m = $('menu');
+  m.innerHTML = `<div class="t">${esc(title)}</div>` + opts.map((o, i) => `<div class="o ${o.dim ? 'dim' : ''}" data-i="${i}">${esc(o.label)}</div>`).join('');
+  m.style.display = 'block';
+  // 実際の大きさを測って、画面の内側に収める（下にはみ出すなら上へずらす）
+  m.style.maxHeight = (innerHeight - 8) + 'px';
+  const w = m.offsetWidth, h = m.offsetHeight;
+  m.style.left = Math.max(4, Math.min(x, innerWidth - w - 4)) + 'px';
+  m.style.top = Math.max(4, Math.min(y, innerHeight - h - 4)) + 'px';
+  m.onclick = e => { e.stopPropagation(); const i = e.target.dataset.i; if (i == null) return; hide(); opts[i].go(); };
+}
+const hide = () => $('menu').style.display = 'none';
+document.addEventListener('click', e => { if (!$('menu').contains(e.target)) hide(); });
+
+const alive = () => (S.characters || []).filter(c => c.alive !== false);
+const charOpts = go => (S.characters || []).map(c => ({ label: c.name + (c.alive === false ? '（死亡）' : ''), go: () => go(c.name) }));
+
+function targetMenu(x, y, target) {
+  const opts = [];
+  const kind = S.waiting?.kind;
+  const who = target.startsWith('board:') ? target.slice(6) : target;
+  // 行動カード: どの主人公が・どの札を
+  ['A','B','C'].forEach(p => opts.push({ label: `主人公${p} が札を置く…`, dim: kind !== 'cards', go: () =>
+    menu(x, y, `主人公${p} → ${who}`, PCARDS.map(([n, , lim]) => ({ label: n + (lim ? ' ★' : ''), dim: lim && (S.used?.[p] || []).includes(n),
+      go: () => { pending = pending.filter(q => q.actor !== p); pending.push({ type: 'card', actor: p, card: n, target }); render(); } }))) }));
+  if (!target.startsWith('board:')) {
+    (ABIL[target] || []).forEach(([label, arg], idx) => opts.push({ label: `友好能力 ${label}`, dim: kind !== 'ability', go: () => ability(x, y, target, idx, label, arg) }));
+    opts.push({ label: '役職を指摘する（最後の戦い）…', dim: kind !== 'final', go: () =>
+      menu(x, y, `${target} の役職は`, ROLES.map(r => ({ label: r, go: () => post({ type: 'final', char: target, role: r }) }))) });
+  }
+  menu(x, y, who, opts);
+}
+function ability(x, y, char, idx, label, arg) {
+  const send = extra => post({ type: 'ability', char, ability: idx, label, ...extra });
+  // 対AIモードでは、エンジンが「いま合法」とした対象だけを出す（同じエリア・本人以外などの条件。手動モードでは全員）
+  const legal = S.abilityOptions ? S.abilityOptions[char + '#' + idx] : undefined;
+  if (S.abilityOptions && !legal) return menu(x, y, `${label}`, [{ label: 'いまは使えない（友好・場所・対象・回数を確認）', dim: true, go: () => {} }]);
+  // ボードも対象になる能力（神格[5] など）は、エンジンの形（B:SHR）で送る
+  const BOARD = { '病院': 'B:HOS', '神社': 'B:SHR', '都市': 'B:CIT', '学校': 'B:SCH' };
+  const charOpts = go => (S.characters || []).filter(c => !legal || !legal.targets.length || legal.targets.includes(c.name))
+    .map(c => ({ label: c.name + (c.alive === false ? '（死亡）' : ''), go: () => go(c.name) }))
+    .concat((legal ? legal.targets : []).filter(t => BOARD[t]).map(t => ({ label: `${t}（ボード）`, go: () => go(BOARD[t]) })));
+  if (arg === 'none') return send({});
+  if (arg === 'char') return menu(x, y, `${label} の対象`, charOpts(t => send({ target: t })));
+  if (arg === 'ruleX') return menu(x, y, '宣言するルールX', RULEX.map(r => ({ label: r, go: () => send({ declare: r }) })));
+  if (arg === 'incident') return menu(x, y, 'どの事件の犯人を', (S.incidents || []).map(i => ({ label: `${i.day}日 ${i.name}${i.result ? '（' + i.result + '）' : ''}`, go: () => send({ incident: i.name, day: i.day }) })));
+  if (arg === 'transfer') {  // 鑑識官[2]★: どこから → どこへ → 何のカウンター
+    const L = legal || {};
+    return menu(x, y, `${label}：どこから`, (L.froms || []).map(f => ({ label: f, go: () =>
+      menu(x, y, `${f} から：どこへ`, (L.tos || []).filter(t => t !== f).map(t => ({ label: t, go: () =>
+        menu(x, y, `${f} → ${t}：何を`, (L.counters || ['不安', '友好', '暗躍']).map(k => ({ label: k, go: () => send({ from: f, to: t, counter: k }) }))) }))) })));
+  }
+  if (arg === 'doctor') return menu(x, y, `${label} の対象`, charOpts(t => menu(x, y, `${t} の不安を`,
+    (legal && legal.modes.length ? legal.modes : ['取り除く', '置く']).map(m => ({ label: m, go: () => send({ target: t, mode: m }) })))));
+}
+
+document.addEventListener('contextmenu', e => {
+  const ch = e.target.closest('[data-char]'), ar = e.target.closest('[data-area]'), lg = e.target.closest('[data-log]');
+  if (!ch && !ar && !lg) return;
+  e.preventDefault();
+  if (lg) return menu(e.clientX, e.clientY, `ログ #${lg.dataset.log}`, [{ label: '異議を送る…', go: () => {
+    const t = prompt(`#${lg.dataset.log} への異議（どこがおかしいか）`); if (t) post({ type: 'objection', log: +lg.dataset.log, text: t }); } }]);
+  if (ch) return targetMenu(e.clientX, e.clientY, ch.dataset.char);
+  targetMenu(e.clientX, e.clientY, 'board:' + ar.dataset.area);
+});
+
+// 左クリック・タップ: 札を選んでいれば、その置き先にする。選んでいなければ右クリックと同じメニュー
+function placeArmed(target) {
+  pending = pending.filter(q => q.actor !== armed.actor);
+  pending.push({ type: 'card', actor: armed.actor, card: armed.card, target });
+  armed = null; document.body.classList.remove('arming'); render();
+}
+document.addEventListener('click', e => {
+  const hc = e.target.closest('img.card[data-armp]');
+  if (hc) {
+    const same = armed && armed.actor === hc.dataset.armp && armed.card === hc.dataset.armc;
+    armed = same ? null : { actor: hc.dataset.armp, card: hc.dataset.armc };
+    document.body.classList.toggle('arming', !!armed); render(); return;
+  }
+  if (e.target.closest('#menu') || e.target.closest('.ccards') || e.target.closest('.acards')) return;
+  const ch = e.target.closest('#board [data-char]'), ar = e.target.closest('#board [data-area]');
+  if (!ch && !ar) return;
+  const target = ch ? ch.dataset.char : 'board:' + ar.dataset.area;
+  if (armed) return placeArmed(target);
+  e.stopPropagation(); targetMenu(e.clientX, e.clientY, target);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { if (armed) { armed = null; document.body.classList.remove('arming'); render(); } hide(); return; }
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const el = document.activeElement; if (!el) return;
+  if (el.matches('img.card[data-armp]')) { e.preventDefault(); el.click(); return; }
+  if (el.matches('#board [data-char], #board [data-area]')) {
+    e.preventDefault();
+    const target = el.dataset.char || 'board:' + el.dataset.area;
+    if (armed) return placeArmed(target);
+    const r = el.getBoundingClientRect(); targetMenu(r.left + 10, r.top + 10, target);
+  }
+});
+
+// フェイズごとの固定ボタン（時の狭間の選択肢・能力フェイズの終了など）は waiting.options で脚本家が指定する
+function renderOptions() {
+  const o = S.waiting?.options || [];
+  const box = $('pending').parentElement;
+  box.querySelectorAll('.optbtn').forEach(b => b.remove());
+  o.forEach(label => { const b = document.createElement('button'); b.className = 'optbtn go'; b.title = '押すとすぐ送信される'; b.textContent = label;
+    b.style.margin = '6px 6px 0 0'; b.onclick = () => post({ type: 'option', choice: label }); box.appendChild(b); });
+}
+
+// ---- 送信 ----
+// 送った内容は、そのフェイズの間「送信済み」として残す（再読み込みしても sessionStorage から戻す）
+let sent = []; try { sent = JSON.parse(sessionStorage.getItem('sent') || '[]'); } catch {}
+function describeAction(a) {
+  if (a.type === 'cards') return a.placements.map(describe).join(' ／ ');
+  if (a.type === 'ability') return `友好能力 ${a.char} ${a.label}` + (a.target ? ` → ${a.target}` : '') + (a.mode ? `（${a.mode}）` : '')
+    + (a.declare ? ` 宣言: ${a.declare}` : '') + (a.incident ? ` 事件: ${a.incident}` : '');
+  if (a.type === 'option') return `選択: ${a.choice}`;
+  if (a.type === 'final') return `役職の指摘: ${a.char} は ${a.role}`;
+  if (a.type === 'objection') return `異議 #${a.log}: ${a.text}`;
+  if (a.type === 'message') return `伝言: ${a.text}`;
+  return JSON.stringify(a);
+}
+function renderSent() {
+  const mine = sent.filter(x => x.game === S.game && x.phaseId === S.phaseId);
+  $('sent').innerHTML = mine.length ? `<div class="h">送信済み（このフェイズ）</div><ul>${mine.map(x => `<li>#${x.seq} ${esc(x.text)}</li>`).join('')}</ul>` : '';
+}
+async function post(a) {
+  // 返事を待つ前に送信済みとして描く（待つ間に置いた札が盤面から消えていた。ユーザー指摘）
+  const rec = { game: S.game, phaseId: S.phaseId, seq: '…', text: describeAction(a), placements: a.type === 'cards' ? a.placements : null };
+  sent.push(rec); render();
+  try {
+    const r = await fetch('/action', { method: 'POST', body: JSON.stringify({ phaseId: S.phaseId, ...a }) });
+    const { seq } = await r.json();
+    rec.seq = seq;
+    try { sessionStorage.setItem('sent', JSON.stringify(sent.slice(-50))); } catch {}
+    S.reply = `送信しました（#${seq}）。脚本家の処理を待っています…`; $('reply').textContent = S.reply; render();
+  } catch { sent.splice(sent.indexOf(rec), 1); render(); alert('送信に失敗しました。サーバーが動いているか確認してください。'); }
+}
+$('send').onclick = () => { if (!pending.length) return; post({ type: 'cards', placements: pending }); pending = []; render(); };
+$('clear').onclick = () => { pending = []; render(); };
+let showAllAbil = false;
+$('abil').onclick = e => { e.stopPropagation(); if (e.target.id === 'abilmore') { showAllAbil = !showAllAbil; render(); return; }
+  const b = e.target.closest('button[data-abil]'); if (!b) return;
+  const r = b.getBoundingClientRect(); const [label, arg] = ABIL[b.dataset.ch][b.dataset.abil];
+  ability(r.left - 200, r.bottom, b.dataset.ch, +b.dataset.abil, label, arg); };
+// ---- 過去の盤面 ----
+// ログの行をクリックすると、その行の処理が反映された直後の盤面を表示する（右クリックは異議）
+let viewing = null, liveS = null;
+$('log').onclick = async e => {
+  const d = e.target.closest('[data-log]'); if (!d) return;
+  const n = +d.dataset.log;
+  try {
+    const snaps = (await (await fetch('/snapshots')).text()).split('\n').filter(Boolean).map(x => JSON.parse(x));
+    // prev_n < n <= log_n のスナップショットだけを使う。範囲が分からない行（機能より前の記録）は出さない
+    const snap = snaps.find(x => x.prev_n != null && x.prev_n < n && n <= x.log_n);
+    if (!snap) return alert(`#${n} の時点の盤面は残っていない（この機能より前の記録）`);
+    if (!viewing) liveS = S;
+    viewing = n; S = { ...liveS, ...snap.state, waiting: { text: `過去の盤面 #${n} を表示中 ― 帯の『いまに戻る』で戻る` }, reply: liveS.reply };
+    render();
+    $('band').insertAdjacentHTML('afterbegin', '<button class="go" id="back">いまに戻る</button>');
+    $('back').onclick = () => { viewing = null; S = liveS; render(); renderOptions(); };
+    document.querySelectorAll('#log [data-log]').forEach(x => x.classList.toggle('sel', +x.dataset.log === n));
+  } catch { alert('盤面の履歴を読めなかった'); }
+};
+$('pending').onclick = e => { const i = e.target.dataset.del; if (i != null) { pending.splice(i, 1); render(); } };
+$('msg').onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const t = e.target.value.trim(); if (t) { post({ type: 'message', text: t }); e.target.value = ''; } } };
+
+// ---- 読み込み（2秒おき。壊れた内容を読んだら直前の状態を保つ）----
+let lastState = '', lastLog = '', lastDed = '';
+async function poll() {
+  try {
+    const s = await (await fetch('/state')).text();
+    if (s !== lastState) { const v = JSON.parse(s); lastState = s; if (viewing) liveS = v; else { S = v; render(); renderOptions(); } }
+  } catch {}
+  try {
+    const t = await (await fetch('/deduce')).text();
+    if (t !== lastDed) { lastDed = t; DED = JSON.parse(t || '{}'); renderSheet(); }
+  } catch {}
+  try {
+    const l = await (await fetch('/log')).text();
+    if (l !== lastLog) { LOG = l.split('\n').filter(Boolean).map(x => JSON.parse(x)); lastLog = l; renderLog(); }
+  } catch {}
+}
+// 札にマウスを乗せると大きく表示する
+const zoom = Object.assign(document.createElement('img'), { className: 'cardzoom' }); zoom.style.display = 'none'; document.body.appendChild(zoom);
+document.addEventListener('mouseover', e => { const c = e.target.closest('img.card'); if (!c) return; zoom.src = c.src; zoom.style.display = 'block'; });
+document.addEventListener('mousemove', e => { if (zoom.style.display === 'block') { zoom.style.left = Math.min(e.clientX + 16, innerWidth - 230) + 'px'; zoom.style.top = Math.min(e.clientY + 16, innerHeight - 320) + 'px'; } });
+document.addEventListener('mouseout', e => { if (e.target.closest('img.card')) zoom.style.display = 'none'; });
+{ const box = $('log').closest('.body'); box.addEventListener('scroll', () => { logFollow = box.scrollTop + box.clientHeight >= box.scrollHeight - 30; }); }
+render(); poll(); setInterval(poll, 2000);
+addEventListener('resize', () => document.documentElement.style.setProperty('--bandh', $('band').offsetHeight + 'px'));
+</script>
+</html>

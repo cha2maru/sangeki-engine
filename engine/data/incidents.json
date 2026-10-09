@@ -1,0 +1,41 @@
+{
+ "_source": "早見表 originals/summary.pdf（wiki/concepts/role-abilities.md・rule-role-matrix.md で照合済み）（wiki/concepts/incident-effects.md 2026-09-21 照合）。発生条件は主人公の書 印刷p24 4-7",
+ "incidents": {
+  "MURDER": {
+   "name": "殺人事件",
+   "effect": "犯人と同一エリアにいる犯人以外のキャラ1人を死亡"
+  },
+  "SPREAD": {
+   "name": "不安拡大",
+   "effect": "任意のキャラ1人に不安2、別のキャラ1人に暗躍1"
+  },
+  "CORRUPT": {
+   "name": "邪気の汚染",
+   "effect": "神社に暗躍2"
+  },
+  "SUICIDE": {
+   "name": "自殺",
+   "effect": "犯人は死亡"
+  },
+  "HOSPITAL": {
+   "name": "病院の事件",
+   "effect": "病院に暗躍1以上→病院の全キャラ死亡／2以上→主人公死亡"
+  },
+  "REMOTE": {
+   "name": "遠隔殺人",
+   "effect": "暗躍2以上のキャラ1人を死亡"
+  },
+  "MISSING": {
+   "name": "行方不明",
+   "effect": "犯人を任意のボードへ移動、その後犯人のいるボードに暗躍1"
+  },
+  "RUMOR_SPREAD": {
+   "name": "流布",
+   "effect": "任意のキャラ1人から友好2を取り除き、別のキャラ1人に友好2"
+  },
+  "BUTTERFLY": {
+   "name": "蝶の羽ばたき",
+   "effect": "犯人と同一エリアのキャラ1人にいずれかのカウンターを1つ"
+  }
+ }
+}

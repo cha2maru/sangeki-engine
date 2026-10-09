@@ -1,0 +1,3944 @@
+[
+ {
+  "_format": "段2・3。phase: turn_end（ターン終了フェイズ: 強制を同時解決→任意を choice.optional の順で解決）/ incident（事件フェイズ: state.day の事件）/ mm_ability（脚本家能力フェイズ）/ loop_start（state を前ループ終了時の状態とみなし、次ループの準備後の状態を求める）。choice: turn_end → {optional:[{char, ability:'KILLER_KEY'|'KILLER_PROT'}]}、incident → MURDER {target} / SPREAD {par, int}、mm_ability → {uses:[{char, ability:'MISLEADER'|'KUROMAKU', target}]}。expect: chars は変化したキャラの最終値（載っていないキャラは不変）、boards は載っていれば全体、occurred は事件の発生有無、loop_end は null（続行）か {reason:'KEY_DIED'|'PROTAGONIST_DIED', defeat:true}。loop_start は loop/day/boards/used と、載せたキャラ全員の最終値。error は状態を変えないこと。"
+ },
+ {
+  "id": "sk-kills-lone-companion",
+  "desc": "シリアルキラー(医者)と入院患者だけが病院に→入院患者が死亡",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "SK"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": []
+  },
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 シリアルキラー「【強制：ターン終了フェイズ】このキャラクターと同一エリアにいるキャラクターが1人だけ→そのキャラクターを死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "sk-corpse-not-counted",
+  "desc": "病院にSK・入院患者・お嬢様の死体→死体は数えないので生存者は1人。入院患者が死亡",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "SK"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": []
+  },
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 シリアルキラー「【強制：ターン終了フェイズ】このキャラクターと同一エリアにいるキャラクターが1人だけ→そのキャラクターを死亡させる」／公式FAQ Ru05「死体は人数に含めません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "sk-two-others-nothing",
+  "desc": "SKと他に2人→何も起きない",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "SK"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": []
+  },
+  "expect": {
+   "chars": {},
+   "loop_end": null
+  },
+  "source": "早見表 シリアルキラー「【強制：ターン終了フェイズ】このキャラクターと同一エリアにいるキャラクターが1人だけ→そのキャラクターを死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "sk-alone-nothing",
+  "desc": "SKが単独→何も起きない（自分は数えない）。公式FAQ Ch01 は『同一エリアのキャラクター』に自身を含むとするが、そう読むと Ch02（SK2人だけ→両方死亡）が成り立たないため、SKの人数には自身を含めないと読む。一次資料に明文がないので unconfirmed",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "SK"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": []
+  },
+  "expect": {
+   "chars": {},
+   "loop_end": null
+  },
+  "source": "早見表 シリアルキラー「【強制：ターン終了フェイズ】このキャラクターと同一エリアにいるキャラクターが1人だけ→そのキャラクターを死亡させる」／公式FAQ Ch01「その能力を使うキャラクターを含みます」／Ch02「両方のシリアルキラーが死亡します」 ／ ユーザー裁定 2026-09-23（wiki/notes/rulings.md）。FAQ Ch02（SK2人だけなら相打ち）に合わせ、SK自身は数えない",
+  "status": "confirmed"
+ },
+ {
+  "id": "sk-two-sks-both-die",
+  "desc": "SK(医者)と、妄想拡大ウイルスでSKになったパーソン(入院患者・不安3)の2人だけ→同時に両方死亡",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C08": "SK"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": []
+  },
+  "expect": {
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": false,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "公式FAQ Ch02「1つの場所に2人の［シリアルキラー］のみが存在する場合…その通りです。両方のシリアルキラーが死亡します」／haunted_p12 能力の区分けとその解決順「i：条件を満たしている【強制】の能力を全て同時に解決する。ii：条件を満たしている【任意】の能力を脚本家が任意の順番で解決してもよい」",
+  "status": "confirmed"
+ },
+ {
+  "id": "sk-simultaneous-key-and-other",
+  "desc": "病院でSKがキーパーソンを、学校で別のSK(ウイルス)が男子学生を殺す→強制は同時解決。両方死亡し、ループ終了（敗北）",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C08": "SK",
+     "C09": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": []
+  },
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": {
+    "reason": "KEY_DIED",
+    "defeat": true
+   }
+  },
+  "source": "haunted_p12 能力の区分けとその解決順「i：条件を満たしている【強制】の能力を全て同時に解決する。ii：条件を満たしている【任意】の能力を脚本家が任意の順番で解決してもよい」／早見表 キーパーソン「【強制：このキャラクターの死亡時】主人公は敗北し、直ちにループを終了する」／公式FAQ Ch20「同時に解決しますので、キーパーソンとフレンドの両方が死亡します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "sk-kills-killer-before-optional",
+  "desc": "SKがキラー(暗躍4)を殺す→強制が先に解決されキラーは死体。死体は能力を使えないので、キラーの主人公殺害を選ぶと error",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 4,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "SK",
+     "C09": "KILLER"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": [
+    {
+     "char": "C09",
+     "ability": "KILLER_PROT"
+    }
+   ]
+  },
+  "expect": {
+   "error": "キラーは強制能力の解決で死亡しており、任意能力を使えない"
+  },
+  "source": "haunted_p12 能力の区分けとその解決順「i：条件を満たしている【強制】の能力を全て同時に解決する。ii：条件を満たしている【任意】の能力を脚本家が任意の順番で解決してもよい」／公式FAQ Ru06「死体は能力を使用できません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "sk-kills-key-ends-before-killer",
+  "desc": "SKがキーパーソンを殺す→直ちにループ終了。キラー(暗躍4)の主人公殺害は解決されない（選択していても無視）",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 4,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "SK",
+     "C09": "KEY",
+     "C05": "KILLER"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": [
+    {
+     "char": "C05",
+     "ability": "KILLER_PROT"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": {
+    "reason": "KEY_DIED",
+    "defeat": true
+   }
+  },
+  "source": "haunted_p12 能力の区分けとその解決順「i：条件を満たしている【強制】の能力を全て同時に解決する。ii：条件を満たしている【任意】の能力を脚本家が任意の順番で解決してもよい」／早見表 キーパーソン「【強制：このキャラクターの死亡時】主人公は敗北し、直ちにループを終了する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "virus-person-par3-is-sk",
+  "desc": "妄想拡大ウイルス。パーソンの女子学生(不安3)と男子学生だけが学校に→男子学生が死亡",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": []
+  },
+  "expect": {
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 妄想拡大ウイルス「【強制：常時】パーソンは[不安C]が3つ以上置かれている限り、役職がシリアルキラーに変更される」／早見表 シリアルキラー「【強制：ターン終了フェイズ】このキャラクターと同一エリアにいるキャラクターが1人だけ→そのキャラクターを死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "virus-person-par2-not-sk",
+  "desc": "不安2のパーソンはSKでない→何も起きない",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": []
+  },
+  "expect": {
+   "chars": {},
+   "loop_end": null
+  },
+  "source": "早見表 妄想拡大ウイルス「【強制：常時】パーソンは[不安C]が3つ以上置かれている限り、役職がシリアルキラーに変更される」／公式FAQ XY01「不安カウンターが２つ以下となったキャラクターはシリアルキラーではなくなります」",
+  "status": "confirmed"
+ },
+ {
+  "id": "virus-non-person-not-sk",
+  "desc": "不安3でもキーパーソンはパーソンでないのでSKにならない",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C02": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": []
+  },
+  "expect": {
+   "chars": {},
+   "loop_end": null
+  },
+  "source": "早見表 妄想拡大ウイルス「【強制：常時】パーソンは[不安C]が3つ以上置かれている限り、役職がシリアルキラーに変更される」（対象はパーソンのみ）",
+  "status": "confirmed"
+ },
+ {
+  "id": "virus-absent-no-sk",
+  "desc": "妄想拡大ウイルスが無い脚本では不安3のパーソンは何もしない",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": []
+  },
+  "expect": {
+   "chars": {},
+   "loop_end": null
+  },
+  "source": "早見表 妄想拡大ウイルス「【強制：常時】パーソンは[不安C]が3つ以上置かれている限り、役職がシリアルキラーに変更される」",
+  "status": "confirmed"
+ },
+ {
+  "id": "killer-kills-key",
+  "desc": "キラー(刑事)と同じ都市のキーパーソン(情報屋)に暗躍2、使う→キーパーソン死亡、ループ終了（敗北）",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "KILLER",
+     "C07": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": [
+    {
+     "char": "C05",
+     "ability": "KILLER_KEY"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "loop_end": {
+    "reason": "KEY_DIED",
+    "defeat": true
+   }
+  },
+  "source": "早見表 キラー「【任意能力：ターン終了フェイズ】同一エリアのキーパーソンに[暗躍C]が2つ以上→キーパーソンを死亡させる」／早見表 キーパーソン「【強制：このキャラクターの死亡時】主人公は敗北し、直ちにループを終了する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "killer-declines",
+  "desc": "条件を満たすが使わない（任意）→何も起きない",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "KILLER",
+     "C07": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": []
+  },
+  "expect": {
+   "chars": {},
+   "loop_end": null
+  },
+  "source": "早見表 キラー「【任意能力：ターン終了フェイズ】同一エリアのキーパーソンに[暗躍C]が2つ以上→キーパーソンを死亡させる」（任意能力）",
+  "status": "confirmed"
+ },
+ {
+  "id": "killer-key-int1-error",
+  "desc": "キーパーソンの暗躍1では使えない→error",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "KILLER",
+     "C07": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": [
+    {
+     "char": "C05",
+     "ability": "KILLER_KEY"
+    }
+   ]
+  },
+  "expect": {
+   "error": "キーパーソンの暗躍が2未満"
+  },
+  "source": "早見表 キラー「【任意能力：ターン終了フェイズ】同一エリアのキーパーソンに[暗躍C]が2つ以上→キーパーソンを死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "killer-key-other-area-error",
+  "desc": "キーパーソンが別エリア（暗躍2）→使えない",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "KILLER",
+     "C07": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": [
+    {
+     "char": "C05",
+     "ability": "KILLER_KEY"
+    }
+   ]
+  },
+  "expect": {
+   "error": "キーパーソンが同一エリアにいない"
+  },
+  "source": "早見表 キラー「【任意能力：ターン終了フェイズ】同一エリアのキーパーソンに[暗躍C]が2つ以上→キーパーソンを死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "killer-kills-protagonists",
+  "desc": "キラー自身に暗躍4、使う→主人公死亡、ループ終了（敗北）",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 4,
+     "guard": 0
+    },
+    "C07": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "KILLER",
+     "C07": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": [
+    {
+     "char": "C05",
+     "ability": "KILLER_PROT"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {},
+   "loop_end": {
+    "reason": "PROTAGONIST_DIED",
+    "defeat": true
+   }
+  },
+  "source": "早見表 キラー「【任意能力：ターン終了フェイズ】このキャラクターに[暗躍C]が4つ以上→主人公を死亡させる」／主人公の書 印刷p19 主人公の殺害「主人公が死亡した場合…そのループは主人公プレイヤーの敗北として直ちに終了します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "killer-int3-error",
+  "desc": "キラー自身の暗躍3では主人公殺害は使えない",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 3,
+     "guard": 0
+    },
+    "C07": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "KILLER",
+     "C07": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": [
+    {
+     "char": "C05",
+     "ability": "KILLER_PROT"
+    }
+   ]
+  },
+  "expect": {
+   "error": "キラーの暗躍が4未満"
+  },
+  "source": "早見表 キラー「【任意能力：ターン終了フェイズ】このキャラクターに[暗躍C]が4つ以上→主人公を死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "incident-murder",
+  "desc": "殺人事件。犯人の情報屋(臨界3)に不安3、同じ都市の刑事を選ぶ→刑事死亡",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C05"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "主人公の書 印刷p24 4-7「犯人となるキャラクターが生存している。犯人となるキャラクターの上に、そのキャラクターの不安臨界以上の個数の不安カウンターが置かれている」／早見表 殺人事件「犯人と同一エリアにいる犯人以外のキャラクター1人を死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "incident-below-limit",
+  "desc": "犯人の不安2（臨界3未満）→発生しない",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "expect": {
+   "occurred": false,
+   "chars": {},
+   "loop_end": null
+  },
+  "source": "主人公の書 印刷p24 4-7「犯人となるキャラクターが生存している。犯人となるキャラクターの上に、そのキャラクターの不安臨界以上の個数の不安カウンターが置かれている」",
+  "status": "confirmed"
+ },
+ {
+  "id": "incident-culprit-dead",
+  "desc": "犯人が死体（不安は臨界以上）→発生しない",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": false,
+     "par": 5,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "expect": {
+   "occurred": false,
+   "chars": {},
+   "loop_end": null
+  },
+  "source": "主人公の書 印刷p24 4-7「犯人となるキャラクターが生存している。犯人となるキャラクターの上に、そのキャラクターの不安臨界以上の個数の不安カウンターが置かれている」",
+  "status": "confirmed"
+ },
+ {
+  "id": "incident-other-day",
+  "desc": "事件の日でない（事件は2日目、今日は1日目）→何も起きない",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "expect": {
+   "occurred": false,
+   "chars": {},
+   "loop_end": null
+  },
+  "source": "主人公の書 印刷p24 4-7「その日に定められた事件がない場合、なにも行わずこのフェイズは終了します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "incident-murder-no-victim",
+  "desc": "殺人事件。犯人と同じエリアに他の生存者がいない→発生はするが誰も死なない",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {},
+   "loop_end": null
+  },
+  "source": "主人公の書 印刷p24 4-7「犯人となるキャラクターが生存している。犯人となるキャラクターの上に、そのキャラクターの不安臨界以上の個数の不安カウンターが置かれている」／早見表 殺人事件「犯人と同一エリアにいる犯人以外のキャラクター1人を死亡させる」／公式FAQ Af01「『事件は発生したが、誰も死亡しなかった』と宣言します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "incident-murder-culprit-self-error",
+  "desc": "殺人事件で犯人自身を選ぶ→error",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C07"
+  },
+  "expect": {
+   "error": "殺人事件の対象は犯人以外"
+  },
+  "source": "早見表 殺人事件「犯人と同一エリアにいる犯人以外のキャラクター1人を死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "incident-murder-other-area-error",
+  "desc": "殺人事件で別エリアのキャラを選ぶ→error",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C01"
+  },
+  "expect": {
+   "error": "殺人事件の対象は犯人と同一エリア"
+  },
+  "source": "早見表 殺人事件「犯人と同一エリアにいる犯人以外のキャラクター1人を死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "incident-murder-no-target-error",
+  "desc": "候補がいるのに対象を選ばない→error（効果は必ず解決する）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {},
+  "expect": {
+   "error": "候補がいるので対象の指定が必要"
+  },
+  "source": "主人公の書 印刷p24 4-7「犯人となるキャラクターが生存している。犯人となるキャラクターの上に、そのキャラクターの不安臨界以上の個数の不安カウンターが置かれている」「事件が発生する場合…その効果を解決してください。…対象などの指定を行う場合、基本的に全て脚本家が行います」／早見表 殺人事件「犯人と同一エリアにいる犯人以外のキャラクター1人を死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "incident-murder-key",
+  "desc": "殺人事件でキーパーソンが死亡→ループ終了（敗北）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "KEY"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C05"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": {
+    "reason": "KEY_DIED",
+    "defeat": true
+   }
+  },
+  "source": "早見表 殺人事件「犯人と同一エリアにいる犯人以外のキャラクター1人を死亡させる」／早見表 キーパーソン「【強制：このキャラクターの死亡時】主人公は敗北し、直ちにループを終了する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "incident-spread",
+  "desc": "不安拡大。男子学生に不安2、女子学生に暗躍1（エリアは問わない）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "SPREAD",
+      "culprit": "C08"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "par": "C01",
+   "int": "C02"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "主人公の書 印刷p24 4-7「犯人となるキャラクターが生存している。犯人となるキャラクターの上に、そのキャラクターの不安臨界以上の個数の不安カウンターが置かれている」／早見表 不安拡大「任意のキャラクター1人に[不安C]を2つ置き、別のキャラクター1人に[暗躍C]を1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "incident-spread-same-target-error",
+  "desc": "不安拡大で不安と暗躍を同じキャラに→error（別のキャラクター）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "SPREAD",
+      "culprit": "C08"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "par": "C01",
+   "int": "C01"
+  },
+  "expect": {
+   "error": "不安と暗躍は別のキャラクターに"
+  },
+  "source": "早見表 不安拡大「任意のキャラクター1人に[不安C]を2つ置き、別のキャラクター1人に[暗躍C]を1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "incident-spread-corpse-error",
+  "desc": "不安拡大で死体を対象にする→error",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "SPREAD",
+      "culprit": "C08"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "par": "C03",
+   "int": "C01"
+  },
+  "expect": {
+   "error": "死体は対象にできない"
+  },
+  "source": "早見表 不安拡大「任意のキャラクター1人に[不安C]を2つ置き、別のキャラクター1人に[暗躍C]を1つ置く」／公式FAQ Ru05「キャラクターを対象とした能力の対象として選ぶことは出来ません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "incident-corrupt",
+  "desc": "邪気の汚染→神社に暗躍2",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 1,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "CORRUPT",
+      "culprit": "C04"
+     }
+    ]
+   }
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {},
+   "boards": {
+    "HOS": 0,
+    "SHR": 3,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "loop_end": null
+  },
+  "source": "主人公の書 印刷p24 4-7「犯人となるキャラクターが生存している。犯人となるキャラクターの上に、そのキャラクターの不安臨界以上の個数の不安カウンターが置かれている」／早見表 邪気の汚染「神社に[暗躍C]を2つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "incident-suicide",
+  "desc": "自殺→犯人が死亡",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "SUICIDE",
+      "culprit": "C03"
+     }
+    ]
+   }
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": false,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "主人公の書 印刷p24 4-7「犯人となるキャラクターが生存している。犯人となるキャラクターの上に、そのキャラクターの不安臨界以上の個数の不安カウンターが置かれている」／早見表 自殺「犯人は死亡する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "incident-suicide-key",
+  "desc": "自殺の犯人がキーパーソン→死亡しループ終了（敗北）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "SUICIDE",
+      "culprit": "C03"
+     }
+    ]
+   }
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": false,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": {
+    "reason": "KEY_DIED",
+    "defeat": true
+   }
+  },
+  "source": "早見表 自殺／早見表 キーパーソン「【強制：このキャラクターの死亡時】主人公は敗北し、直ちにループを終了する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "misleader-same-area",
+  "desc": "ミスリーダー(刑事・都市)が同じ都市の情報屋に不安1",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "MISLEADER",
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "uses": [
+    {
+     "char": "C05",
+     "ability": "MISLEADER",
+     "target": "C07"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   }
+  },
+  "source": "早見表 ミスリーダー「【任意能力：脚本家能力フェイズ】同一エリアのキャラクター1人に[不安C]を1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "misleader-self",
+  "desc": "ミスリーダーが自身に不安1（自身を含む）",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "MISLEADER",
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "uses": [
+    {
+     "char": "C05",
+     "ability": "MISLEADER",
+     "target": "C05"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   }
+  },
+  "source": "早見表 ミスリーダー「【任意能力：脚本家能力フェイズ】同一エリアのキャラクター1人に[不安C]を1つ置く」／公式FAQ Ch01「その能力を使うキャラクターを含みます。含まない場合は男子学生のように『自身以外の』と記述されます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "misleader-other-area-error",
+  "desc": "ミスリーダーが学校の男子学生に→error",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "MISLEADER",
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "uses": [
+    {
+     "char": "C05",
+     "ability": "MISLEADER",
+     "target": "C01"
+    }
+   ]
+  },
+  "expect": {
+   "error": "同一エリアでない"
+  },
+  "source": "早見表 ミスリーダー「【任意能力：脚本家能力フェイズ】同一エリアのキャラクター1人に[不安C]を1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "misleader-twice-error",
+  "desc": "ミスリーダーが1ターンに2人へ→error",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "MISLEADER",
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "uses": [
+    {
+     "char": "C05",
+     "ability": "MISLEADER",
+     "target": "C05"
+    },
+    {
+     "char": "C05",
+     "ability": "MISLEADER",
+     "target": "C07"
+    }
+   ]
+  },
+  "expect": {
+   "error": "1つの能力は1ターンに1回"
+  },
+  "source": "公式FAQ Ch11「ある１ターンの間では自身か他のキャラクターのどちらか片方にしかカウンターを乗せることはできません」／主人公の書 印刷p23 4-5「可能な全ての能力を1回ずつ使えます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "misleader-by-non-misleader-error",
+  "desc": "役職がミスリーダーでない情報屋の能力として使う→error",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "MISLEADER",
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "uses": [
+    {
+     "char": "C07",
+     "ability": "MISLEADER",
+     "target": "C05"
+    }
+   ]
+  },
+  "expect": {
+   "error": "その役職ではない"
+  },
+  "source": "早見表 ミスリーダー「【任意能力：脚本家能力フェイズ】同一エリアのキャラクター1人に[不安C]を1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "misleader-corpse-target-error",
+  "desc": "死体を対象にする→error",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "MISLEADER",
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "uses": [
+    {
+     "char": "C05",
+     "ability": "MISLEADER",
+     "target": "C06"
+    }
+   ]
+  },
+  "expect": {
+   "error": "死体は対象にできない"
+  },
+  "source": "公式FAQ Ru05「キャラクターを対象とした能力の対象として選ぶことは出来ません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "misleader-dead-error",
+  "desc": "ミスリーダー自身が死体→使えない",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "MISLEADER",
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "uses": [
+    {
+     "char": "C05",
+     "ability": "MISLEADER",
+     "target": "C07"
+    }
+   ]
+  },
+  "expect": {
+   "error": "死体は能力を使えない"
+  },
+  "source": "公式FAQ Ru06「死体は能力を使用できません」／主人公の書 印刷p16「死亡しているキャラクターカードは…キャラクターとしての能力を使うことはできません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "kuromaku-own-board",
+  "desc": "クロマク(医者・病院)が病院ボードに暗躍1",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "MISLEADER",
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "uses": [
+    {
+     "char": "C08",
+     "ability": "KUROMAKU",
+     "target": "B:HOS"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {},
+   "boards": {
+    "HOS": 1,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   }
+  },
+  "source": "早見表 クロマク「【任意能力：脚本家能力フェイズ】同一エリアのキャラクター1人、またはこのキャラクターのいるボードに[暗躍C]を1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "kuromaku-same-area-char",
+  "desc": "クロマクが同じ病院の入院患者に暗躍1",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "MISLEADER",
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "uses": [
+    {
+     "char": "C08",
+     "ability": "KUROMAKU",
+     "target": "C09"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    }
+   }
+  },
+  "source": "早見表 クロマク「【任意能力：脚本家能力フェイズ】同一エリアのキャラクター1人、またはこのキャラクターのいるボードに[暗躍C]を1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "kuromaku-self",
+  "desc": "クロマクが自身に暗躍1",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "MISLEADER",
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "uses": [
+    {
+     "char": "C08",
+     "ability": "KUROMAKU",
+     "target": "C08"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    }
+   }
+  },
+  "source": "早見表 クロマク「【任意能力：脚本家能力フェイズ】同一エリアのキャラクター1人、またはこのキャラクターのいるボードに[暗躍C]を1つ置く」／公式FAQ Ch01",
+  "status": "confirmed"
+ },
+ {
+  "id": "kuromaku-other-board-error",
+  "desc": "クロマクが別エリアのボード(神社)に→error",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "MISLEADER",
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "uses": [
+    {
+     "char": "C08",
+     "ability": "KUROMAKU",
+     "target": "B:SHR"
+    }
+   ]
+  },
+  "expect": {
+   "error": "このキャラクターのいるボードでない"
+  },
+  "source": "早見表 クロマク「【任意能力：脚本家能力フェイズ】同一エリアのキャラクター1人、またはこのキャラクターのいるボードに[暗躍C]を1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "kuromaku-other-area-char-error",
+  "desc": "クロマクが都市の刑事に→error",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "MISLEADER",
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "uses": [
+    {
+     "char": "C08",
+     "ability": "KUROMAKU",
+     "target": "C05"
+    }
+   ]
+  },
+  "expect": {
+   "error": "同一エリアでない"
+  },
+  "source": "早見表 クロマク「【任意能力：脚本家能力フェイズ】同一エリアのキャラクター1人、またはこのキャラクターのいるボードに[暗躍C]を1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "kuromaku-twice-error",
+  "desc": "クロマクがボードと自身の両方に→error",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "MISLEADER",
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "uses": [
+    {
+     "char": "C08",
+     "ability": "KUROMAKU",
+     "target": "B:HOS"
+    },
+    {
+     "char": "C08",
+     "ability": "KUROMAKU",
+     "target": "C08"
+    }
+   ]
+  },
+  "expect": {
+   "error": "1つの能力は1ターンに1回"
+  },
+  "source": "公式FAQ Ch11「自身か他のキャラクターのどちらか片方にしか」",
+  "status": "confirmed"
+ },
+ {
+  "id": "misleader-and-kuromaku-both",
+  "desc": "ミスリーダーとクロマクの能力を同じフェイズにそれぞれ1回ずつ",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "MISLEADER",
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "uses": [
+    {
+     "char": "C05",
+     "ability": "MISLEADER",
+     "target": "C07"
+    },
+    {
+     "char": "C08",
+     "ability": "KUROMAKU",
+     "target": "B:HOS"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 1,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   }
+  },
+  "source": "主人公の書 印刷p23 4-5「複数の能力が使える場合、可能な全ての能力を1回ずつ使えます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "mm-ability-none",
+  "desc": "何も使わない（任意）→変化なし",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "MISLEADER",
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "uses": []
+  },
+  "expect": {
+   "chars": {}
+  },
+  "source": "早見表（ミスリーダー・クロマクとも【任意能力】）",
+  "status": "confirmed"
+ },
+ {
+  "id": "loop-start-thread",
+  "desc": "因果の糸。前ループ終了時に友好があった男子学生と、友好2のまま死亡したお嬢様に不安2。全員初期エリアに生存で戻り、他のカウンター・ボード・使用済みは空",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 1,
+     "int": 1,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 1
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 2,
+    "CIT": 1,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "MV_D"
+    ],
+    "A": [
+     "MVX"
+    ],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "expect": {
+   "loop": 2,
+   "day": 1,
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "早見表 因果の糸「【強制：ループ開始時】ひとつ前のループ終了時に[友好C]の置かれていた全キャラクターに[不安C]を2つ置く」／公式FAQ Ru01（死亡したキャラの友好は取り除かれず、因果の糸で不安が乗る）／主人公の書 印刷p16「死亡したからと言って、死体の上に置かれたカウンターなどが取り除かれるということもありません」／主人公の書 印刷p20 3-2 キャラクターの配置・3-3 カウンターの除去と配置・3-4 手札の分配",
+  "status": "confirmed"
+ },
+ {
+  "id": "loop-start-no-thread",
+  "desc": "因果の糸が無い脚本→全カウンター0（2026-09-23 エンジン側で修正: 元の state.script.rules に X_THREAD が入っており desc と矛盾していたため外した。期待値は変えていない）",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 1,
+     "int": 1,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 1
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 2,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "INT2"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "expect": {
+   "loop": 2,
+   "day": 1,
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p20 3-2 キャラクターの配置・3-3 カウンターの除去と配置・3-4 手札の分配",
+  "status": "confirmed"
+ }
+]

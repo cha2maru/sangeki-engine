@@ -1,0 +1,96 @@
+{
+ "_source": "originals/protagonist_rulebook.pdf 印刷p42・p43（wiki/cards/*-hand.md で照合済み）、手札の構成は印刷p20 3-4",
+ "protagonist_hand": [
+  "PAR+",
+  "PAR-",
+  "GW1",
+  "GW2",
+  "INTX",
+  "MV_V",
+  "MV_H",
+  "MVX"
+ ],
+ "mastermind_hand": [
+  "PAR+",
+  "PAR+",
+  "PAR-",
+  "PARX",
+  "GWX",
+  "INT1",
+  "INT2",
+  "MV_V",
+  "MV_H",
+  "MV_D"
+ ],
+ "cards": {
+  "PAR+": {
+   "name": "不安+1",
+   "once_per_loop": false,
+   "src": "主人公の書 印刷p42 手札リスト(主人公)／主人公の書 印刷p43 手札リスト(脚本家)"
+  },
+  "PAR-": {
+   "name": "不安−1",
+   "once_per_loop_for": [
+    "A",
+    "B",
+    "C"
+   ],
+   "src": "主人公の書 印刷p42 手札リスト(主人公)（主人公版は1ループ1回）／主人公の書 印刷p43 手札リスト(脚本家)（脚本家版は制限なし）"
+  },
+  "GW1": {
+   "name": "友好+1",
+   "once_per_loop": false,
+   "src": "主人公の書 印刷p42 手札リスト(主人公)"
+  },
+  "GW2": {
+   "name": "友好+2",
+   "once_per_loop": true,
+   "src": "主人公の書 印刷p42 手札リスト(主人公)"
+  },
+  "INTX": {
+   "name": "暗躍禁止",
+   "once_per_loop": false,
+   "src": "主人公の書 印刷p42 手札リスト(主人公) ― 暗躍+1/+2と重なったら無効化。複数のプレイヤーが出していると自身が無効"
+  },
+  "MV_V": {
+   "name": "移動↑↓",
+   "once_per_loop": false,
+   "src": "主人公の書 印刷p42 手札リスト(主人公)"
+  },
+  "MV_H": {
+   "name": "移動←→",
+   "once_per_loop": false,
+   "src": "主人公の書 印刷p42 手札リスト(主人公)"
+  },
+  "MVX": {
+   "name": "移動禁止",
+   "once_per_loop": true,
+   "src": "主人公の書 印刷p42 手札リスト(主人公) ― 移動↑↓・←→・斜めと重なったら無効化"
+  },
+  "PARX": {
+   "name": "不安禁止",
+   "once_per_loop": false,
+   "src": "主人公の書 印刷p43 手札リスト(脚本家) ― 不安+1・不安−1と重なったら無効化"
+  },
+  "GWX": {
+   "name": "友好禁止",
+   "once_per_loop": false,
+   "src": "主人公の書 印刷p43 手札リスト(脚本家) ― 友好+1・友好+2と重なったら無効化"
+  },
+  "INT1": {
+   "name": "暗躍+1",
+   "once_per_loop": false,
+   "src": "主人公の書 印刷p43 手札リスト(脚本家)"
+  },
+  "INT2": {
+   "name": "暗躍+2",
+   "once_per_loop": true,
+   "src": "主人公の書 印刷p43 手札リスト(脚本家)"
+  },
+  "MV_D": {
+   "name": "移動斜め",
+   "once_per_loop": true,
+   "src": "主人公の書 印刷p43 手札リスト(脚本家)"
+  }
+ }
+}

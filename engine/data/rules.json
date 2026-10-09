@@ -1,0 +1,96 @@
+{
+ "_source": "早見表 originals/summary.pdf（wiki/concepts/role-abilities.md・rule-role-matrix.md で照合済み）",
+ "rules": {
+  "Y_MURDER": {
+   "name": "殺人計画",
+   "type": "Y",
+   "roles": {
+    "KEY": 1,
+    "KILLER": 1,
+    "KUROMAKU": 1
+   }
+  },
+  "Y_SEAL": {
+   "name": "封印されしモノ",
+   "type": "Y",
+   "roles": {
+    "KUROMAKU": 1,
+    "CULTIST": 1
+   }
+  },
+  "Y_CONTRACT": {
+   "name": "僕と契約しようよ！",
+   "type": "Y",
+   "roles": {
+    "KEY": 1
+   }
+  },
+  "Y_FUTURE": {
+   "name": "未来改変プラン",
+   "type": "Y",
+   "roles": {
+    "CULTIST": 1,
+    "TT": 1
+   }
+  },
+  "Y_BOMB": {
+   "name": "巨大時限爆弾Xの存在",
+   "type": "Y",
+   "roles": {
+    "WITCH": 1
+   }
+  },
+  "X_CIRCLE": {
+   "name": "友情サークル",
+   "type": "X",
+   "roles": {
+    "FRIEND": 2,
+    "MISLEADER": 1
+   }
+  },
+  "X_LOVE": {
+   "name": "恋愛風景",
+   "type": "X",
+   "roles": {
+    "LOVERS": 1,
+    "MAIN_LOVERS": 1
+   }
+  },
+  "X_KILLER": {
+   "name": "潜む殺人鬼",
+   "type": "X",
+   "roles": {
+    "FRIEND": 1,
+    "SK": 1
+   }
+  },
+  "X_RUMOR": {
+   "name": "不穏な噂",
+   "type": "X",
+   "roles": {
+    "MISLEADER": 1
+   }
+  },
+  "X_VIRUS": {
+   "name": "妄想拡大ウイルス",
+   "type": "X",
+   "roles": {
+    "MISLEADER": 1
+   },
+   "effect": "強制:常時 パーソンは不安3以上の間シリアルキラー"
+  },
+  "X_THREAD": {
+   "name": "因果の糸",
+   "type": "X",
+   "roles": {},
+   "effect": "強制:ループ開始時 前ループ終了時に友好が置かれていた全キャラに不安2"
+  },
+  "X_FACTOR": {
+   "name": "不定因子χ",
+   "type": "X",
+   "roles": {
+    "FACTOR": 1
+   }
+  }
+ }
+}

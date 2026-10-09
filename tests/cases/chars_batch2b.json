@@ -1,0 +1,6847 @@
+[
+ {
+  "_interface": "キャラクター第2陣b（C11 イレギュラー・C16 大物・C20 幻想・C28 コピーキャット・C30 ご神木・C32 アルバイト・C33 アルバイト？・C34 従者・C35 上位存在）の特性と友好能力。エンジンのコードを見ずに一次資料（カード画像・主人公の書 印刷p37〜41・早見表）から先に書いた期待値。公式FAQ に9人の問答は無い（上位存在のカード訂正だけ）。state は chars_batch2a と同じ（README の完全な状態＋ability_used_today・ability_used_loop・incident_log・unbound、盤面にいないキャラは present:false・area:null）に次を加える提案。【脚本の項目】script.territory: \"HOS\"|\"SHR\"|\"CIT\"|\"SCH\"（大物のテリトリー。大物がいれば必須）。script.start: {C34: \"CIT\"|\"SCH\"}（従者の初期エリア。従者がいれば必須）。loop_start（と最後の戦いの盤面の再構築）は従者を script.start に置く。【脚本の検査】phase: script_check → scripts.check(case.script)[0]（誤りの一覧）。expect.script_ok は一覧が空か。script は toukou_001 と同じ形の完全な脚本。イレギュラー・コピーキャットはルールの役職枠（rules.json の roles の人数）に数えない。イレギュラーは script.roles に必ず載り、その役職は選ばれたルールのどれも追加しない役職（PERSON 不可）。コピーキャットは script.roles に必ず載り、その役職は他のキャラ（イレギュラーを含む）の役職と同じ（PERSON 不可・人数上限を超えてよい）。【ゲーム中の役職】役職は script.roles から導く。ただしアルバイト C32 は配役にかかわらず PERSON。アルバイト？ C33 は C32 の配役（script.roles.C32。無ければ PERSON）と同じ（c33-cast-role は unresolved）。キーパーソン・キラー・シリアルキラーなどの能力・友好無視・最後の戦いの正解はこの役職で見る。【イレギュラー[3]・コピーキャット[3]】arg null。loop==1 は error。refuse=true は error（ナースと同じ「拒否できない」）。★ではない。コピーキャット[3] の結果は events に {\"kind\":\"reveal\", \"reveal_same_role\": {\"C28\": [\"C08\"]}}（自身を除く、生存の同役職キャラの列。並びは問わない）を出し、試験は reveal.same_role={char, chars} で比べる提案。【大物】[5] arg {target}（script.territory のエリアにいる大物以外の生存キャラ。大物自身の位置は問わない）。★。脚本家能力フェイズの役職の能力（phase: mm_ability、choice {uses:[{char, ability, target}]} は later_stages と同じ → ph.mm_phase）と、ターン終了の任意能力（KILLER_KEY）で、大物の「同一エリア」「自身のいるボード」は実際のエリアかテリトリーのどちらでもよい。【強制】の能力（シリアルキラー）と事件の効果には及ばない（ともに unresolved）。【幻想】行動カードのセット先に C20 を指定すると error。幻想のいるエリアのボードにセットされた札は、そのボードへの効果に加えて、幻想にセットされたものとしても解決する（移動の合成・禁止・相殺も通常どおり。同じエリアの他のキャラには効かない）。幻想[3] arg {target, board}（target は幻想と同一エリアの生存キャラ。自身可。禁止エリアへも移動できる）。★。幻想[4] arg null → present:false・area:null（alive は true のまま、死亡の処理を通さない）。★ではない。次の loop_start で present:true。【ご神木】特性の使用を use_ability(state, \"C30\", 0, {target, counter:\"par\"|\"gw\"|\"int\"}, refuse) で表す提案（友好の条件なし・拒否不可＝refuse=true は error・1ターンに1回＝ability_used_today に C30#0）。ご神木が友好無視を持つ役職なら、脚本家能力フェイズに uses:[{char:\"C30\", ability:\"SHINBOKU\", target, counter}] を必ず含める（移せるカウンターと相手がいるのに無ければ error）。友好無視が無いのに含めれば error。【アルバイト】ph.turn_end の【強制】に「C32 の par+gw+int(+guard は unresolved) ≥3 なら死亡（既存の kill を通す）」を加える。ph.turn_start で C32 が死体なら C33 を都市に生存・カウンター無しで present:true（既に present なら何もしない＝unresolved）。C33 は loop_start で present:false（unresolved）。事件の犯人が C32 のとき、発生の判定と効果は C33 も犯人として扱う（C32 が死体で C33 が生存・臨界以上なら発生）。アルバイト？[3] arg {target}（同一エリア。自身可）→ 自身の役職を公開し target に友好2。★。【従者】移動（行動解決・能力・事件）の処理の最後に、移動前に従者と同一エリアにいた「お嬢様 C03・大物 C16・state.servant_targets の各キャラ」が移動したら、従者を同じ移動先へ移す（従者自身への移動札は無視）。付いていく相手が2人以上で移動先が違えば input.follow {\"C34\": cid} を要し、無ければ error（resolve_actions の新しい引数 follow の提案）。死亡の処理（既存の kill の1か所）で、死亡するキャラが従者と同一エリアのお嬢様・大物・servant_targets で、従者が生存なら、代わりに従者を kill する。従者[4] arg {target}（ボードにいる自身以外の生存キャラ。エリア不問）→ state.servant_targets に追加。★。loop_start で空にする。expect.servant_targets は全体（並びは問わない。キーが無ければ空）。【phase と expect】chars_batch2a と同じ（incident・turn_end・loop_start・turn_start・action・final・loop_end・declare/refuse/then）に、script_check と mm_ability（ph.mm_phase(state, choice.uses)）を加える。action の input は action_resolution と同じで、follow を追加。expect.used は action_resolution と同じ（★札の使用済みの全体）。final の expect は abilities.json と同じ {winner, stopped_at}。status: confirmed（一次資料で確定）/ unresolved（一次資料で決まらない。期待値は字面どおりの読みで、理由は unresolved 欄。試験は xfail）/ not_applicable（Basic Tragedy X に無い要素。試験は skip）。"
+ },
+ {
+  "id": "c11-script-person-error",
+  "desc": "イレギュラーを配役しない（パーソンのまま）脚本→誤り（「パーソンとなる代わりに」追加されない役職になる）",
+  "phase": "script_check",
+  "script": {
+   "id": "b2b_check",
+   "title": "境界例（脚本の検査）",
+   "set": "BTX",
+   "loops": 3,
+   "days": 8,
+   "rules": [
+    "Y_MURDER",
+    "X_THREAD",
+    "X_VIRUS"
+   ],
+   "roles": {
+    "C01": "KUROMAKU",
+    "C03": "KEY",
+    "C05": "MISLEADER",
+    "C08": "KILLER"
+   },
+   "characters": [
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06",
+    "C07",
+    "C08",
+    "C09",
+    "C11"
+   ],
+   "incidents": [
+    {
+     "day": 2,
+     "id": "SPREAD",
+     "culprit": "C08"
+    },
+    {
+     "day": 4,
+     "id": "CORRUPT",
+     "culprit": "C06"
+    },
+    {
+     "day": 5,
+     "id": "SUICIDE",
+     "culprit": "C02"
+    },
+    {
+     "day": 7,
+     "id": "MURDER",
+     "culprit": "C07"
+    }
+   ]
+  },
+  "expect": {
+   "script_ok": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_11_1.png（wiki/characters/character-11.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、選ばれたルールにより追加されないいずれかの役職となる。[友好3] 第2ループ以降でないと使えない。このキャラクターの役職を知る。この能力は友好無視や絶対友好無視で拒否されない」／主人公の書 印刷p37 イレギュラー「[主人公]第2ループ以降でないと使えません。[脚本家]イレギュラーの役職を伝えます…この能力は拒否できません」（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c11-script-added-role-error",
+  "desc": "ルール（妄想拡大ウイルス）が追加するミスリーダーにイレギュラーを配役（本来のミスリーダーは刑事）→誤り",
+  "phase": "script_check",
+  "script": {
+   "id": "b2b_check",
+   "title": "境界例（脚本の検査）",
+   "set": "BTX",
+   "loops": 3,
+   "days": 8,
+   "rules": [
+    "Y_MURDER",
+    "X_THREAD",
+    "X_VIRUS"
+   ],
+   "roles": {
+    "C01": "KUROMAKU",
+    "C03": "KEY",
+    "C05": "MISLEADER",
+    "C08": "KILLER",
+    "C11": "MISLEADER"
+   },
+   "characters": [
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06",
+    "C07",
+    "C08",
+    "C09",
+    "C11"
+   ],
+   "incidents": [
+    {
+     "day": 2,
+     "id": "SPREAD",
+     "culprit": "C08"
+    },
+    {
+     "day": 4,
+     "id": "CORRUPT",
+     "culprit": "C06"
+    },
+    {
+     "day": 5,
+     "id": "SUICIDE",
+     "culprit": "C02"
+    },
+    {
+     "day": 7,
+     "id": "MURDER",
+     "culprit": "C07"
+    }
+   ]
+  },
+  "expect": {
+   "script_ok": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_11_1.png（wiki/characters/character-11.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、選ばれたルールにより追加されないいずれかの役職となる。[友好3] 第2ループ以降でないと使えない。このキャラクターの役職を知る。この能力は友好無視や絶対友好無視で拒否されない」／主人公の書 印刷p37 イレギュラー「[主人公]第2ループ以降でないと使えません。[脚本家]イレギュラーの役職を伝えます…この能力は拒否できません」（公式FAQ にこのキャラクターの問答は無い）／早見表 originals/summary.pdf（wiki/concepts/rule-role-matrix.md: ルールが追加する役職・人数上限＝フレンド2・ミスリーダー1）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c11-script-fills-slot-error",
+  "desc": "殺人計画のキラー枠をイレギュラーで埋める（医者はパーソン）→誤り（追加された役職にできない）",
+  "phase": "script_check",
+  "script": {
+   "id": "b2b_check",
+   "title": "境界例（脚本の検査）",
+   "set": "BTX",
+   "loops": 3,
+   "days": 8,
+   "rules": [
+    "Y_MURDER",
+    "X_THREAD",
+    "X_VIRUS"
+   ],
+   "roles": {
+    "C01": "KUROMAKU",
+    "C03": "KEY",
+    "C05": "MISLEADER",
+    "C11": "KILLER"
+   },
+   "characters": [
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06",
+    "C07",
+    "C08",
+    "C09",
+    "C11"
+   ],
+   "incidents": [
+    {
+     "day": 2,
+     "id": "SPREAD",
+     "culprit": "C08"
+    },
+    {
+     "day": 4,
+     "id": "CORRUPT",
+     "culprit": "C06"
+    },
+    {
+     "day": 5,
+     "id": "SUICIDE",
+     "culprit": "C02"
+    },
+    {
+     "day": 7,
+     "id": "MURDER",
+     "culprit": "C07"
+    }
+   ]
+  },
+  "expect": {
+   "script_ok": false
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_11_1.png（wiki/characters/character-11.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、選ばれたルールにより追加されないいずれかの役職となる。[友好3] 第2ループ以降でないと使えない。このキャラクターの役職を知る。この能力は友好無視や絶対友好無視で拒否されない」／主人公の書 印刷p37 イレギュラー「[主人公]第2ループ以降でないと使えません。[脚本家]イレギュラーの役職を伝えます…この能力は拒否できません」（公式FAQ にこのキャラクターの問答は無い）／早見表 originals/summary.pdf（wiki/concepts/rule-role-matrix.md: ルールが追加する役職・人数上限＝フレンド2・ミスリーダー1）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c11-script-unadded-ok",
+  "desc": "選ばれたルールが追加しないウィッチをイレギュラーに配役→正しい脚本（ルール分の4役職は他のキャラ）",
+  "phase": "script_check",
+  "script": {
+   "id": "b2b_check",
+   "title": "境界例（脚本の検査）",
+   "set": "BTX",
+   "loops": 3,
+   "days": 8,
+   "rules": [
+    "Y_MURDER",
+    "X_THREAD",
+    "X_VIRUS"
+   ],
+   "roles": {
+    "C01": "KUROMAKU",
+    "C03": "KEY",
+    "C05": "MISLEADER",
+    "C08": "KILLER",
+    "C11": "WITCH"
+   },
+   "characters": [
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06",
+    "C07",
+    "C08",
+    "C09",
+    "C11"
+   ],
+   "incidents": [
+    {
+     "day": 2,
+     "id": "SPREAD",
+     "culprit": "C08"
+    },
+    {
+     "day": 4,
+     "id": "CORRUPT",
+     "culprit": "C06"
+    },
+    {
+     "day": 5,
+     "id": "SUICIDE",
+     "culprit": "C02"
+    },
+    {
+     "day": 7,
+     "id": "MURDER",
+     "culprit": "C07"
+    }
+   ]
+  },
+  "expect": {
+   "script_ok": true
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_11_1.png（wiki/characters/character-11.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、選ばれたルールにより追加されないいずれかの役職となる。[友好3] 第2ループ以降でないと使えない。このキャラクターの役職を知る。この能力は友好無視や絶対友好無視で拒否されない」／主人公の書 印刷p37 イレギュラー「[主人公]第2ループ以降でないと使えません。[脚本家]イレギュラーの役職を伝えます…この能力は拒否できません」（公式FAQ にこのキャラクターの問答は無い）／早見表 originals/summary.pdf（wiki/concepts/rule-role-matrix.md: ルールが追加する役職・人数上限＝フレンド2・ミスリーダー1）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c11-ab-loop1-error",
+  "desc": "イレギュラー[3] 第1ループでは使えない→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C11": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C11": "WITCH"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C11",
+    0,
+    null
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "第2ループ以降でないと使えない"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_11_1.png（wiki/characters/character-11.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、選ばれたルールにより追加されないいずれかの役職となる。[友好3] 第2ループ以降でないと使えない。このキャラクターの役職を知る。この能力は友好無視や絶対友好無視で拒否されない」／主人公の書 印刷p37 イレギュラー「[主人公]第2ループ以降でないと使えません。[脚本家]イレギュラーの役職を伝えます…この能力は拒否できません」（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c11-ab-loop2-reveal",
+  "desc": "イレギュラー[3] 第2ループで自身の役職（ウィッチ）を知る。1ループ1回制限ではない",
+  "state": {
+   "loop": 2,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C11": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C11": "WITCH"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C11",
+    0,
+    null
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "reveal": {
+    "role": {
+     "char": "C11",
+     "role": "WITCH"
+    }
+   },
+   "refused": false,
+   "used_loop": []
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_11_1.png（wiki/characters/character-11.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、選ばれたルールにより追加されないいずれかの役職となる。[友好3] 第2ループ以降でないと使えない。このキャラクターの役職を知る。この能力は友好無視や絶対友好無視で拒否されない」／主人公の書 印刷p37 イレギュラー「[主人公]第2ループ以降でないと使えません。[脚本家]イレギュラーの役職を伝えます…この能力は拒否できません」（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c11-ab-refuse-error",
+  "desc": "イレギュラーがウィッチ（絶対友好無視）でも[3]は拒否できない。拒否の意思→error（ナースと同じ扱い）",
+  "state": {
+   "loop": 2,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C11": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C11": "WITCH"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C11",
+    0,
+    null
+   ]
+  ],
+  "refuse": [
+   true
+  ],
+  "expect": {
+   "error": "この能力は拒否できない"
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_11_1.png（wiki/characters/character-11.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、選ばれたルールにより追加されないいずれかの役職となる。[友好3] 第2ループ以降でないと使えない。このキャラクターの役職を知る。この能力は友好無視や絶対友好無視で拒否されない」／主人公の書 印刷p37 イレギュラー「[主人公]第2ループ以降でないと使えません。[脚本家]イレギュラーの役職を伝えます…この能力は拒否できません」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p23 拒否（友好無視を持つキャラの友好能力のみ。拒否されても1ループ1回制限は使用済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c11-key-suicide-loss",
+  "desc": "封印されしモノの脚本でイレギュラーがキーパーソン（Yが追加しない）。自殺で死亡→キーパーソンの能力で敗北・ループ終了",
+  "phase": "incident",
+  "choice": null,
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C11": {
+     "area": "SCH",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_SEAL",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C11": "KEY"
+    },
+    "incidents": [
+     {
+      "day": 2,
+      "id": "SUICIDE",
+      "culprit": "C11"
+     }
+    ]
+   }
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C11": {
+     "alive": false
+    }
+   },
+   "loop_end": {
+    "reason": "KEY_DIED",
+    "defeat": true
+   }
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_11_1.png（wiki/characters/character-11.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、選ばれたルールにより追加されないいずれかの役職となる。[友好3] 第2ループ以降でないと使えない。このキャラクターの役職を知る。この能力は友好無視や絶対友好無視で拒否されない」／主人公の書 印刷p37 イレギュラー「[主人公]第2ループ以降でないと使えません。[脚本家]イレギュラーの役職を伝えます…この能力は拒否できません」（公式FAQ にこのキャラクターの問答は無い）／早見表 originals/summary.pdf（wiki/concepts/rule-role-matrix.md: ルールが追加する役職・人数上限＝フレンド2・ミスリーダー1）／主人公の書 印刷p24 4-7 事件の発生条件「犯人となるキャラクターが生存している」「不安臨界以上の不安カウンター」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c11-sk-turn-end",
+  "desc": "潜む殺人鬼の無い脚本でイレギュラーがシリアルキラー。学校に男子学生と2人→ターン終了で男子学生が死亡",
+  "phase": "turn_end",
+  "choice": {
+   "optional": []
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C11": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C11": "SK"
+    },
+    "incidents": []
+   }
+  },
+  "expect": {
+   "chars": {
+    "C01": {
+     "alive": false
+    },
+    "C11": {
+     "alive": true
+    }
+   },
+   "loop_end": null
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_11_1.png（wiki/characters/character-11.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、選ばれたルールにより追加されないいずれかの役職となる。[友好3] 第2ループ以降でないと使えない。このキャラクターの役職を知る。この能力は友好無視や絶対友好無視で拒否されない」／主人公の書 印刷p37 イレギュラー「[主人公]第2ループ以降でないと使えません。[脚本家]イレギュラーの役職を伝えます…この能力は拒否できません」（公式FAQ にこのキャラクターの問答は無い）／早見表 シリアルキラー【強制：ターン終了】",
+  "status": "confirmed"
+ },
+ {
+  "id": "c11-witch-no-bomb-loss",
+  "desc": "イレギュラーがウィッチでも巨大時限爆弾Xは選ばれていない。ウィッチの初期エリア（学校）に暗躍2でも敗北しない",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C11": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 2
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C11": "WITCH"
+    },
+    "incidents": []
+   }
+  },
+  "expect": {
+   "loss": false,
+   "reasons": []
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_11_1.png（wiki/characters/character-11.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、選ばれたルールにより追加されないいずれかの役職となる。[友好3] 第2ループ以降でないと使えない。このキャラクターの役職を知る。この能力は友好無視や絶対友好無視で拒否されない」／主人公の書 印刷p37 イレギュラー「[主人公]第2ループ以降でないと使えません。[脚本家]イレギュラーの役職を伝えます…この能力は拒否できません」（公式FAQ にこのキャラクターの問答は無い）／早見表 originals/summary.pdf（wiki/concepts/rule-role-matrix.md: ルールが追加する役職・人数上限＝フレンド2・ミスリーダー1）（敗北条件はルールYの追加ルール）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c11-final-wrong",
+  "desc": "最後の戦い。イレギュラーをパーソンと宣言→外れ（役職はウィッチ）。脚本家の勝ち",
+  "phase": "final",
+  "state": {
+   "loop": 3,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C11": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C11": "WITCH"
+    },
+    "incidents": []
+   }
+  },
+  "guesses": [
+   {
+    "char": "C01",
+    "role": "PERSON"
+   },
+   {
+    "char": "C11",
+    "role": "PERSON"
+   }
+  ],
+  "expect": {
+   "winner": "mastermind",
+   "stopped_at": 1
+  },
+  "source": "カード画像 originals/tragedy_commons_5th/chara_cards/character_11_1.png（wiki/characters/character-11.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、選ばれたルールにより追加されないいずれかの役職となる。[友好3] 第2ループ以降でないと使えない。このキャラクターの役職を知る。この能力は友好無視や絶対友好無視で拒否されない」／主人公の書 印刷p37 イレギュラー「[主人公]第2ループ以降でないと使えません。[脚本家]イレギュラーの役職を伝えます…この能力は拒否できません」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p25 §6 最後の戦い（盤面の再構築で全キャラを初期エリアに生存で配置／キャラクター全員について役職を正答で主人公の勝利。wiki/concepts/final-battle.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c28-script-person-error",
+  "desc": "コピーキャットを配役しない（パーソンのまま）→誤り",
+  "phase": "script_check",
+  "script": {
+   "id": "b2b_check",
+   "title": "境界例（脚本の検査）",
+   "set": "BTX",
+   "loops": 3,
+   "days": 8,
+   "rules": [
+    "Y_MURDER",
+    "X_THREAD",
+    "X_VIRUS"
+   ],
+   "roles": {
+    "C01": "KUROMAKU",
+    "C03": "KEY",
+    "C05": "MISLEADER",
+    "C08": "KILLER"
+   },
+   "characters": [
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06",
+    "C07",
+    "C08",
+    "C09",
+    "C28"
+   ],
+   "incidents": [
+    {
+     "day": 2,
+     "id": "SPREAD",
+     "culprit": "C08"
+    },
+    {
+     "day": 4,
+     "id": "CORRUPT",
+     "culprit": "C06"
+    },
+    {
+     "day": 5,
+     "id": "SUICIDE",
+     "culprit": "C02"
+    },
+    {
+     "day": 7,
+     "id": "MURDER",
+     "culprit": "C07"
+    }
+   ]
+  },
+  "expect": {
+   "script_ok": false
+  },
+  "source": "カード画像 character_28_1.png（wiki/characters/character-28.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、他のキャラクター1人と同じ役職となる（人数上限無視）。[友好3] 第2ループ以降でないと使えない。このキャラクターと同じ役職のキャラクター全員の名前を知る。この能力は友好無視や絶対友好無視で拒否されない」（主人公の書の友好能力リストには載っていない）（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c28-script-copy-killer-ok",
+  "desc": "コピーキャットを医者（キラー）と同じキラーに→正しい（キラーは2人になる）",
+  "phase": "script_check",
+  "script": {
+   "id": "b2b_check",
+   "title": "境界例（脚本の検査）",
+   "set": "BTX",
+   "loops": 3,
+   "days": 8,
+   "rules": [
+    "Y_MURDER",
+    "X_THREAD",
+    "X_VIRUS"
+   ],
+   "roles": {
+    "C01": "KUROMAKU",
+    "C03": "KEY",
+    "C05": "MISLEADER",
+    "C08": "KILLER",
+    "C28": "KILLER"
+   },
+   "characters": [
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06",
+    "C07",
+    "C08",
+    "C09",
+    "C28"
+   ],
+   "incidents": [
+    {
+     "day": 2,
+     "id": "SPREAD",
+     "culprit": "C08"
+    },
+    {
+     "day": 4,
+     "id": "CORRUPT",
+     "culprit": "C06"
+    },
+    {
+     "day": 5,
+     "id": "SUICIDE",
+     "culprit": "C02"
+    },
+    {
+     "day": 7,
+     "id": "MURDER",
+     "culprit": "C07"
+    }
+   ]
+  },
+  "expect": {
+   "script_ok": true
+  },
+  "source": "カード画像 character_28_1.png（wiki/characters/character-28.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、他のキャラクター1人と同じ役職となる（人数上限無視）。[友好3] 第2ループ以降でないと使えない。このキャラクターと同じ役職のキャラクター全員の名前を知る。この能力は友好無視や絶対友好無視で拒否されない」（主人公の書の友好能力リストには載っていない）（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c28-script-no-source-error",
+  "desc": "コピーキャットをフレンドに（他にフレンドがいない）→誤り（他のキャラクター1人と同じ役職）",
+  "phase": "script_check",
+  "script": {
+   "id": "b2b_check",
+   "title": "境界例（脚本の検査）",
+   "set": "BTX",
+   "loops": 3,
+   "days": 8,
+   "rules": [
+    "Y_MURDER",
+    "X_THREAD",
+    "X_VIRUS"
+   ],
+   "roles": {
+    "C01": "KUROMAKU",
+    "C03": "KEY",
+    "C05": "MISLEADER",
+    "C08": "KILLER",
+    "C28": "FRIEND"
+   },
+   "characters": [
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06",
+    "C07",
+    "C08",
+    "C09",
+    "C28"
+   ],
+   "incidents": [
+    {
+     "day": 2,
+     "id": "SPREAD",
+     "culprit": "C08"
+    },
+    {
+     "day": 4,
+     "id": "CORRUPT",
+     "culprit": "C06"
+    },
+    {
+     "day": 5,
+     "id": "SUICIDE",
+     "culprit": "C02"
+    },
+    {
+     "day": 7,
+     "id": "MURDER",
+     "culprit": "C07"
+    }
+   ]
+  },
+  "expect": {
+   "script_ok": false
+  },
+  "source": "カード画像 character_28_1.png（wiki/characters/character-28.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、他のキャラクター1人と同じ役職となる（人数上限無視）。[友好3] 第2ループ以降でないと使えない。このキャラクターと同じ役職のキャラクター全員の名前を知る。この能力は友好無視や絶対友好無視で拒否されない」（主人公の書の友好能力リストには載っていない）（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c28-script-over-limit-ok",
+  "desc": "コピーキャットを刑事と同じミスリーダーに（上限1を超える）→正しい（人数上限無視）",
+  "phase": "script_check",
+  "script": {
+   "id": "b2b_check",
+   "title": "境界例（脚本の検査）",
+   "set": "BTX",
+   "loops": 3,
+   "days": 8,
+   "rules": [
+    "Y_MURDER",
+    "X_THREAD",
+    "X_VIRUS"
+   ],
+   "roles": {
+    "C01": "KUROMAKU",
+    "C03": "KEY",
+    "C05": "MISLEADER",
+    "C08": "KILLER",
+    "C28": "MISLEADER"
+   },
+   "characters": [
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06",
+    "C07",
+    "C08",
+    "C09",
+    "C28"
+   ],
+   "incidents": [
+    {
+     "day": 2,
+     "id": "SPREAD",
+     "culprit": "C08"
+    },
+    {
+     "day": 4,
+     "id": "CORRUPT",
+     "culprit": "C06"
+    },
+    {
+     "day": 5,
+     "id": "SUICIDE",
+     "culprit": "C02"
+    },
+    {
+     "day": 7,
+     "id": "MURDER",
+     "culprit": "C07"
+    }
+   ]
+  },
+  "expect": {
+   "script_ok": true
+  },
+  "source": "カード画像 character_28_1.png（wiki/characters/character-28.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、他のキャラクター1人と同じ役職となる（人数上限無視）。[友好3] 第2ループ以降でないと使えない。このキャラクターと同じ役職のキャラクター全員の名前を知る。この能力は友好無視や絶対友好無視で拒否されない」（主人公の書の友好能力リストには載っていない）（公式FAQ にこのキャラクターの問答は無い）／早見表 originals/summary.pdf（wiki/concepts/rule-role-matrix.md: ルールが追加する役職・人数上限＝フレンド2・ミスリーダー1）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c28-script-copy-irregular-ok",
+  "desc": "イレギュラー（ウィッチ）とコピーキャット（ウィッチ）→正しい（ウィッチはルールが追加しない役職で、他のキャラクターの役職）",
+  "phase": "script_check",
+  "script": {
+   "id": "b2b_check",
+   "title": "境界例（脚本の検査）",
+   "set": "BTX",
+   "loops": 3,
+   "days": 8,
+   "rules": [
+    "Y_MURDER",
+    "X_THREAD",
+    "X_VIRUS"
+   ],
+   "roles": {
+    "C01": "KUROMAKU",
+    "C03": "KEY",
+    "C05": "MISLEADER",
+    "C08": "KILLER",
+    "C11": "WITCH",
+    "C28": "WITCH"
+   },
+   "characters": [
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06",
+    "C07",
+    "C08",
+    "C09",
+    "C11",
+    "C28"
+   ],
+   "incidents": [
+    {
+     "day": 2,
+     "id": "SPREAD",
+     "culprit": "C08"
+    },
+    {
+     "day": 4,
+     "id": "CORRUPT",
+     "culprit": "C06"
+    },
+    {
+     "day": 5,
+     "id": "SUICIDE",
+     "culprit": "C02"
+    },
+    {
+     "day": 7,
+     "id": "MURDER",
+     "culprit": "C07"
+    }
+   ]
+  },
+  "expect": {
+   "script_ok": true
+  },
+  "source": "カード画像 character_28_1.png（wiki/characters/character-28.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、他のキャラクター1人と同じ役職となる（人数上限無視）。[友好3] 第2ループ以降でないと使えない。このキャラクターと同じ役職のキャラクター全員の名前を知る。この能力は友好無視や絶対友好無視で拒否されない」（主人公の書の友好能力リストには載っていない）（公式FAQ にこのキャラクターの問答は無い）／カード画像 originals/tragedy_commons_5th/chara_cards/character_11_1.png（wiki/characters/character-11.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、選ばれたルールにより追加されないいずれかの役職となる。[友好3] 第2ループ以降でないと使えない。このキャラクターの役職を知る。この能力は友好無視や絶対友好無視で拒否されない」／主人公の書 印刷p37 イレギュラー「[主人公]第2ループ以降でないと使えません。[脚本家]イレギュラーの役職を伝えます…この能力は拒否できません」（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c28-ab-loop2-reveal",
+  "desc": "コピーキャット[3] 第2ループ。同じ役職（キラー）のキャラ＝医者の名前を知る（他の役職のキャラは出ない）",
+  "state": {
+   "loop": 2,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C28": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C28": "KILLER",
+     "C08": "KILLER",
+     "C01": "KUROMAKU",
+     "C03": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C28",
+    0,
+    null
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "reveal": {
+    "same_role": {
+     "char": "C28",
+     "chars": [
+      "C08"
+     ]
+    }
+   },
+   "refused": false,
+   "used_loop": []
+  },
+  "source": "カード画像 character_28_1.png（wiki/characters/character-28.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、他のキャラクター1人と同じ役職となる（人数上限無視）。[友好3] 第2ループ以降でないと使えない。このキャラクターと同じ役職のキャラクター全員の名前を知る。この能力は友好無視や絶対友好無視で拒否されない」（主人公の書の友好能力リストには載っていない）（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c28-ab-refuse-error",
+  "desc": "コピーキャットがキラー（友好無視）でも[3]は拒否できない。拒否の意思→error",
+  "state": {
+   "loop": 2,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C28": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C28": "KILLER",
+     "C08": "KILLER"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C28",
+    0,
+    null
+   ]
+  ],
+  "refuse": [
+   true
+  ],
+  "expect": {
+   "error": "この能力は拒否できない"
+  },
+  "source": "カード画像 character_28_1.png（wiki/characters/character-28.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、他のキャラクター1人と同じ役職となる（人数上限無視）。[友好3] 第2ループ以降でないと使えない。このキャラクターと同じ役職のキャラクター全員の名前を知る。この能力は友好無視や絶対友好無視で拒否されない」（主人公の書の友好能力リストには載っていない）（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p23 拒否（友好無視を持つキャラの友好能力のみ。拒否されても1ループ1回制限は使用済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c28-ab-dead-excluded",
+  "desc": "コピーキャット[3] 同じ役職の医者が死体→名前に含めない（死体はキャラクターとして扱わない）",
+  "state": {
+   "loop": 2,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C28": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C28": "KILLER",
+     "C08": "KILLER"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C28",
+    0,
+    null
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "reveal": {
+    "same_role": {
+     "char": "C28",
+     "chars": []
+    }
+   }
+  },
+  "source": "カード画像 character_28_1.png（wiki/characters/character-28.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、他のキャラクター1人と同じ役職となる（人数上限無視）。[友好3] 第2ループ以降でないと使えない。このキャラクターと同じ役職のキャラクター全員の名前を知る。この能力は友好無視や絶対友好無視で拒否されない」（主人公の書の友好能力リストには載っていない）（公式FAQ にこのキャラクターの問答は無い）／公式FAQ Ru03「死亡したキャラクターはキャラクターとして扱わないため、能力の対象とはなりません」 ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "FAQ Ru03 は「能力の対象」についての回答で、コピーキャットの「キャラクター全員の名前を知る」は対象を選ばない。死体を含めるかが一次資料で決まらない。期待値は Ru03 の「キャラクターとして扱わない」を広く読んだもの"
+ },
+ {
+  "id": "c28-key-murder-loss",
+  "desc": "コピーキャットがお嬢様と同じキーパーソン。殺人事件でコピーキャットが死亡→キーパーソンの能力で敗北",
+  "phase": "incident",
+  "choice": {
+   "target": "C28"
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C28": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C28": "KEY",
+     "C03": "KEY"
+    },
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C06"
+     }
+    ]
+   }
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C28": {
+     "alive": false
+    }
+   },
+   "loop_end": {
+    "reason": "KEY_DIED",
+    "defeat": true
+   }
+  },
+  "source": "カード画像 character_28_1.png（wiki/characters/character-28.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、他のキャラクター1人と同じ役職となる（人数上限無視）。[友好3] 第2ループ以降でないと使えない。このキャラクターと同じ役職のキャラクター全員の名前を知る。この能力は友好無視や絶対友好無視で拒否されない」（主人公の書の友好能力リストには載っていない）（公式FAQ にこのキャラクターの問答は無い）／早見表 キーパーソン【強制】死亡時敗北",
+  "status": "confirmed"
+ },
+ {
+  "id": "c28-killer-key",
+  "desc": "コピーキャットがキラー。同じ学校のキーパーソン（暗躍2）をターン終了にコピーキャットの能力で殺す",
+  "phase": "turn_end",
+  "choice": {
+   "optional": [
+    {
+     "char": "C28",
+     "ability": "KILLER_KEY"
+    }
+   ]
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C28": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C28": "KILLER",
+     "C08": "KILLER",
+     "C03": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "expect": {
+   "chars": {
+    "C03": {
+     "alive": false
+    }
+   },
+   "loop_end": {
+    "reason": "KEY_DIED",
+    "defeat": true
+   }
+  },
+  "source": "カード画像 character_28_1.png（wiki/characters/character-28.md 照合済み）「特性: 脚本作成時、このキャラクターはルールより追加された役職とすることができない。そしてパーソンとなる代わりに、他のキャラクター1人と同じ役職となる（人数上限無視）。[友好3] 第2ループ以降でないと使えない。このキャラクターと同じ役職のキャラクター全員の名前を知る。この能力は友好無視や絶対友好無視で拒否されない」（主人公の書の友好能力リストには載っていない）（公式FAQ にこのキャラクターの問答は無い）／早見表 キラー【任意：ターン終了】",
+  "status": "confirmed"
+ },
+ {
+  "id": "c16-script-territory-missing-error",
+  "desc": "大物を登場させてテリトリーを指定しない→誤り",
+  "phase": "script_check",
+  "script": {
+   "id": "b2b_check",
+   "title": "境界例（脚本の検査）",
+   "set": "BTX",
+   "loops": 3,
+   "days": 8,
+   "rules": [
+    "Y_MURDER",
+    "X_THREAD",
+    "X_VIRUS"
+   ],
+   "roles": {
+    "C01": "KUROMAKU",
+    "C03": "KEY",
+    "C05": "MISLEADER",
+    "C08": "KILLER"
+   },
+   "characters": [
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06",
+    "C07",
+    "C08",
+    "C09",
+    "C16"
+   ],
+   "incidents": [
+    {
+     "day": 2,
+     "id": "SPREAD",
+     "culprit": "C08"
+    },
+    {
+     "day": 4,
+     "id": "CORRUPT",
+     "culprit": "C06"
+    },
+    {
+     "day": 5,
+     "id": "SUICIDE",
+     "culprit": "C02"
+    },
+    {
+     "day": 7,
+     "id": "MURDER",
+     "culprit": "C07"
+    }
+   ]
+  },
+  "expect": {
+   "script_ok": false
+  },
+  "source": "カード画像 character_16_1.png（wiki/characters/character-16.md 照合済み）「特性: 脚本作成時にボードの名前を一つ指定しておく。ゲームの準備にそのボードに縄張りトークンを置く。以降そのボードは大物のテリトリーとして扱う。脚本家がこのキャラクターの能力を使う場合、テリトリーにいるものとして能力を使用してもよい。[友好5]（1ループ1回制限）テリトリーにいる自身以外のキャラクター1人の役職を知る」／主人公の書 印刷p39 大物「[主人公]大物のテリトリーにいる大物以外のキャラクター1人を選びます。[脚本家]選ばれたキャラクターの役職を伝えます」（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c16-ab5-reveal",
+  "desc": "大物[5] 大物は都市、テリトリー学校。学校のお嬢様（キーパーソン）の役職を知る。大物自身がテリトリーにいなくてよい。★",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C16": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C03": "KEY"
+    },
+    "incidents": [],
+    "territory": "SCH"
+   }
+  },
+  "declare": [
+   [
+    "C16",
+    0,
+    {
+     "target": "C03"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "reveal": {
+    "role": {
+     "char": "C03",
+     "role": "KEY"
+    }
+   },
+   "used_loop": [
+    "C16#0"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 character_16_1.png（wiki/characters/character-16.md 照合済み）「特性: 脚本作成時にボードの名前を一つ指定しておく。ゲームの準備にそのボードに縄張りトークンを置く。以降そのボードは大物のテリトリーとして扱う。脚本家がこのキャラクターの能力を使う場合、テリトリーにいるものとして能力を使用してもよい。[友好5]（1ループ1回制限）テリトリーにいる自身以外のキャラクター1人の役職を知る」／主人公の書 印刷p39 大物「[主人公]大物のテリトリーにいる大物以外のキャラクター1人を選びます。[脚本家]選ばれたキャラクターの役職を伝えます」（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c16-ab5-not-territory-error",
+  "desc": "大物[5] 同じ都市のサラリーマン（テリトリー外）は選べない→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C16": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [],
+    "territory": "SCH"
+   }
+  },
+  "declare": [
+   [
+    "C16",
+    0,
+    {
+     "target": "C06"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "テリトリーにいない"
+  },
+  "source": "カード画像 character_16_1.png（wiki/characters/character-16.md 照合済み）「特性: 脚本作成時にボードの名前を一つ指定しておく。ゲームの準備にそのボードに縄張りトークンを置く。以降そのボードは大物のテリトリーとして扱う。脚本家がこのキャラクターの能力を使う場合、テリトリーにいるものとして能力を使用してもよい。[友好5]（1ループ1回制限）テリトリーにいる自身以外のキャラクター1人の役職を知る」／主人公の書 印刷p39 大物「[主人公]大物のテリトリーにいる大物以外のキャラクター1人を選びます。[脚本家]選ばれたキャラクターの役職を伝えます」（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c16-ab5-refused",
+  "desc": "大物がクロマク（友好無視）で[5]を拒否→何も知らず★は使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C16": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C16": "KUROMAKU",
+     "C03": "KEY"
+    },
+    "incidents": [],
+    "territory": "SCH"
+   }
+  },
+  "declare": [
+   [
+    "C16",
+    0,
+    {
+     "target": "C03"
+    }
+   ]
+  ],
+  "refuse": [
+   true
+  ],
+  "expect": {
+   "reveal": {},
+   "used_loop": [
+    "C16#0"
+   ],
+   "refused": true
+  },
+  "source": "カード画像 character_16_1.png（wiki/characters/character-16.md 照合済み）「特性: 脚本作成時にボードの名前を一つ指定しておく。ゲームの準備にそのボードに縄張りトークンを置く。以降そのボードは大物のテリトリーとして扱う。脚本家がこのキャラクターの能力を使う場合、テリトリーにいるものとして能力を使用してもよい。[友好5]（1ループ1回制限）テリトリーにいる自身以外のキャラクター1人の役職を知る」／主人公の書 印刷p39 大物「[主人公]大物のテリトリーにいる大物以外のキャラクター1人を選びます。[脚本家]選ばれたキャラクターの役職を伝えます」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p23 拒否（友好無視を持つキャラの友好能力のみ。拒否されても1ループ1回制限は使用済み）／公式FAQ Ch10",
+  "status": "confirmed"
+ },
+ {
+  "id": "c16-mm-misleader-territory",
+  "desc": "大物がミスリーダーで都市にいる。脚本家はテリトリー（学校）にいるものとして男子学生に不安1",
+  "phase": "mm_ability",
+  "choice": {
+   "uses": [
+    {
+     "char": "C16",
+     "ability": "MISLEADER",
+     "target": "C01"
+    }
+   ]
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C16": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C16": "MISLEADER"
+    },
+    "incidents": [],
+    "territory": "SCH"
+   }
+  },
+  "expect": {
+   "chars": {
+    "C01": {
+     "par": 1
+    }
+   }
+  },
+  "source": "カード画像 character_16_1.png（wiki/characters/character-16.md 照合済み）「特性: 脚本作成時にボードの名前を一つ指定しておく。ゲームの準備にそのボードに縄張りトークンを置く。以降そのボードは大物のテリトリーとして扱う。脚本家がこのキャラクターの能力を使う場合、テリトリーにいるものとして能力を使用してもよい。[友好5]（1ループ1回制限）テリトリーにいる自身以外のキャラクター1人の役職を知る」／主人公の書 印刷p39 大物「[主人公]大物のテリトリーにいる大物以外のキャラクター1人を選びます。[脚本家]選ばれたキャラクターの役職を伝えます」（公式FAQ にこのキャラクターの問答は無い）／早見表 ミスリーダー【任意：脚本家能力】同一エリアのキャラ1人に不安1",
+  "status": "confirmed"
+ },
+ {
+  "id": "c16-mm-actual-area-ok",
+  "desc": "大物ミスリーダー。テリトリー扱いは「してもよい」なので、実際にいる都市のサラリーマンにも不安1を置ける",
+  "phase": "mm_ability",
+  "choice": {
+   "uses": [
+    {
+     "char": "C16",
+     "ability": "MISLEADER",
+     "target": "C06"
+    }
+   ]
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C16": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C16": "MISLEADER"
+    },
+    "incidents": [],
+    "territory": "SCH"
+   }
+  },
+  "expect": {
+   "chars": {
+    "C06": {
+     "par": 1
+    }
+   }
+  },
+  "source": "カード画像 character_16_1.png（wiki/characters/character-16.md 照合済み）「特性: 脚本作成時にボードの名前を一つ指定しておく。ゲームの準備にそのボードに縄張りトークンを置く。以降そのボードは大物のテリトリーとして扱う。脚本家がこのキャラクターの能力を使う場合、テリトリーにいるものとして能力を使用してもよい。[友好5]（1ループ1回制限）テリトリーにいる自身以外のキャラクター1人の役職を知る」／主人公の書 印刷p39 大物「[主人公]大物のテリトリーにいる大物以外のキャラクター1人を選びます。[脚本家]選ばれたキャラクターの役職を伝えます」（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c16-mm-other-area-error",
+  "desc": "大物ミスリーダー（都市・テリトリー学校）。神社の巫女は実際のエリアでもテリトリーでもない→error",
+  "phase": "mm_ability",
+  "choice": {
+   "uses": [
+    {
+     "char": "C16",
+     "ability": "MISLEADER",
+     "target": "C04"
+    }
+   ]
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C16": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C16": "MISLEADER"
+    },
+    "incidents": [],
+    "territory": "SCH"
+   }
+  },
+  "expect": {
+   "error": "同一エリアでもテリトリーでもない"
+  },
+  "source": "カード画像 character_16_1.png（wiki/characters/character-16.md 照合済み）「特性: 脚本作成時にボードの名前を一つ指定しておく。ゲームの準備にそのボードに縄張りトークンを置く。以降そのボードは大物のテリトリーとして扱う。脚本家がこのキャラクターの能力を使う場合、テリトリーにいるものとして能力を使用してもよい。[友好5]（1ループ1回制限）テリトリーにいる自身以外のキャラクター1人の役職を知る」／主人公の書 印刷p39 大物「[主人公]大物のテリトリーにいる大物以外のキャラクター1人を選びます。[脚本家]選ばれたキャラクターの役職を伝えます」（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c16-mm-kuromaku-board",
+  "desc": "大物がクロマクで都市にいる。テリトリーにいるものとして学校のボードに暗躍1",
+  "phase": "mm_ability",
+  "choice": {
+   "uses": [
+    {
+     "char": "C16",
+     "ability": "KUROMAKU",
+     "target": "B:SCH"
+    }
+   ]
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C16": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C16": "KUROMAKU"
+    },
+    "incidents": [],
+    "territory": "SCH"
+   }
+  },
+  "expect": {
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 1
+   }
+  },
+  "source": "カード画像 character_16_1.png（wiki/characters/character-16.md 照合済み）「特性: 脚本作成時にボードの名前を一つ指定しておく。ゲームの準備にそのボードに縄張りトークンを置く。以降そのボードは大物のテリトリーとして扱う。脚本家がこのキャラクターの能力を使う場合、テリトリーにいるものとして能力を使用してもよい。[友好5]（1ループ1回制限）テリトリーにいる自身以外のキャラクター1人の役職を知る」／主人公の書 印刷p39 大物「[主人公]大物のテリトリーにいる大物以外のキャラクター1人を選びます。[脚本家]選ばれたキャラクターの役職を伝えます」（公式FAQ にこのキャラクターの問答は無い）／早見表 クロマク【任意：脚本家能力】このキャラのいるボードに暗躍1",
+  "status": "confirmed"
+ },
+ {
+  "id": "c16-killer-key-territory",
+  "desc": "大物がキラーで都市。テリトリー学校のキーパーソン（暗躍2）をターン終了に殺す",
+  "phase": "turn_end",
+  "choice": {
+   "optional": [
+    {
+     "char": "C16",
+     "ability": "KILLER_KEY"
+    }
+   ]
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C16": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C16": "KILLER",
+     "C03": "KEY"
+    },
+    "incidents": [],
+    "territory": "SCH"
+   }
+  },
+  "expect": {
+   "error": "テリトリーはターン終了フェイズでは参照しない"
+  },
+  "source": "カード画像 character_16_1.png（wiki/characters/character-16.md 照合済み）「特性: 脚本作成時にボードの名前を一つ指定しておく。ゲームの準備にそのボードに縄張りトークンを置く。以降そのボードは大物のテリトリーとして扱う。脚本家がこのキャラクターの能力を使う場合、テリトリーにいるものとして能力を使用してもよい。[友好5]（1ループ1回制限）テリトリーにいる自身以外のキャラクター1人の役職を知る」／主人公の書 印刷p39 大物「[主人公]大物のテリトリーにいる大物以外のキャラクター1人を選びます。[脚本家]選ばれたキャラクターの役職を伝えます」（公式FAQ にこのキャラクターの問答は無い）／早見表 キラー【任意：ターン終了】同一エリアのキーパーソン ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c16-sk-territory",
+  "desc": "大物がシリアルキラー（都市にサラリーマン・刑事と3人）。テリトリー学校に男子学生1人だけ→強制能力はテリトリー扱いにならず男子学生は生存",
+  "phase": "turn_end",
+  "choice": {
+   "optional": []
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C16": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C16": "SK"
+    },
+    "incidents": [],
+    "territory": "SCH"
+   }
+  },
+  "expect": {
+   "chars": {
+    "C01": {
+     "alive": true
+    },
+    "C06": {
+     "alive": true
+    },
+    "C05": {
+     "alive": true
+    }
+   }
+  },
+  "source": "カード画像 character_16_1.png（wiki/characters/character-16.md 照合済み）「特性: 脚本作成時にボードの名前を一つ指定しておく。ゲームの準備にそのボードに縄張りトークンを置く。以降そのボードは大物のテリトリーとして扱う。脚本家がこのキャラクターの能力を使う場合、テリトリーにいるものとして能力を使用してもよい。[友好5]（1ループ1回制限）テリトリーにいる自身以外のキャラクター1人の役職を知る」／主人公の書 印刷p39 大物「[主人公]大物のテリトリーにいる大物以外のキャラクター1人を選びます。[脚本家]選ばれたキャラクターの役職を伝えます」（公式FAQ にこのキャラクターの問答は無い）／早見表 シリアルキラー【強制：ターン終了】 ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "大物の「脚本家がこのキャラクターの能力を使う場合…してもよい」が【強制】の能力（シリアルキラー）にも及ぶか（及ぶなら脚本家が選べるのか）が一次資料で決まらない。期待値は「任意の能力を使う場合だけ」と読んだもの"
+ },
+ {
+  "id": "c16-murder-territory",
+  "desc": "大物が犯人の殺人事件（都市に大物1人）。テリトリー学校の男子学生を対象にできるか→事件は「能力」でないので不可（error）",
+  "phase": "incident",
+  "choice": {
+   "target": "C01"
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C16": {
+     "area": "CIT",
+     "alive": true,
+     "par": 4,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C16"
+     }
+    ],
+    "territory": "SCH"
+   }
+  },
+  "expect": {
+   "error": "犯人と同一エリアではない"
+  },
+  "source": "カード画像 character_16_1.png（wiki/characters/character-16.md 照合済み）「特性: 脚本作成時にボードの名前を一つ指定しておく。ゲームの準備にそのボードに縄張りトークンを置く。以降そのボードは大物のテリトリーとして扱う。脚本家がこのキャラクターの能力を使う場合、テリトリーにいるものとして能力を使用してもよい。[友好5]（1ループ1回制限）テリトリーにいる自身以外のキャラクター1人の役職を知る」／主人公の書 印刷p39 大物「[主人公]大物のテリトリーにいる大物以外のキャラクター1人を選びます。[脚本家]選ばれたキャラクターの役職を伝えます」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p24 4-7 事件の発生条件「犯人となるキャラクターが生存している」「不安臨界以上の不安カウンター」 ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "事件の効果が大物の「能力」に当たるか（テリトリー扱いが事件にも及ぶか）が一次資料で決まらない。期待値は「事件は能力ではない」と読んだもの"
+ },
+ {
+  "id": "c20-set-card-error",
+  "desc": "脚本家が幻想に不安+1をセット→error（行動カードをセットできない）",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C20": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C20",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:CIT",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SCH",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "error": "幻想には行動カードをセットできない"
+  },
+  "source": "カード画像 character_20_1.png（wiki/characters/character-20.md 照合済み）「特性: 行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。[友好3]（1ループ1回制限）同一エリアのキャラクター1人を任意のボードに移動させる。[友好4] このキャラクターをボードから取り除く」／主人公の書 印刷p41 幻想「[主人公]幻想と同一エリアにいるキャラクター1人を選び、さらにボード1つを選びます。[脚本家]選ばれたキャラクターを選ばれたボードに移動させます」「[脚本家]幻想をボードから取り除きます。このループ中、幻想はキャラクターではなくなります（もちろん、死体でもありません）。次のループの準備にて、幻想は改めてボードに配置されます」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p21 §4 行動カードのセット（キャラクターかボード）・p22 解決（移動が先）・p45 ターン進行（wiki/concepts/turn-phases.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c20-board-par",
+  "desc": "神社のボードに不安+1→幻想に不安1（同じ神社の巫女には効かない。ボードは不変）",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C20": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:CIT",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SCH",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C20": {
+     "par": 1
+    },
+    "C04": {
+     "par": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   }
+  },
+  "source": "カード画像 character_20_1.png（wiki/characters/character-20.md 照合済み）「特性: 行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。[友好3]（1ループ1回制限）同一エリアのキャラクター1人を任意のボードに移動させる。[友好4] このキャラクターをボードから取り除く」／主人公の書 印刷p41 幻想「[主人公]幻想と同一エリアにいるキャラクター1人を選び、さらにボード1つを選びます。[脚本家]選ばれたキャラクターを選ばれたボードに移動させます」「[脚本家]幻想をボードから取り除きます。このループ中、幻想はキャラクターではなくなります（もちろん、死体でもありません）。次のループの準備にて、幻想は改めてボードに配置されます」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p21 §4 行動カードのセット（キャラクターかボード）・p22 解決（移動が先）・p45 ターン進行（wiki/concepts/turn-phases.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c20-board-int",
+  "desc": "神社のボードに暗躍+1→ボードに暗躍1、幻想にも暗躍1",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C20": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "INT1"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:CIT",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SCH",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C20": {
+     "int": 1
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 1,
+    "CIT": 0,
+    "SCH": 0
+   }
+  },
+  "source": "カード画像 character_20_1.png（wiki/characters/character-20.md 照合済み）「特性: 行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。[友好3]（1ループ1回制限）同一エリアのキャラクター1人を任意のボードに移動させる。[友好4] このキャラクターをボードから取り除く」／主人公の書 印刷p41 幻想「[主人公]幻想と同一エリアにいるキャラクター1人を選び、さらにボード1つを選びます。[脚本家]選ばれたキャラクターを選ばれたボードに移動させます」「[脚本家]幻想をボードから取り除きます。このループ中、幻想はキャラクターではなくなります（もちろん、死体でもありません）。次のループの準備にて、幻想は改めてボードに配置されます」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p21 §4 行動カードのセット（キャラクターかボード）・p22 解決（移動が先）・p45 ターン進行（wiki/concepts/turn-phases.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c20-board-intx",
+  "desc": "神社のボードに暗躍+2と暗躍禁止→ボードにも幻想にも暗躍は置かれない。暗躍+2は使用済み",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C20": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "INT2"
+    },
+    {
+     "by": "A",
+     "target": "B:SHR",
+     "card": "INTX"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C20": {
+     "int": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "INT2"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "カード画像 character_20_1.png（wiki/characters/character-20.md 照合済み）「特性: 行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。[友好3]（1ループ1回制限）同一エリアのキャラクター1人を任意のボードに移動させる。[友好4] このキャラクターをボードから取り除く」／主人公の書 印刷p41 幻想「[主人公]幻想と同一エリアにいるキャラクター1人を選び、さらにボード1つを選びます。[脚本家]選ばれたキャラクターを選ばれたボードに移動させます」「[脚本家]幻想をボードから取り除きます。このループ中、幻想はキャラクターではなくなります（もちろん、死体でもありません）。次のループの準備にて、幻想は改めてボードに配置されます」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p21 §4 行動カードのセット（キャラクターかボード）・p22 解決（移動が先）・p45 ターン進行（wiki/concepts/turn-phases.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c20-board-move",
+  "desc": "神社のボードに移動↑↓→幻想は神社から学校へ（巫女は動かない）",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C20": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "MV_V"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:CIT",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SCH",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C20": {
+     "area": "SCH"
+    },
+    "C04": {
+     "area": "SHR"
+    }
+   }
+  },
+  "source": "カード画像 character_20_1.png（wiki/characters/character-20.md 照合済み）「特性: 行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。[友好3]（1ループ1回制限）同一エリアのキャラクター1人を任意のボードに移動させる。[友好4] このキャラクターをボードから取り除く」／主人公の書 印刷p41 幻想「[主人公]幻想と同一エリアにいるキャラクター1人を選び、さらにボード1つを選びます。[脚本家]選ばれたキャラクターを選ばれたボードに移動させます」「[脚本家]幻想をボードから取り除きます。このループ中、幻想はキャラクターではなくなります（もちろん、死体でもありません）。次のループの準備にて、幻想は改めてボードに配置されます」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p21 §4 行動カードのセット（キャラクターかボード）・p22 解決（移動が先）・p45 ターン進行（wiki/concepts/turn-phases.md）／主人公の書 印刷p42 手札リスト 移動↑↓「『移動←→』と重なったら斜めに移動します」・移動禁止",
+  "status": "confirmed"
+ },
+ {
+  "id": "c20-board-move-combo",
+  "desc": "神社のボードに移動↑↓（脚本家）と移動←→（主人公）→幻想は斜めの都市へ",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C20": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "MV_V"
+    },
+    {
+     "by": "A",
+     "target": "B:SHR",
+     "card": "MV_H"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C20": {
+     "area": "CIT"
+    }
+   }
+  },
+  "source": "カード画像 character_20_1.png（wiki/characters/character-20.md 照合済み）「特性: 行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。[友好3]（1ループ1回制限）同一エリアのキャラクター1人を任意のボードに移動させる。[友好4] このキャラクターをボードから取り除く」／主人公の書 印刷p41 幻想「[主人公]幻想と同一エリアにいるキャラクター1人を選び、さらにボード1つを選びます。[脚本家]選ばれたキャラクターを選ばれたボードに移動させます」「[脚本家]幻想をボードから取り除きます。このループ中、幻想はキャラクターではなくなります（もちろん、死体でもありません）。次のループの準備にて、幻想は改めてボードに配置されます」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p42 手札リスト 移動↑↓「『移動←→』と重なったら斜めに移動します」・移動禁止",
+  "status": "confirmed"
+ },
+ {
+  "id": "c20-board-mvx",
+  "desc": "神社のボードに移動斜めと移動禁止→幻想は動かない。両方の★が使用済み",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C20": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "MV_D"
+    },
+    {
+     "by": "A",
+     "target": "B:SHR",
+     "card": "MVX"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C20": {
+     "area": "SHR"
+    }
+   },
+   "used": {
+    "M": [
+     "MV_D"
+    ],
+    "A": [
+     "MVX"
+    ],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "カード画像 character_20_1.png（wiki/characters/character-20.md 照合済み）「特性: 行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。[友好3]（1ループ1回制限）同一エリアのキャラクター1人を任意のボードに移動させる。[友好4] このキャラクターをボードから取り除く」／主人公の書 印刷p41 幻想「[主人公]幻想と同一エリアにいるキャラクター1人を選び、さらにボード1つを選びます。[脚本家]選ばれたキャラクターを選ばれたボードに移動させます」「[脚本家]幻想をボードから取り除きます。このループ中、幻想はキャラクターではなくなります（もちろん、死体でもありません）。次のループの準備にて、幻想は改めてボードに配置されます」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p42 手札リスト 移動↑↓「『移動←→』と重なったら斜めに移動します」・移動禁止／主人公の書 印刷p21 §4 行動カードのセット（キャラクターかボード）・p22 解決（移動が先）・p45 ターン進行（wiki/concepts/turn-phases.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c20-move-origin-card",
+  "desc": "神社のボードに移動↑↓（脚本家）と友好+1（主人公）。幻想は学校へ移動した後も、神社のボードの友好+1を受けるか→セット時の同一エリアで決まるとして友好1",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C20": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "MV_V"
+    },
+    {
+     "by": "A",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C20": {
+     "area": "SCH",
+     "gw": 0
+    }
+   }
+  },
+  "source": "カード画像 character_20_1.png（wiki/characters/character-20.md 照合済み）「特性: 行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。[友好3]（1ループ1回制限）同一エリアのキャラクター1人を任意のボードに移動させる。[友好4] このキャラクターをボードから取り除く」／主人公の書 印刷p41 幻想「[主人公]幻想と同一エリアにいるキャラクター1人を選び、さらにボード1つを選びます。[脚本家]選ばれたキャラクターを選ばれたボードに移動させます」「[脚本家]幻想をボードから取り除きます。このループ中、幻想はキャラクターではなくなります（もちろん、死体でもありません）。次のループの準備にて、幻想は改めてボードに配置されます」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p21 §4 行動カードのセット（キャラクターかボード）・p22 解決（移動が先）・p45 ターン進行（wiki/concepts/turn-phases.md） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "「同一エリアのボードにセットされた」を、セットの時点で見るか効果の解決の時点（移動の後）で見るかが一次資料で決まらない。期待値はセットの時点（幻想自身にセットされた札と同じく、移動の後も残りの札を受ける）"
+ },
+ {
+  "id": "c20-move-dest-card",
+  "desc": "神社のボードに移動↑↓、学校のボードに不安+1（ともに脚本家）。移動先の学校のボードの札は受けない（セット時の同一エリアで決まるとして）",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C20": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "MV_V"
+    },
+    {
+     "by": "M",
+     "target": "B:SCH",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:CIT",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SCH",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C20": {
+     "area": "SCH",
+     "par": 1
+    }
+   }
+  },
+  "source": "カード画像 character_20_1.png（wiki/characters/character-20.md 照合済み）「特性: 行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。[友好3]（1ループ1回制限）同一エリアのキャラクター1人を任意のボードに移動させる。[友好4] このキャラクターをボードから取り除く」／主人公の書 印刷p41 幻想「[主人公]幻想と同一エリアにいるキャラクター1人を選び、さらにボード1つを選びます。[脚本家]選ばれたキャラクターを選ばれたボードに移動させます」「[脚本家]幻想をボードから取り除きます。このループ中、幻想はキャラクターではなくなります（もちろん、死体でもありません）。次のループの準備にて、幻想は改めてボードに配置されます」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p21 §4 行動カードのセット（キャラクターかボード）・p22 解決（移動が先）・p45 ターン進行（wiki/concepts/turn-phases.md） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "c20-move-origin-card と同じ問い。解決の時点で見るなら不安1になる"
+ },
+ {
+  "id": "c20-ab3-forbidden",
+  "desc": "幻想[3] 同じ病院の入院患者を学校（禁止エリア）へ移動させる→移動する（能力は禁止エリアより優先）。★",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C20": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C20",
+    0,
+    {
+     "target": "C09",
+     "board": "SCH"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "SCH"
+    }
+   },
+   "used_loop": [
+    "C20#0"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 character_20_1.png（wiki/characters/character-20.md 照合済み）「特性: 行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。[友好3]（1ループ1回制限）同一エリアのキャラクター1人を任意のボードに移動させる。[友好4] このキャラクターをボードから取り除く」／主人公の書 印刷p41 幻想「[主人公]幻想と同一エリアにいるキャラクター1人を選び、さらにボード1つを選びます。[脚本家]選ばれたキャラクターを選ばれたボードに移動させます」「[脚本家]幻想をボードから取り除きます。このループ中、幻想はキャラクターではなくなります（もちろん、死体でもありません）。次のループの準備にて、幻想は改めてボードに配置されます」（公式FAQ にこのキャラクターの問答は無い）／公式FAQ 根幹ルール非優先の原則（キャラクターの能力は基本のルール＝禁止エリアより優先）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c20-ab3-self",
+  "desc": "幻想[3] 自身を都市へ移動させる（同一エリアのキャラクターは自身を含む）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C20": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C20",
+    0,
+    {
+     "target": "C20",
+     "board": "CIT"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C20": {
+     "area": "CIT"
+    }
+   },
+   "used_loop": [
+    "C20#0"
+   ]
+  },
+  "source": "カード画像 character_20_1.png（wiki/characters/character-20.md 照合済み）「特性: 行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。[友好3]（1ループ1回制限）同一エリアのキャラクター1人を任意のボードに移動させる。[友好4] このキャラクターをボードから取り除く」／主人公の書 印刷p41 幻想「[主人公]幻想と同一エリアにいるキャラクター1人を選び、さらにボード1つを選びます。[脚本家]選ばれたキャラクターを選ばれたボードに移動させます」「[脚本家]幻想をボードから取り除きます。このループ中、幻想はキャラクターではなくなります（もちろん、死体でもありません）。次のループの準備にて、幻想は改めてボードに配置されます」（公式FAQ にこのキャラクターの問答は無い）／公式FAQ Ch01「同一エリアにいるキャラクター」は能力を使うキャラクター自身を含む",
+  "status": "confirmed"
+ },
+ {
+  "id": "c20-ab3-other-area-error",
+  "desc": "幻想[3] 都市のサラリーマンは同一エリアでない→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C20": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C20",
+    0,
+    {
+     "target": "C06",
+     "board": "HOS"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "同一エリアではない"
+  },
+  "source": "カード画像 character_20_1.png（wiki/characters/character-20.md 照合済み）「特性: 行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。[友好3]（1ループ1回制限）同一エリアのキャラクター1人を任意のボードに移動させる。[友好4] このキャラクターをボードから取り除く」／主人公の書 印刷p41 幻想「[主人公]幻想と同一エリアにいるキャラクター1人を選び、さらにボード1つを選びます。[脚本家]選ばれたキャラクターを選ばれたボードに移動させます」「[脚本家]幻想をボードから取り除きます。このループ中、幻想はキャラクターではなくなります（もちろん、死体でもありません）。次のループの準備にて、幻想は改めてボードに配置されます」（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c20-ab4-remove",
+  "desc": "幻想[4] 自身をボードから取り除く→盤面にいない（present:false、area:null）。死亡ではない（alive:true）。★ではない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C20": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C20",
+    1,
+    null
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C20": {
+     "present": false,
+     "area": null,
+     "alive": true
+    }
+   },
+   "used_loop": [],
+   "refused": false
+  },
+  "source": "カード画像 character_20_1.png（wiki/characters/character-20.md 照合済み）「特性: 行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。[友好3]（1ループ1回制限）同一エリアのキャラクター1人を任意のボードに移動させる。[友好4] このキャラクターをボードから取り除く」／主人公の書 印刷p41 幻想「[主人公]幻想と同一エリアにいるキャラクター1人を選び、さらにボード1つを選びます。[脚本家]選ばれたキャラクターを選ばれたボードに移動させます」「[脚本家]幻想をボードから取り除きます。このループ中、幻想はキャラクターではなくなります（もちろん、死体でもありません）。次のループの準備にて、幻想は改めてボードに配置されます」（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c20-ab4-key-no-loss",
+  "desc": "幻想がキーパーソン。[4]で取り除かれても死亡ではない→ループは続く",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C20": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C20": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C20",
+    1,
+    null
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C20": {
+     "present": false,
+     "alive": true
+    }
+   },
+   "loop_end": null
+  },
+  "source": "カード画像 character_20_1.png（wiki/characters/character-20.md 照合済み）「特性: 行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。[友好3]（1ループ1回制限）同一エリアのキャラクター1人を任意のボードに移動させる。[友好4] このキャラクターをボードから取り除く」／主人公の書 印刷p41 幻想「[主人公]幻想と同一エリアにいるキャラクター1人を選び、さらにボード1つを選びます。[脚本家]選ばれたキャラクターを選ばれたボードに移動させます」「[脚本家]幻想をボードから取り除きます。このループ中、幻想はキャラクターではなくなります（もちろん、死体でもありません）。次のループの準備にて、幻想は改めてボードに配置されます」（公式FAQ にこのキャラクターの問答は無い）／早見表 キーパーソン（死亡時）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c20-removed-sk",
+  "desc": "取り除かれた幻想はキャラクターでない。神社にシリアルキラー（サラリーマン）と巫女だけ→巫女が死亡",
+  "phase": "turn_end",
+  "choice": {
+   "optional": []
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C20": {
+     "area": null,
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": false
+    },
+    "C06": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C06": "SK"
+    },
+    "incidents": []
+   }
+  },
+  "expect": {
+   "chars": {
+    "C04": {
+     "alive": false
+    },
+    "C06": {
+     "alive": true
+    }
+   }
+  },
+  "source": "カード画像 character_20_1.png（wiki/characters/character-20.md 照合済み）「特性: 行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。[友好3]（1ループ1回制限）同一エリアのキャラクター1人を任意のボードに移動させる。[友好4] このキャラクターをボードから取り除く」／主人公の書 印刷p41 幻想「[主人公]幻想と同一エリアにいるキャラクター1人を選び、さらにボード1つを選びます。[脚本家]選ばれたキャラクターを選ばれたボードに移動させます」「[脚本家]幻想をボードから取り除きます。このループ中、幻想はキャラクターではなくなります（もちろん、死体でもありません）。次のループの準備にて、幻想は改めてボードに配置されます」（公式FAQ にこのキャラクターの問答は無い）／早見表 シリアルキラー",
+  "status": "confirmed"
+ },
+ {
+  "id": "c20-removed-loop-start",
+  "desc": "取り除かれた幻想は次のループの準備で初期エリア神社に改めて配置される",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C20": {
+     "area": null,
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": false
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "expect": {
+   "loop": 2,
+   "day": 1,
+   "chars": {
+    "C20": {
+     "present": true,
+     "area": "SHR",
+     "alive": true,
+     "par": 0
+    }
+   }
+  },
+  "source": "カード画像 character_20_1.png（wiki/characters/character-20.md 照合済み）「特性: 行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。[友好3]（1ループ1回制限）同一エリアのキャラクター1人を任意のボードに移動させる。[友好4] このキャラクターをボードから取り除く」／主人公の書 印刷p41 幻想「[主人公]幻想と同一エリアにいるキャラクター1人を選び、さらにボード1つを選びます。[脚本家]選ばれたキャラクターを選ばれたボードに移動させます」「[脚本家]幻想をボードから取り除きます。このループ中、幻想はキャラクターではなくなります（もちろん、死体でもありません）。次のループの準備にて、幻想は改めてボードに配置されます」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p20 §3 ループの準備 3-2 キャラクターの配置・3-3 カウンターの除去と配置（wiki/concepts/loop.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c20-removed-culprit",
+  "desc": "取り除かれた幻想が犯人の殺人事件（取り除く前の不安3）→犯人がキャラクターでないので発生しない",
+  "phase": "incident",
+  "choice": null,
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C20": {
+     "area": null,
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": false
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C20"
+     }
+    ]
+   }
+  },
+  "expect": {
+   "occurred": false,
+   "chars": {
+    "C04": {
+     "alive": true
+    }
+   }
+  },
+  "source": "カード画像 character_20_1.png（wiki/characters/character-20.md 照合済み）「特性: 行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。[友好3]（1ループ1回制限）同一エリアのキャラクター1人を任意のボードに移動させる。[友好4] このキャラクターをボードから取り除く」／主人公の書 印刷p41 幻想「[主人公]幻想と同一エリアにいるキャラクター1人を選び、さらにボード1つを選びます。[脚本家]選ばれたキャラクターを選ばれたボードに移動させます」「[脚本家]幻想をボードから取り除きます。このループ中、幻想はキャラクターではなくなります（もちろん、死体でもありません）。次のループの準備にて、幻想は改めてボードに配置されます」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p24 4-7 事件の発生条件「犯人となるキャラクターが生存している」「不安臨界以上の不安カウンター」 ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "「キャラクターではなくなる」犯人について、発生条件「犯人となるキャラクターが生存している」を満たさないとしてよいかの明文が無い。期待値は満たさない（発生しない）"
+ },
+ {
+  "id": "c30-move-par",
+  "desc": "ご神木の特性（主人公能力フェイズ）。ご神木の不安1つを同じ神社の巫女へ移す。友好カウンターは要らない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C30": {
+     "area": "SHR",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C30",
+    0,
+    {
+     "target": "C04",
+     "counter": "par"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C30": {
+     "par": 1
+    },
+    "C04": {
+     "par": 1
+    }
+   },
+   "used_loop": []
+  },
+  "source": "カード画像 character_30_1.png（2026-09-23 画像で照合）「特性: 主人公は各ターンの主人公能力フェイズに、このキャラクターの上のカウンター1つを同一エリアの他のキャラクター1人に移してもよい。このキャラクターが友好無視を持つ場合、脚本家能力フェイズに脚本家もこの特性を用いる（強制）」友好能力は無い。禁止エリア 病院・都市・学校（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c30-self-error",
+  "desc": "ご神木自身は選べない（「他のキャラクター」）→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C30": {
+     "area": "SHR",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C30",
+    0,
+    {
+     "target": "C30",
+     "counter": "par"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "他のキャラクター"
+  },
+  "source": "カード画像 character_30_1.png（2026-09-23 画像で照合）「特性: 主人公は各ターンの主人公能力フェイズに、このキャラクターの上のカウンター1つを同一エリアの他のキャラクター1人に移してもよい。このキャラクターが友好無視を持つ場合、脚本家能力フェイズに脚本家もこの特性を用いる（強制）」友好能力は無い。禁止エリア 病院・都市・学校（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c30-other-area-error",
+  "desc": "都市のサラリーマンは同一エリアでない→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C30": {
+     "area": "SHR",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C30",
+    0,
+    {
+     "target": "C06",
+     "counter": "par"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "error": "同一エリアではない"
+  },
+  "source": "カード画像 character_30_1.png（2026-09-23 画像で照合）「特性: 主人公は各ターンの主人公能力フェイズに、このキャラクターの上のカウンター1つを同一エリアの他のキャラクター1人に移してもよい。このキャラクターが友好無視を持つ場合、脚本家能力フェイズに脚本家もこの特性を用いる（強制）」友好能力は無い。禁止エリア 病院・都市・学校（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c30-twice-error",
+  "desc": "同じターンの主人公能力フェイズに2回目→error（「カウンター1つを」）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C30": {
+     "area": "SHR",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C30",
+    0,
+    {
+     "target": "C04",
+     "counter": "par"
+    }
+   ],
+   [
+    "C30",
+    0,
+    {
+     "target": "C04",
+     "counter": "par"
+    }
+   ]
+  ],
+  "refuse": [
+   false,
+   false
+  ],
+  "expect": {
+   "error": "このターンは使用済み"
+  },
+  "source": "カード画像 character_30_1.png（2026-09-23 画像で照合）「特性: 主人公は各ターンの主人公能力フェイズに、このキャラクターの上のカウンター1つを同一エリアの他のキャラクター1人に移してもよい。このキャラクターが友好無視を持つ場合、脚本家能力フェイズに脚本家もこの特性を用いる（強制）」友好能力は無い。禁止エリア 病院・都市・学校（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p23（各能力は1フェイズに1回）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c30-kuromaku-no-refuse",
+  "desc": "ご神木がクロマク（友好無視）でも、主人公の特性の使用は友好能力でないので拒否できない→拒否の意思はerror",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C30": {
+     "area": "SHR",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C30": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C30",
+    0,
+    {
+     "target": "C04",
+     "counter": "par"
+    }
+   ]
+  ],
+  "refuse": [
+   true
+  ],
+  "expect": {
+   "error": "友好能力ではないので拒否できない"
+  },
+  "source": "カード画像 character_30_1.png（2026-09-23 画像で照合）「特性: 主人公は各ターンの主人公能力フェイズに、このキャラクターの上のカウンター1つを同一エリアの他のキャラクター1人に移してもよい。このキャラクターが友好無視を持つ場合、脚本家能力フェイズに脚本家もこの特性を用いる（強制）」友好能力は無い。禁止エリア 病院・都市・学校（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p23 拒否（友好無視を持つキャラの友好能力のみ。拒否されても1ループ1回制限は使用済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c30-mm-forced",
+  "desc": "ご神木がクロマク（友好無視）。脚本家能力フェイズに脚本家がご神木の暗躍1つを巫女へ移す（強制）",
+  "phase": "mm_ability",
+  "choice": {
+   "uses": [
+    {
+     "char": "C30",
+     "ability": "SHINBOKU",
+     "target": "C04",
+     "counter": "int"
+    }
+   ]
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C30": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C30": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "expect": {
+   "chars": {
+    "C30": {
+     "int": 0
+    },
+    "C04": {
+     "int": 1
+    }
+   }
+  },
+  "source": "カード画像 character_30_1.png（2026-09-23 画像で照合）「特性: 主人公は各ターンの主人公能力フェイズに、このキャラクターの上のカウンター1つを同一エリアの他のキャラクター1人に移してもよい。このキャラクターが友好無視を持つ場合、脚本家能力フェイズに脚本家もこの特性を用いる（強制）」友好能力は無い。禁止エリア 病院・都市・学校（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c30-mm-forced-missing-error",
+  "desc": "ご神木がクロマクでカウンターがあり、同じ神社に巫女がいるのに脚本家が特性を使わない→error（強制）",
+  "phase": "mm_ability",
+  "choice": {
+   "uses": []
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C30": {
+     "area": "SHR",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C30": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "expect": {
+   "error": "強制の特性が使われていない"
+  },
+  "source": "カード画像 character_30_1.png（2026-09-23 画像で照合）「特性: 主人公は各ターンの主人公能力フェイズに、このキャラクターの上のカウンター1つを同一エリアの他のキャラクター1人に移してもよい。このキャラクターが友好無視を持つ場合、脚本家能力フェイズに脚本家もこの特性を用いる（強制）」友好能力は無い。禁止エリア 病院・都市・学校（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c30-move-guard",
+  "desc": "ご神木の護衛カウンター（刑事[5]）を巫女へ移せるか→字面「カウンター1つ」なら移せる",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C30": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 1
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C30",
+    0,
+    {
+     "target": "C04",
+     "counter": "guard"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C30": {
+     "guard": 0
+    },
+    "C04": {
+     "guard": 1
+    }
+   }
+  },
+  "source": "カード画像 character_30_1.png（2026-09-23 画像で照合）「特性: 主人公は各ターンの主人公能力フェイズに、このキャラクターの上のカウンター1つを同一エリアの他のキャラクター1人に移してもよい。このキャラクターが友好無視を持つ場合、脚本家能力フェイズに脚本家もこの特性を用いる（強制）」友好能力は無い。禁止エリア 病院・都市・学校（公式FAQ にこのキャラクターの問答は無い） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "「カウンター」に護衛カウンター（印刷p18 では進行管理用に分類）を含むかが一次資料で決まらない（学者・A.I. と同じ問い）。期待値は字面（含む）"
+ },
+ {
+  "id": "c32-turn-end-death",
+  "desc": "アルバイトに不安1・友好1・暗躍1（合計3）→ターン終了で死亡",
+  "phase": "turn_end",
+  "choice": {
+   "optional": []
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C32": {
+     "area": "CIT",
+     "alive": true,
+     "par": 1,
+     "gw": 1,
+     "int": 1,
+     "guard": 0
+    },
+    "C33": {
+     "area": null,
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": false
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "expect": {
+   "chars": {
+    "C32": {
+     "alive": false
+    }
+   },
+   "loop_end": null
+  },
+  "source": "カード画像 character_32_1.png（wiki/characters/character-32.md 照合済み）「特性: このカードは配役を無視してパーソンとなる。特性: ターン終了フェイズにこのキャラクターに合計3つ以上のカウンターが置かれている場合、このキャラクターは死亡する。特性: ターン開始フェイズにこのカードが死亡している場合、都市にアルバイト？を配置する」（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c32-guard-counts",
+  "desc": "アルバイトに不安1・友好1・護衛1→字面「合計3つ以上のカウンター」なら死亡の条件を満たし、護衛を取り除いて生存",
+  "phase": "turn_end",
+  "choice": {
+   "optional": []
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C32": {
+     "area": "CIT",
+     "alive": true,
+     "par": 1,
+     "gw": 1,
+     "int": 0,
+     "guard": 1
+    },
+    "C33": {
+     "area": null,
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": false
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "expect": {
+   "chars": {
+    "C32": {
+     "alive": true,
+     "guard": 0
+    }
+   }
+  },
+  "source": "カード画像 character_32_1.png（wiki/characters/character-32.md 照合済み）「特性: このカードは配役を無視してパーソンとなる。特性: ターン終了フェイズにこのキャラクターに合計3つ以上のカウンターが置かれている場合、このキャラクターは死亡する。特性: ターン開始フェイズにこのカードが死亡している場合、都市にアルバイト？を配置する」（公式FAQ にこのキャラクターの問答は無い） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "護衛カウンターを「カウンター」に数えるかが一次資料で決まらない（学者・A.I.・ご神木と同じ問い）。期待値は字面（数える→死亡する場合なので護衛が代わりに取り除かれる）"
+ },
+ {
+  "id": "c32-cast-killer-no-ability",
+  "desc": "アルバイトにキラーを配役しても配役を無視してパーソン。同じ学校のキーパーソン（暗躍2）をキラーの能力で殺せない→error",
+  "phase": "turn_end",
+  "choice": {
+   "optional": [
+    {
+     "char": "C32",
+     "ability": "KILLER_KEY"
+    }
+   ]
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C32": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    },
+    "C33": {
+     "area": null,
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": false
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C32": "KILLER",
+     "C03": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "expect": {
+   "error": "アルバイトはパーソン"
+  },
+  "source": "カード画像 character_32_1.png（wiki/characters/character-32.md 照合済み）「特性: このカードは配役を無視してパーソンとなる。特性: ターン終了フェイズにこのキャラクターに合計3つ以上のカウンターが置かれている場合、このキャラクターは死亡する。特性: ターン開始フェイズにこのカードが死亡している場合、都市にアルバイト？を配置する」（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c32-final-person",
+  "desc": "最後の戦い。キラーを配役されたアルバイトをパーソンと宣言→正解",
+  "phase": "final",
+  "state": {
+   "loop": 3,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C32": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C32": "KILLER"
+    },
+    "incidents": []
+   }
+  },
+  "guesses": [
+   {
+    "char": "C01",
+    "role": "PERSON"
+   },
+   {
+    "char": "C32",
+    "role": "PERSON"
+   }
+  ],
+  "expect": {
+   "winner": "mastermind",
+   "stopped_at": 1
+  },
+  "source": "カード画像 character_32_1.png（wiki/characters/character-32.md 照合済み）「特性: このカードは配役を無視してパーソンとなる。特性: ターン終了フェイズにこのキャラクターに合計3つ以上のカウンターが置かれている場合、このキャラクターは死亡する。特性: ターン開始フェイズにこのカードが死亡している場合、都市にアルバイト？を配置する」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p25 §6 最後の戦い（盤面の再構築で全キャラを初期エリアに生存で配置／キャラクター全員について役職を正答で主人公の勝利。wiki/concepts/final-battle.md） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c33-appear",
+  "desc": "ターン開始フェイズにアルバイトが死亡している→都市にアルバイト？を生存・カウンター無しで配置（アルバイトの死体はそのまま）",
+  "phase": "turn_start",
+  "state": {
+   "loop": 1,
+   "day": 3,
+   "leader": "A",
+   "chars": {
+    "C32": {
+     "area": "CIT",
+     "alive": false,
+     "par": 1,
+     "gw": 1,
+     "int": 1,
+     "guard": 0
+    },
+    "C33": {
+     "area": null,
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": false
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "expect": {
+   "chars": {
+    "C33": {
+     "present": true,
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0
+    },
+    "C32": {
+     "alive": false,
+     "area": "CIT"
+    }
+   }
+  },
+  "source": "カード画像 character_33_1.png（wiki/characters/character-33.md 照合済み）「特性: このキャラクターの配役ならびに事件の犯人かどうかはアルバイトと一致する。[友好3]（1ループ1回制限）このキャラクターの役職を知り、同一エリアのキャラクター1人に友好カウンターを2つ置く」（公式FAQ にこのキャラクターの問答は無い）／カード画像 character_32_1.png（wiki/characters/character-32.md 照合済み）「特性: このカードは配役を無視してパーソンとなる。特性: ターン終了フェイズにこのキャラクターに合計3つ以上のカウンターが置かれている場合、このキャラクターは死亡する。特性: ターン開始フェイズにこのカードが死亡している場合、都市にアルバイト？を配置する」（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c33-no-appear",
+  "desc": "アルバイトが生存→アルバイト？は配置されない",
+  "phase": "turn_start",
+  "state": {
+   "loop": 1,
+   "day": 3,
+   "leader": "A",
+   "chars": {
+    "C32": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C33": {
+     "area": null,
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": false
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "expect": {
+   "chars": {
+    "C33": {
+     "present": false
+    }
+   }
+  },
+  "source": "カード画像 character_32_1.png（wiki/characters/character-32.md 照合済み）「特性: このカードは配役を無視してパーソンとなる。特性: ターン終了フェイズにこのキャラクターに合計3つ以上のカウンターが置かれている場合、このキャラクターは死亡する。特性: ターン開始フェイズにこのカードが死亡している場合、都市にアルバイト？を配置する」（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c33-already-present",
+  "desc": "アルバイト？が既に学校にいる（配置後に移動した）。次のターン開始でもアルバイトは死体→都市に戻さない",
+  "phase": "turn_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C32": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C33": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": true
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "expect": {
+   "chars": {
+    "C33": {
+     "area": "SCH"
+    }
+   }
+  },
+  "source": "カード画像 character_32_1.png（wiki/characters/character-32.md 照合済み）「特性: このカードは配役を無視してパーソンとなる。特性: ターン終了フェイズにこのキャラクターに合計3つ以上のカウンターが置かれている場合、このキャラクターは死亡する。特性: ターン開始フェイズにこのカードが死亡している場合、都市にアルバイト？を配置する」（公式FAQ にこのキャラクターの問答は無い） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "「都市にアルバイト？を配置する」が毎ターン開始に働くか（既に盤面にいるアルバイト？を都市へ置き直すか）が一次資料で決まらない。期待値は「既に配置済みなら何もしない」"
+ },
+ {
+  "id": "c33-loop-start-absent",
+  "desc": "ループの準備でアルバイトは都市に生存で配置され、アルバイト？は配置されない",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 5,
+   "leader": "A",
+   "chars": {
+    "C32": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C33": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "expect": {
+   "loop": 2,
+   "day": 1,
+   "chars": {
+    "C32": {
+     "alive": true,
+     "area": "CIT"
+    },
+    "C33": {
+     "present": false
+    }
+   }
+  },
+  "source": "カード画像 character_32_1.png（wiki/characters/character-32.md 照合済み）「特性: このカードは配役を無視してパーソンとなる。特性: ターン終了フェイズにこのキャラクターに合計3つ以上のカウンターが置かれている場合、このキャラクターは死亡する。特性: ターン開始フェイズにこのカードが死亡している場合、都市にアルバイト？を配置する」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p20 §3 ループの準備 3-2 キャラクターの配置・3-3 カウンターの除去と配置（wiki/concepts/loop.md） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "ループの準備 3-2「各キャラを初期エリアに配置」がアルバイト？（初期エリア都市の印あり）にも及ぶかが一次資料で決まらない。期待値はアルバイトの特性でだけ登場する（ループの準備では盤面にいない）"
+ },
+ {
+  "id": "c33-culprit",
+  "desc": "アルバイトが犯人の殺人事件。アルバイトは死体、アルバイト？（不安3＝臨界3）が犯人として発生し、同じ都市のサラリーマンが死亡",
+  "phase": "incident",
+  "choice": {
+   "target": "C06"
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C32": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C33": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C32"
+     }
+    ]
+   }
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C06": {
+     "alive": false
+    }
+   }
+  },
+  "source": "カード画像 character_33_1.png（wiki/characters/character-33.md 照合済み）「特性: このキャラクターの配役ならびに事件の犯人かどうかはアルバイトと一致する。[友好3]（1ループ1回制限）このキャラクターの役職を知り、同一エリアのキャラクター1人に友好カウンターを2つ置く」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p24 4-7 事件の発生条件「犯人となるキャラクターが生存している」「不安臨界以上の不安カウンター」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c33-cast-role",
+  "desc": "アルバイトにキラーを配役（アルバイト自身はパーソン）。アルバイト？の役職は「配役」が一致するのでキラー→[3]で知る役職はキラー",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C32": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C33": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C32": "KILLER"
+    },
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C33",
+    0,
+    {
+     "target": "C06"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "reveal": {
+    "role": {
+     "char": "C33",
+     "role": "KILLER"
+    }
+   },
+   "chars": {
+    "C06": {
+     "gw": 2
+    }
+   }
+  },
+  "source": "カード画像 character_33_1.png（wiki/characters/character-33.md 照合済み）「特性: このキャラクターの配役ならびに事件の犯人かどうかはアルバイトと一致する。[友好3]（1ループ1回制限）このキャラクターの役職を知り、同一エリアのキャラクター1人に友好カウンターを2つ置く」（公式FAQ にこのキャラクターの問答は無い）／カード画像 character_32_1.png（wiki/characters/character-32.md 照合済み）「特性: このカードは配役を無視してパーソンとなる。特性: ターン終了フェイズにこのキャラクターに合計3つ以上のカウンターが置かれている場合、このキャラクターは死亡する。特性: ターン開始フェイズにこのカードが死亡している場合、都市にアルバイト？を配置する」（公式FAQ にこのキャラクターの問答は無い） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "「配役…はアルバイトと一致」が、脚本上の配役（キラー）を指すのか、配役を無視した結果の役職（パーソン）を指すのかが一次資料で決まらない（wiki の補足は「このカードもパーソン」と読んでいるが一次資料ではない）。期待値はカードの字面（配役＝キラー）"
+ },
+ {
+  "id": "c33-ab3",
+  "desc": "アルバイト？[3] 自身の役職（パーソン）を知り、同じ都市のサラリーマンに友好2。★",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C32": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C33": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C33",
+    0,
+    {
+     "target": "C06"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "reveal": {
+    "role": {
+     "char": "C33",
+     "role": "PERSON"
+    }
+   },
+   "chars": {
+    "C06": {
+     "gw": 2
+    }
+   },
+   "used_loop": [
+    "C33#0"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 character_33_1.png（wiki/characters/character-33.md 照合済み）「特性: このキャラクターの配役ならびに事件の犯人かどうかはアルバイトと一致する。[友好3]（1ループ1回制限）このキャラクターの役職を知り、同一エリアのキャラクター1人に友好カウンターを2つ置く」（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c33-final-never-appeared",
+  "desc": "最後の戦い。アルバイト？が一度も登場していない脚本で、アルバイト？の役職を宣言せずに終えられるか→字面「キャラクター全員」ならアルバイト？も要る（未宣言はerror）",
+  "phase": "final",
+  "state": {
+   "loop": 3,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C32": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C33": {
+     "area": null,
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0,
+     "present": false
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "guesses": [
+   {
+    "char": "C01",
+    "role": "PERSON"
+   },
+   {
+    "char": "C32",
+    "role": "PERSON"
+   }
+  ],
+  "expect": {
+   "winner": "protagonists",
+   "stopped_at": null
+  },
+  "source": "カード画像 character_33_1.png（wiki/characters/character-33.md 照合済み）「特性: このキャラクターの配役ならびに事件の犯人かどうかはアルバイトと一致する。[友好3]（1ループ1回制限）このキャラクターの役職を知り、同一エリアのキャラクター1人に友好カウンターを2つ置く」（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p25 §6 最後の戦い（盤面の再構築で全キャラを初期エリアに生存で配置／キャラクター全員について役職を正答で主人公の勝利。wiki/concepts/final-battle.md） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "アルバイト？が最後の戦いの「キャラクター全員」に含まれるか（盤面の再構築で配置されるか）が一次資料で決まらない（神格・転校生と同じ問い）"
+ },
+ {
+  "id": "c34-script-start-missing-error",
+  "desc": "従者を登場させて初期エリア（都市か学校）を指定しない→誤り",
+  "phase": "script_check",
+  "script": {
+   "id": "b2b_check",
+   "title": "境界例（脚本の検査）",
+   "set": "BTX",
+   "loops": 3,
+   "days": 8,
+   "rules": [
+    "Y_MURDER",
+    "X_THREAD",
+    "X_VIRUS"
+   ],
+   "roles": {
+    "C01": "KUROMAKU",
+    "C03": "KEY",
+    "C05": "MISLEADER",
+    "C08": "KILLER"
+   },
+   "characters": [
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06",
+    "C07",
+    "C08",
+    "C09",
+    "C34"
+   ],
+   "incidents": [
+    {
+     "day": 2,
+     "id": "SPREAD",
+     "culprit": "C08"
+    },
+    {
+     "day": 4,
+     "id": "CORRUPT",
+     "culprit": "C06"
+    },
+    {
+     "day": 5,
+     "id": "SUICIDE",
+     "culprit": "C02"
+    },
+    {
+     "day": 7,
+     "id": "MURDER",
+     "culprit": "C07"
+    }
+   ]
+  },
+  "expect": {
+   "script_ok": false
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c34-script-start-hos-error",
+  "desc": "従者の初期エリアを病院に指定→誤り（都市か学校）",
+  "phase": "script_check",
+  "script": {
+   "id": "b2b_check",
+   "title": "境界例（脚本の検査）",
+   "set": "BTX",
+   "loops": 3,
+   "days": 8,
+   "rules": [
+    "Y_MURDER",
+    "X_THREAD",
+    "X_VIRUS"
+   ],
+   "roles": {
+    "C01": "KUROMAKU",
+    "C03": "KEY",
+    "C05": "MISLEADER",
+    "C08": "KILLER"
+   },
+   "characters": [
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06",
+    "C07",
+    "C08",
+    "C09",
+    "C34"
+   ],
+   "incidents": [
+    {
+     "day": 2,
+     "id": "SPREAD",
+     "culprit": "C08"
+    },
+    {
+     "day": 4,
+     "id": "CORRUPT",
+     "culprit": "C06"
+    },
+    {
+     "day": 5,
+     "id": "SUICIDE",
+     "culprit": "C02"
+    },
+    {
+     "day": 7,
+     "id": "MURDER",
+     "culprit": "C07"
+    }
+   ],
+   "start": {
+    "C34": "HOS"
+   }
+  },
+  "expect": {
+   "script_ok": false
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c34-loop-start",
+  "desc": "従者（初期エリア学校）。前ループで都市にいても、ループの準備で学校に配置される",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C34": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [],
+    "start": {
+     "C34": "SCH"
+    }
+   }
+  },
+  "expect": {
+   "loop": 2,
+   "day": 1,
+   "chars": {
+    "C34": {
+     "area": "SCH",
+     "par": 0
+    }
+   }
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p20 §3 ループの準備 3-2 キャラクターの配置・3-3 カウンターの除去と配置（wiki/concepts/loop.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c34-follow",
+  "desc": "同じ学校のお嬢様が移動←→で都市へ→従者も一緒に都市へ",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C34": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [],
+    "start": {
+     "C34": "SCH"
+    }
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "A",
+     "target": "C03",
+     "card": "MV_H"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "M",
+     "target": "B:SCH",
+     "card": "PAR-"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C03": {
+     "area": "CIT"
+    },
+    "C34": {
+     "area": "CIT"
+    }
+   }
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p21 §4 行動カードのセット（キャラクターかボード）・p22 解決（移動が先）・p45 ターン進行（wiki/concepts/turn-phases.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c34-ignore-own-move",
+  "desc": "お嬢様に移動←→、従者自身に移動↑↓→従者は自身への移動を無視してお嬢様と都市へ",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C34": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [],
+    "start": {
+     "C34": "SCH"
+    }
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "A",
+     "target": "C03",
+     "card": "MV_H"
+    },
+    {
+     "by": "M",
+     "target": "C34",
+     "card": "MV_V"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C03": {
+     "area": "CIT"
+    },
+    "C34": {
+     "area": "CIT"
+    }
+   }
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c34-own-move",
+  "desc": "お嬢様は移動しない。従者自身の移動↑↓は普通に効く→従者は神社へ",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C34": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [],
+    "start": {
+     "C34": "SCH"
+    }
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C34",
+     "card": "MV_V"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:CIT",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SCH",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C03": {
+     "area": "SCH"
+    },
+    "C34": {
+     "area": "SHR"
+    }
+   }
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c34-master-mvx",
+  "desc": "お嬢様に移動←→と移動禁止→お嬢様は移動しないので従者も動かない",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C34": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [],
+    "start": {
+     "C34": "SCH"
+    }
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C03",
+     "card": "MV_H"
+    },
+    {
+     "by": "A",
+     "target": "C03",
+     "card": "MVX"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C03": {
+     "area": "SCH"
+    },
+    "C34": {
+     "area": "SCH"
+    }
+   },
+   "used": {
+    "M": [],
+    "A": [
+     "MVX"
+    ],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p42 手札リスト 移動↑↓「『移動←→』と重なったら斜めに移動します」・移動禁止",
+  "status": "confirmed"
+ },
+ {
+  "id": "c34-own-mvx",
+  "desc": "お嬢様に移動←→、従者に移動禁止→字面「自身への移動を無視して一緒に移動」なら従者も都市へ",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C34": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [],
+    "start": {
+     "C34": "SCH"
+    }
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C03",
+     "card": "MV_H"
+    },
+    {
+     "by": "A",
+     "target": "C34",
+     "card": "MVX"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C03": {
+     "area": "CIT"
+    },
+    "C34": {
+     "area": "CIT"
+    }
+   }
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "従者にセットされた移動禁止が、特性による「一緒に移動」も止めるかが一次資料で決まらない（移動禁止は「自身への移動」を打ち消す札とも、キャラクターの移動そのものを禁じる札とも読める）。期待値は字面（無視して一緒に移動）"
+ },
+ {
+  "id": "c34-dual-leader-choice",
+  "desc": "同じ学校のお嬢様（都市へ）と大物（神社へ）が別々に移動→リーダーが大物を選び、従者は神社へ",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C16": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C34": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [],
+    "start": {
+     "C34": "SCH"
+    },
+    "territory": "HOS"
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "A",
+     "target": "C03",
+     "card": "MV_H"
+    },
+    {
+     "by": "M",
+     "target": "C16",
+     "card": "MV_V"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ],
+   "follow": {
+    "C34": "C16"
+   }
+  },
+  "expect": {
+   "chars": {
+    "C03": {
+     "area": "CIT"
+    },
+    "C16": {
+     "area": "SHR"
+    },
+    "C34": {
+     "area": "SHR"
+    }
+   }
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c34-dual-no-choice-error",
+  "desc": "上と同じでリーダーの選択が無い→error",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C16": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C34": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [],
+    "start": {
+     "C34": "SCH"
+    },
+    "territory": "HOS"
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "A",
+     "target": "C03",
+     "card": "MV_H"
+    },
+    {
+     "by": "M",
+     "target": "C16",
+     "card": "MV_V"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "error": "従者がどちらに付いていくかの選択が無い"
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c34-follow-ability",
+  "desc": "幻想[3]で同じ神社のお嬢様を病院へ移動→同じ神社の従者も病院へ（「移動する場合」は行動カードに限らない）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C20": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C34": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [],
+    "start": {
+     "C34": "SCH"
+    }
+   }
+  },
+  "declare": [
+   [
+    "C20",
+    0,
+    {
+     "target": "C03",
+     "board": "HOS"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "chars": {
+    "C03": {
+     "area": "HOS"
+    },
+    "C34": {
+     "area": "HOS"
+    },
+    "C20": {
+     "area": "SHR"
+    }
+   }
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）／カード画像 character_20_1.png（wiki/characters/character-20.md 照合済み）「特性: 行動カードをセットできない。同一エリアのボードにセットされた行動カードの効果は、このキャラクターにも与えられる。[友好3]（1ループ1回制限）同一エリアのキャラクター1人を任意のボードに移動させる。[友好4] このキャラクターをボードから取り除く」／主人公の書 印刷p41 幻想「[主人公]幻想と同一エリアにいるキャラクター1人を選び、さらにボード1つを選びます。[脚本家]選ばれたキャラクターを選ばれたボードに移動させます」「[脚本家]幻想をボードから取り除きます。このループ中、幻想はキャラクターではなくなります（もちろん、死体でもありません）。次のループの準備にて、幻想は改めてボードに配置されます」（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c34-follow-missing",
+  "desc": "お嬢様が犯人の行方不明で神社へ→従者も神社へ。暗躍1は犯人のいる神社のボードに",
+  "phase": "incident",
+  "choice": {
+   "board": "SHR"
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C34": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MISSING",
+      "culprit": "C03"
+     }
+    ],
+    "start": {
+     "C34": "SCH"
+    }
+   }
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C03": {
+     "area": "SHR"
+    },
+    "C34": {
+     "area": "SHR"
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 1,
+    "CIT": 0,
+    "SCH": 0
+   }
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）／早見表 行方不明",
+  "status": "confirmed"
+ },
+ {
+  "id": "c34-substitute-murder",
+  "desc": "殺人事件の対象にお嬢様→同じ学校の従者が代わりに死亡し、お嬢様は生存",
+  "phase": "incident",
+  "choice": {
+   "target": "C03"
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C34": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C01"
+     }
+    ],
+    "start": {
+     "C34": "SCH"
+    }
+   }
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C03": {
+     "alive": true
+    },
+    "C34": {
+     "alive": false
+    }
+   }
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c34-substitute-key",
+  "desc": "お嬢様がキーパーソン。殺人事件で従者が代わりに死亡→キーパーソンは死んでいないのでループは続く",
+  "phase": "incident",
+  "choice": {
+   "target": "C03"
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C34": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {
+     "C03": "KEY"
+    },
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C01"
+     }
+    ],
+    "start": {
+     "C34": "SCH"
+    }
+   }
+  },
+  "expect": {
+   "chars": {
+    "C03": {
+     "alive": true
+    },
+    "C34": {
+     "alive": false
+    }
+   },
+   "loop_end": null
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）／早見表 キーパーソン",
+  "status": "confirmed"
+ },
+ {
+  "id": "c34-substitute-guard",
+  "desc": "従者に護衛1。お嬢様が殺人事件の対象→従者が代わりに死亡する場合なので護衛を取り除き、2人とも生存",
+  "phase": "incident",
+  "choice": {
+   "target": "C03"
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C34": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 1
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C01"
+     }
+    ],
+    "start": {
+     "C34": "SCH"
+    }
+   }
+  },
+  "expect": {
+   "chars": {
+    "C03": {
+     "alive": true
+    },
+    "C34": {
+     "alive": true,
+     "guard": 0
+    }
+   }
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p38 刑事（護衛） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "置き換え（従者の身代わり）の結果の死亡に、さらに護衛の置き換えが掛かるかが一次資料で決まらない。お嬢様自身に護衛がある場合にどちらを先に適用するかも決まらない。期待値は字面を順に当てたもの"
+ },
+ {
+  "id": "c34-substitute-hospital",
+  "desc": "病院の事件（病院に暗躍1）で病院のお嬢様・従者・医者が同時に死亡する場合→字面ではお嬢様の死亡が従者の死亡に置き換わり、お嬢様は生存",
+  "phase": "incident",
+  "choice": null,
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C34": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 1,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "HOSPITAL",
+      "culprit": "C08"
+     }
+    ],
+    "start": {
+     "C34": "SCH"
+    }
+   }
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C03": {
+     "alive": true
+    },
+    "C34": {
+     "alive": false
+    },
+    "C08": {
+     "alive": false
+    }
+   }
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）／早見表 病院の事件 ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "全員が同時に死亡する効果で、従者自身も死亡する場合に身代わりが働くか（お嬢様が生き残るか）が一次資料で決まらない。期待値は字面"
+ },
+ {
+  "id": "c34-dead-no-substitute",
+  "desc": "従者が死体なら身代わりは働かない（死体は能力を使えない）→お嬢様が死亡",
+  "phase": "incident",
+  "choice": {
+   "target": "C03"
+  },
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C34": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C01"
+     }
+    ],
+    "start": {
+     "C34": "SCH"
+    }
+   }
+  },
+  "expect": {
+   "chars": {
+    "C03": {
+     "alive": false
+    }
+   }
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）／公式FAQ Ru06「死体は能力を使用できません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c34-ab4-add",
+  "desc": "従者[4] 別エリア（神社）の巫女を特性の対象に追加（同一エリアでなくてよい）。★",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C34": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [],
+    "start": {
+     "C34": "SCH"
+    }
+   }
+  },
+  "declare": [
+   [
+    "C34",
+    0,
+    {
+     "target": "C04"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {
+   "servant_targets": [
+    "C04"
+   ],
+   "used_loop": [
+    "C34#0"
+   ],
+   "refused": false
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c34-ab4-then-substitute",
+  "desc": "従者[4]で同じ都市のサラリーマンを追加→その日の殺人事件でサラリーマンの代わりに従者が死亡",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C34": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 2,
+      "id": "MURDER",
+      "culprit": "C05"
+     }
+    ],
+    "start": {
+     "C34": "SCH"
+    }
+   }
+  },
+  "declare": [
+   [
+    "C34",
+    0,
+    {
+     "target": "C06"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "then": {
+   "phase": "incident",
+   "choice": {
+    "target": "C06"
+   }
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C06": {
+     "alive": true
+    },
+    "C34": {
+     "alive": false
+    }
+   },
+   "servant_targets": [
+    "C06"
+   ]
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c34-ab4-reset",
+  "desc": "従者[4]の追加は「このループ中」だけ。ループの準備で空になる",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C34": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": [],
+    "start": {
+     "C34": "SCH"
+    }
+   },
+   "servant_targets": [
+    "C06"
+   ]
+  },
+  "expect": {
+   "loop": 2,
+   "servant_targets": []
+  },
+  "source": "カード画像 character_34_1.png（2026-09-23 画像で照合）「特性: 同一エリアのお嬢様か大物が移動する場合、自身への移動を無視して一緒に移動する（重複する場合はリーダーが選べる）。同一エリアのお嬢様か大物が死亡する場合、代わりに死亡する。[友好4]（1ループ1回制限）ボードにいる自身以外のキャラクターを1人選ぶ。このループ中、特性の対象にそのキャラクターを追加する」初期エリアは都市と学校の両方に印（2択）（公式FAQ にこのキャラクターの問答は無い）／主人公の書 印刷p20 §3 ループの準備 3-2 キャラクターの配置・3-3 カウンターの除去と配置（wiki/concepts/loop.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c35-hope-despair",
+  "desc": "上位存在[3] 希望・絶望カウンターは Basic Tragedy X に無い",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C35": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_THREAD",
+     "X_VIRUS"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "declare": [
+   [
+    "C35",
+    0,
+    {
+     "target": "C35",
+     "counter": "hope"
+    }
+   ]
+  ],
+  "refuse": [
+   false
+  ],
+  "expect": {},
+  "source": "カード画像 character_35_1.png（wiki/characters/character-35.md 照合済み）「[友好3]（1ループ1回制限）同一エリアのキャラクター1人に希望カウンターか絶望カウンターを1つ置く…」／公式FAQ 上位存在のカード訂正（自身にも使える）",
+  "status": "not_applicable"
+ }
+]

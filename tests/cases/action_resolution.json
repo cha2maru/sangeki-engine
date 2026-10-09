@@ -1,0 +1,6152 @@
+[
+ {
+  "_format": "段1（行動解決フェイズ）。state は README の完全な状態のうち必要な部分（載っていないキャラクターは登場していない）。input.placements は README の形。脚本家3枚・主人公各1枚を満たすため、効果の無い札をボードに置いた『ブラフ』を含む（主人公の書 p21・FAQ Ca02 で合法）。input.optional は行動解決フェイズの任意能力の使用（現状カルティストのみ: {char, ability:'CULTIST', target}）。expect.chars は変化したキャラクターの最終値（全フィールド）。載っていないキャラは不変。expect.boards と expect.used は最終値の全体（used の並びは問わない）。expect.error は状態を変えずに error を返すべきことを表し、文字列は理由の要約（文言一致は求めない）。"
+ },
+ {
+  "id": "move-mv_v-from-hos",
+  "desc": "刑事(禁止エリアなし)に MV_V 単独（主人公A）。HOS→CIT",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "MV_V"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "PAR-"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動↑↓「セットされたキャラクターを上下に移動します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-mv_v-from-shr",
+  "desc": "刑事(禁止エリアなし)に MV_V 単独（主人公A）。SHR→SCH",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "MV_V"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "PAR-"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動↑↓「セットされたキャラクターを上下に移動します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-mv_v-from-cit",
+  "desc": "刑事(禁止エリアなし)に MV_V 単独（主人公A）。CIT→HOS",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "MV_V"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "PAR-"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動↑↓「セットされたキャラクターを上下に移動します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-mv_v-from-sch",
+  "desc": "刑事(禁止エリアなし)に MV_V 単独（主人公A）。SCH→SHR",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "MV_V"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "PAR-"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動↑↓「セットされたキャラクターを上下に移動します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-mv_h-from-hos",
+  "desc": "刑事(禁止エリアなし)に MV_H 単独（脚本家）。HOS→SHR",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_H"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動←→「セットされたキャラクターを左右に移動します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-mv_h-from-shr",
+  "desc": "刑事(禁止エリアなし)に MV_H 単独（脚本家）。SHR→HOS",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_H"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動←→「セットされたキャラクターを左右に移動します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-mv_h-from-cit",
+  "desc": "刑事(禁止エリアなし)に MV_H 単独（脚本家）。CIT→SCH",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_H"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動←→「セットされたキャラクターを左右に移動します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-mv_h-from-sch",
+  "desc": "刑事(禁止エリアなし)に MV_H 単独（脚本家）。SCH→CIT",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_H"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動←→「セットされたキャラクターを左右に移動します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-mv_d-from-hos",
+  "desc": "刑事(禁止エリアなし)に MV_D 単独（脚本家）。HOS→SCH",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_D"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "MV_D"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p43 手札リスト(脚本家) 移動斜め（1ループに1回まで）。盤の並びは 主人公の書 印刷p19（病院・神社／都市・学校）",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-mv_d-from-shr",
+  "desc": "刑事(禁止エリアなし)に MV_D 単独（脚本家）。SHR→CIT",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_D"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "MV_D"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p43 手札リスト(脚本家) 移動斜め（1ループに1回まで）。盤の並びは 主人公の書 印刷p19（病院・神社／都市・学校）",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-mv_d-from-cit",
+  "desc": "刑事(禁止エリアなし)に MV_D 単独（脚本家）。CIT→SHR",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_D"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "MV_D"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p43 手札リスト(脚本家) 移動斜め（1ループに1回まで）。盤の並びは 主人公の書 印刷p19（病院・神社／都市・学校）",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-mv_d-from-sch",
+  "desc": "刑事(禁止エリアなし)に MV_D 単独（脚本家）。SCH→HOS",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_D"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "MV_D"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p43 手札リスト(脚本家) 移動斜め（1ループに1回まで）。盤の並びは 主人公の書 印刷p19（病院・神社／都市・学校）",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-v-plus-h-diagonal",
+  "desc": "刑事 HOS に MV_H + MV_V → SCH",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_H"
+    },
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "MV_V"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動↑↓「『移動←→』と重なったら 斜めに移動します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-h-plus-v-diagonal-from-shr",
+  "desc": "刑事 SHR に MV_V + MV_H → CIT",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_V"
+    },
+    {
+     "by": "B",
+     "target": "C05",
+     "card": "MV_H"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動←→「『移動↑↓』と重なったら斜めに移動します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-v-plus-d-horizontal-from-cit",
+  "desc": "刑事 CIT に MV_D + MV_V → SCH",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_D"
+    },
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "MV_V"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "MV_D"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動↑↓「『移動斜め』と重なったら左右に移動します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-v-plus-d-horizontal-from-hos",
+  "desc": "刑事 HOS に MV_D + MV_V → SHR",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_D"
+    },
+    {
+     "by": "C",
+     "target": "C05",
+     "card": "MV_V"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "MV_D"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動↑↓「『移動斜め』と重なったら左右に移動します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-h-plus-d-vertical-from-shr",
+  "desc": "刑事 SHR に MV_D + MV_H → SCH",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_D"
+    },
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "MV_H"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "MV_D"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動←→「『移動斜め』と重なったら上下に移動します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-h-plus-d-vertical-from-cit",
+  "desc": "刑事 CIT に MV_D + MV_H → HOS",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_D"
+    },
+    {
+     "by": "B",
+     "target": "C05",
+     "card": "MV_H"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "MV_D"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動←→「『移動斜め』と重なったら上下に移動します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-v-plus-v-once",
+  "desc": "刑事 HOS に MV_V + MV_V → CIT",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_V"
+    },
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "MV_V"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動↑↓「『移動↑↓』と重なったら、上下の移動が通常通りに行われます。2回の移動を行い、元の位置に戻ることはありません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-h-plus-h-once",
+  "desc": "刑事 SCH に MV_H + MV_H → CIT",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_H"
+    },
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "MV_H"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動←→「『移動←→』と重なったら、左右の移動が通常通りに行われます。2回の移動を行い、元の位置に戻ることはありません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-forbid-cancels-v",
+  "desc": "脚本家の移動↑↓を主人公Aの移動禁止で無効化。刑事は動かず、Aの移動禁止は使用済み",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_V"
+    },
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "MVX"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [
+     "MVX"
+    ],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動禁止「『移動↑↓』『移動←→』『移動斜め』と重なった場合、それを無効化します。（1ループに1回まで）」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-forbid-cancels-h",
+  "desc": "脚本家の移動←→を移動禁止で無効化",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_H"
+    },
+    {
+     "by": "B",
+     "target": "C05",
+     "card": "MVX"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [
+     "MVX"
+    ],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動禁止「『移動←→』…と重なった場合、それを無効化します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-forbid-cancels-diagonal-both-used",
+  "desc": "脚本家の移動斜めを移動禁止で無効化。無効化された移動斜めも使用済みになる（セットされたすべてのカードが対象）",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_D"
+    },
+    {
+     "by": "C",
+     "target": "C05",
+     "card": "MVX"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "MV_D"
+    ],
+    "A": [],
+    "B": [],
+    "C": [
+     "MVX"
+    ]
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 移動禁止「『移動斜め』と重なった場合、それを無効化します」／主人公の書 印刷p22 4-4 行動解決フェイズ「解決が終わったら、セットされたすべてのカードを、持ち主の手札に戻します。但し、『1ループに1回まで』と書かれたカードは代わりに持ち主の手前に表向きで置いておきます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-forbid-alone-used",
+  "desc": "移動禁止を単独で（移動札の無いキャラに）出す。効果はないが使用済みになる",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "MVX"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "PAR-"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [
+     "MVX"
+    ],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p22 4-4 行動解決フェイズ「セットされたすべてのカードを…『1ループに1回まで』と書かれたカードは代わりに持ち主の手前に表向きで置いておきます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-into-forbidden-patient-v",
+  "desc": "入院患者(禁止: 神社・都市・学校)が病院で移動↑↓→行き先の都市は禁止エリア。移動しない",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C09",
+     "card": "MV_V"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p16 キャラクターカード ③エリア「キャラクターが移動できないボードである禁止エリア」。処理の文面は無く、移動しない（その場に残る）とするのはこの定義からの帰結",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-into-forbidden-patient-combined-diagonal",
+  "desc": "入院患者に移動↑↓+移動←→＝斜め→学校は禁止エリア。移動しない",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C09",
+     "card": "MV_V"
+    },
+    {
+     "by": "A",
+     "target": "C09",
+     "card": "MV_H"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p16 キャラクターカード ③エリア「キャラクターが移動できないボードである禁止エリア」。処理の文面は無く、移動しない（その場に残る）とするのはこの定義からの帰結",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-into-forbidden-shrine-maiden-diagonal",
+  "desc": "巫女(禁止: 都市)が神社で移動斜め→都市は禁止エリア。移動せず、移動斜めは使用済み",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C04",
+     "card": "MV_D"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "MV_D"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p16 キャラクターカード ③エリア「キャラクターが移動できないボードである禁止エリア」。処理の文面は無く、移動しない（その場に残る）とするのはこの定義からの帰結／主人公の書 印刷p22 4-4 行動解決フェイズ",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-shrine-maiden-allowed-v",
+  "desc": "巫女が神社で移動↑↓→学校（禁止エリアではない）へ移動する",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "A",
+     "target": "C04",
+     "card": "MV_V"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "PAR-"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C04": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p16 キャラクターカード ③エリア「キャラクターが移動できないボードである禁止エリア」。処理の文面は無く、移動しない（その場に残る）とするのはこの定義からの帰結",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-into-forbidden-salaryman-h",
+  "desc": "サラリーマン(禁止: 学校)が都市で移動←→→学校は禁止エリア。移動しない",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C06",
+     "card": "MV_H"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p16 キャラクターカード ③エリア「キャラクターが移動できないボードである禁止エリア」。処理の文面は無く、移動しない（その場に残る）とするのはこの定義からの帰結",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-salaryman-allowed-diagonal",
+  "desc": "サラリーマンが都市で移動斜め→神社へ移動する（禁止エリアではない）",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C06",
+     "card": "MV_D"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C06": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "MV_D"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p16 キャラクターカード ③エリア「キャラクターが移動できないボードである禁止エリア」。処理の文面は無く、移動しない（その場に残る）とするのはこの定義からの帰結",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-carries-counters",
+  "desc": "暗躍2・不安1の医者が移動↑↓で都市へ。同じ医者への不安+1も解決。カウンターは医者のカードに乗ったまま",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C08",
+     "card": "MV_V"
+    },
+    {
+     "by": "A",
+     "target": "C08",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C08": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p22 4-4 行動解決フェイズ「キャラクターの移動を行う効果は、他の効果よりも先に解決されます」／主人公の書 印刷p16 キャラクターと死体（カウンターはキャラクターカードの上に置かれる）",
+  "status": "confirmed"
+ },
+ {
+  "id": "move-first-then-cultist-ignores-intx",
+  "desc": "カルティストの医者が移動斜めで病院→学校。学校ボードの[暗躍+1・暗躍禁止]は、移動後に同一エリアとなるので暗躍禁止を無視できる（任意、使うと選択）。学校に暗躍1",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_SEAL",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "CULTIST"
+    },
+    "incidents": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C08",
+     "card": "MV_D"
+    },
+    {
+     "by": "M",
+     "target": "B:SCH",
+     "card": "INT1"
+    },
+    {
+     "by": "A",
+     "target": "B:SCH",
+     "card": "INTX"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ],
+   "optional": [
+    {
+     "char": "C08",
+     "ability": "CULTIST",
+     "target": "B:SCH"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C08": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 1
+   },
+   "used": {
+    "M": [
+     "MV_D"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p22 4-4 行動解決フェイズ「キャラクターの移動を行う効果は、他の効果よりも先に解決されます」／早見表 カルティスト「【任意能力：行動解決フェイズ】同一エリアのキャラクター、またはこのキャラクターのいるボードへの暗躍禁止を無視してもよい」",
+  "status": "confirmed"
+ },
+ {
+  "id": "cultist-other-area-cannot-ignore",
+  "desc": "カルティストの医者は病院のまま（移動なし）。学校ボードの暗躍禁止は同一エリアでないので無視できない→error",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_SEAL",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "CULTIST"
+    },
+    "incidents": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:SCH",
+     "card": "INT1"
+    },
+    {
+     "by": "A",
+     "target": "B:SCH",
+     "card": "INTX"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ],
+   "optional": [
+    {
+     "char": "C08",
+     "ability": "CULTIST",
+     "target": "B:SCH"
+    }
+   ]
+  },
+  "expect": {
+   "error": "カルティストと同一エリアでない対象の暗躍禁止は無視できない"
+  },
+  "source": "早見表 カルティスト「同一エリアのキャラクター、またはこのキャラクターのいるボードへの暗躍禁止を無視してもよい」",
+  "status": "confirmed"
+ },
+ {
+  "id": "cultist-declines",
+  "desc": "カルティストが能力を使わない（任意）→暗躍禁止が効き学校は0",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_SEAL",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "CULTIST"
+    },
+    "incidents": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:SCH",
+     "card": "INT1"
+    },
+    {
+     "by": "A",
+     "target": "B:SCH",
+     "card": "INTX"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ],
+   "optional": []
+  },
+  "expect": {
+   "chars": {},
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "早見表 カルティスト「…暗躍禁止を無視してもよい」（任意能力）",
+  "status": "confirmed"
+ },
+ {
+  "id": "par-plus-and-minus-plus-first",
+  "desc": "不安0のキャラに脚本家の不安+1と主人公の不安−1。+1が先に解決され結果0。Aの不安−1は使用済み",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C07",
+     "card": "PAR+"
+    },
+    {
+     "by": "A",
+     "target": "C07",
+     "card": "PAR-"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [
+     "PAR-"
+    ],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 不安+1「『不安−1』と重なった場合、『不安+1』が先に解決されます」／公式FAQ Ca03「カウンターが置かれた後に取り除かれます。従って結果としては0となります」",
+  "status": "confirmed"
+ },
+ {
+  "id": "par-mm-minus-plus-protagonist-plus",
+  "desc": "不安0に脚本家の不安−1と主人公の不安+1→0。脚本家の不安−1は回数制限なしで使用済みにならない",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C07",
+     "card": "PAR-"
+    },
+    {
+     "by": "B",
+     "target": "C07",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p43 手札リスト(脚本家) 不安+1「『不安−1』と重なった場合、『不安+1』が先に解決されます」、不安−1 に回数制限の記載なし",
+  "status": "confirmed"
+ },
+ {
+  "id": "par-minus-at-zero",
+  "desc": "不安0のキャラに主人公の不安−1単独→0のまま（負にならない）。使用済みにはなる",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "A",
+     "target": "C07",
+     "card": "PAR-"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "PAR-"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [
+     "PAR-"
+    ],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 不安−1「セットされたキャラクターから不安カウンターを1つ取り除きます」（取り除くカウンターが無い）／主人公の書 印刷p22 4-4 行動解決フェイズ",
+  "status": "confirmed"
+ },
+ {
+  "id": "par-minus-twice",
+  "desc": "不安2に脚本家の不安−1と主人公の不安−1→0",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C07",
+     "card": "PAR-"
+    },
+    {
+     "by": "C",
+     "target": "C07",
+     "card": "PAR-"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": [
+     "PAR-"
+    ]
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 不安−1／主人公の書 印刷p43 手札リスト(脚本家) 不安−1",
+  "status": "confirmed"
+ },
+ {
+  "id": "par-plus-twice",
+  "desc": "脚本家の不安+1と主人公の不安+1→+2",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C07",
+     "card": "PAR+"
+    },
+    {
+     "by": "A",
+     "target": "C07",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 不安+1「不安カウンターを1つ置きます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "par-forbid-cancels-plus",
+  "desc": "脚本家の不安禁止＋主人公の不安+1→無効化",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C07",
+     "card": "PARX"
+    },
+    {
+     "by": "A",
+     "target": "C07",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "GWX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PAR-"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p43 手札リスト(脚本家) 不安禁止「『不安+1』『不安−1』と重なった場合、それを無効化します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "par-forbid-cancels-minus-still-used",
+  "desc": "脚本家の不安禁止＋主人公Bの不安−1→無効化。Bの不安−1は使用済み",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C07",
+     "card": "PARX"
+    },
+    {
+     "by": "B",
+     "target": "C07",
+     "card": "PAR-"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "GWX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PAR-"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [
+     "PAR-"
+    ],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p43 手札リスト(脚本家) 不安禁止「『不安−1』と重なった場合、それを無効化します」／主人公の書 印刷p22 4-4 行動解決フェイズ「セットされたすべてのカードを…」",
+  "status": "confirmed"
+ },
+ {
+  "id": "par-minus-per-player",
+  "desc": "Aが不安−1を使用済みでも、Bは自分の不安−1を使える（制限はプレイヤーごと）",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [
+     "PAR-"
+    ],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "B",
+     "target": "C07",
+     "card": "PAR-"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "PAR-"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [
+     "PAR-"
+    ],
+    "B": [
+     "PAR-"
+    ],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p22 4-4 行動解決フェイズ「『1ループに1回まで』と書かれたカードは代わりに持ち主の手前に表向きで置いておきます」（持ち主ごと）",
+  "status": "confirmed"
+ },
+ {
+  "id": "gw-plus2-used",
+  "desc": "主人公Aの友好+2→友好2、使用済み",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "GW2"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "PAR-"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [
+     "GW2"
+    ],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 友好+2「友好カウンターを2つ置きます。（1ループに1回まで）」",
+  "status": "confirmed"
+ },
+ {
+  "id": "gw-forbid-cancels-plus2-still-used",
+  "desc": "脚本家の友好禁止＋主人公の友好+2→無効化。友好+2は使用済み",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "GW2"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PAR-"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [
+     "GW2"
+    ],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p43 手札リスト(脚本家) 友好禁止「『友好+1』『友好+2』と重なった場合、それを無効化します」／主人公の書 印刷p22 4-4 行動解決フェイズ",
+  "status": "confirmed"
+ },
+ {
+  "id": "gw-forbid-cancels-plus1",
+  "desc": "友好禁止＋友好+1→無効化",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "C05",
+     "card": "GW1"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PAR-"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p43 手札リスト(脚本家) 友好禁止「『友好+1』…と重なった場合、それを無効化します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "gw-forbid-ignored-by-time-traveler",
+  "desc": "タイムトラベラーへの友好禁止は無視される（強制）→友好+1が効く",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "TT"
+    },
+    "incidents": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "GW1"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PAR-"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "早見表 タイムトラベラー「【強制：行動解決フェイズ】このキャラクターへの友好禁止を無視する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "int-and-gw-same-target",
+  "desc": "脚本家の暗躍+1と主人公の友好+1が同じキャラに→両方解決",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "INT1"
+    },
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "GW1"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 1,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 友好+1／主人公の書 印刷p43 手札リスト(脚本家) 暗躍+1",
+  "status": "confirmed"
+ },
+ {
+  "id": "int1-on-board",
+  "desc": "暗躍+1を学校ボードへ→学校に暗躍1",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {},
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:SCH",
+     "card": "INT1"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {},
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 1
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p43 手札リスト(脚本家) 暗躍+1（キャラクターまたはボード）／主人公の書 印刷p21「脚本家は『暗躍+1』『暗躍+2』しかボードにセットして効果を解決するカードはありません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "int2-on-board-used",
+  "desc": "暗躍+2を神社ボードへ→神社に暗躍2、暗躍+2は使用済み",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {},
+   "boards": {
+    "HOS": 0,
+    "SHR": 1,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "INT2"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {},
+   "boards": {
+    "HOS": 0,
+    "SHR": 3,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "INT2"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p43 手札リスト(脚本家) 暗躍+2（1ループに1回まで）",
+  "status": "confirmed"
+ },
+ {
+  "id": "int2-on-char",
+  "desc": "暗躍+2をキャラへ→暗躍+2",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C07",
+     "card": "INT2"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 3,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "INT2"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p43 手札リスト(脚本家) 暗躍+2",
+  "status": "confirmed"
+ },
+ {
+  "id": "intx-cancels-int1-char",
+  "desc": "暗躍+1に主人公の暗躍禁止（1枚だけ）→無効化",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C07",
+     "card": "INT1"
+    },
+    {
+     "by": "A",
+     "target": "C07",
+     "card": "INTX"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 暗躍禁止「『暗躍+1』『暗躍+2』と重なった場合、それを無効化します」",
+  "status": "confirmed"
+ },
+ {
+  "id": "intx-cancels-int2-board-still-used",
+  "desc": "学校ボードの暗躍+2に暗躍禁止→無効化。暗躍+2は使用済み",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {},
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:SCH",
+     "card": "INT2"
+    },
+    {
+     "by": "B",
+     "target": "B:SCH",
+     "card": "INTX"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {},
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "INT2"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 暗躍禁止／主人公の書 印刷p22 4-4 行動解決フェイズ「セットされたすべてのカードを…」／FAQ Ca01「～禁止のカードは場所に対してプレイできますか？ はい、可能です」",
+  "status": "confirmed"
+ },
+ {
+  "id": "intx-by-two-protagonists-both-void",
+  "desc": "AとBがそれぞれ別の対象に暗躍禁止を出した→両方の暗躍禁止が無効化され、刑事に暗躍1・学校に暗躍2。（主人公どうしは同じ対象に置けない＝印刷p22 なので、『複数のプレイヤーが出している』は対象をまたいだ数え方と読むほかない）",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C07",
+     "card": "INT1"
+    },
+    {
+     "by": "A",
+     "target": "C07",
+     "card": "INTX"
+    },
+    {
+     "by": "M",
+     "target": "B:SCH",
+     "card": "INT2"
+    },
+    {
+     "by": "B",
+     "target": "B:SCH",
+     "card": "INTX"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "C",
+     "target": "B:HOS",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 2
+   },
+   "used": {
+    "M": [
+     "INT2"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 暗躍禁止「ただし、複数のプレイヤーが『暗躍禁止』を出している場合、このカードは無効化されます」／主人公の書 印刷p22「他の主人公が既にカードをセットしているところにはカードをセットできません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "intx-two-protagonists-one-without-int",
+  "desc": "Aは暗躍+1の上に、Bは何も無いボードに暗躍禁止。2人が出しているので両方無効→刑事に暗躍1",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C07",
+     "card": "INT1"
+    },
+    {
+     "by": "A",
+     "target": "C07",
+     "card": "INTX"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "INTX"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公) 暗躍禁止「複数のプレイヤーが『暗躍禁止』を出している場合、このカードは無効化されます」（重なりの有無は条件にない）",
+  "status": "confirmed"
+ },
+ {
+  "id": "board-bluff-diagonal-used",
+  "desc": "脚本家が移動斜めをボードにブラフでセット→効果なし、だが使用済み",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {},
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "MV_D"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {},
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "MV_D"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "主人公の書 印刷p21「脚本家はブラフとして、他のカードをボードへとセットする可能性もあります」／主人公の書 印刷p22 4-4 行動解決フェイズ",
+  "status": "confirmed"
+ },
+ {
+  "id": "illegal-mm-two-on-same-target",
+  "desc": "脚本家が同じキャラに2枚",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "INT1"
+    },
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "C07",
+     "card": "PAR+"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "error": "脚本家は同じ対象に2枚以上セットできない"
+  },
+  "source": "主人公の書 印刷p21 4-2 脚本家行動フェイズ「同じキャラクターや同じボードに2枚以上のカードはセットできません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "illegal-mm-two-on-same-board",
+  "desc": "脚本家が同じボードに2枚",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:SCH",
+     "card": "INT1"
+    },
+    {
+     "by": "M",
+     "target": "B:SCH",
+     "card": "INT2"
+    },
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "PAR+"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "error": "脚本家は同じ対象に2枚以上セットできない"
+  },
+  "source": "主人公の書 印刷p21 4-2 脚本家行動フェイズ「同じキャラクターや同じボードに2枚以上のカードはセットできません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "illegal-protagonist-on-other-protagonist",
+  "desc": "Bが、Aの置いたキャラに重ねる",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "C05",
+     "card": "PAR+"
+    },
+    {
+     "by": "C",
+     "target": "B:SCH",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "error": "主人公は他の主人公がセットした対象にセットできない"
+  },
+  "source": "主人公の書 印刷p22「この際、他の主人公が既にカードをセットしているところにはカードをセットできません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "illegal-mm-on-corpse",
+  "desc": "脚本家が死体にセット",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C03",
+     "card": "INT1"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SCH",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "error": "死体にはセットできない"
+  },
+  "source": "主人公の書 印刷p21 4-2 脚本家行動フェイズ「（死体はキャラクターではないので、カードをセットできません）」",
+  "status": "confirmed"
+ },
+ {
+  "id": "illegal-protagonist-on-corpse",
+  "desc": "主人公が死体にセット",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "C03",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SCH",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "error": "死体にはセットできない"
+  },
+  "source": "主人公の書 印刷p21 4-2 脚本家行動フェイズ（死体はキャラクターではない）／公式FAQ Ru05「死体に対してカードをセットすることは出来ず」",
+  "status": "confirmed"
+ },
+ {
+  "id": "illegal-mm-reuse-diagonal",
+  "desc": "使用済みの移動斜めをもう一度",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "MV_D"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_D"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SCH",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "error": "1ループ1回の札は使用済み"
+  },
+  "source": "主人公の書 印刷p22 4-4 行動解決フェイズ「それによって使用済みであることを表し、そのカードはこのループ中ではもう使えません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "illegal-mm-reuse-int2",
+  "desc": "使用済みの暗躍+2をもう一度",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {},
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [
+     "INT2"
+    ],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:SCH",
+     "card": "INT2"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SCH",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "error": "1ループ1回の札は使用済み"
+  },
+  "source": "主人公の書 印刷p22 4-4 行動解決フェイズ「このループ中ではもう使えません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "illegal-protagonist-reuse-mvx",
+  "desc": "Aが使用済みの移動禁止をもう一度",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [
+     "MVX"
+    ],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MV_V"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "MVX"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SCH",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "error": "1ループ1回の札は使用済み"
+  },
+  "source": "主人公の書 印刷p22 4-4 行動解決フェイズ「このループ中ではもう使えません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "illegal-protagonist-reuse-gw2",
+  "desc": "Cが使用済みの友好+2をもう一度",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": [
+     "GW2"
+    ]
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "C05",
+     "card": "GW2"
+    }
+   ]
+  },
+  "expect": {
+   "error": "1ループ1回の札は使用済み"
+  },
+  "source": "主人公の書 印刷p22 4-4 行動解決フェイズ「このループ中ではもう使えません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "illegal-mm-two-cards",
+  "desc": "脚本家が2枚しか置かない",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {},
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PARX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SCH",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "error": "脚本家は3枚セットする"
+  },
+  "source": "主人公の書 印刷p21 4-2 脚本家行動フェイズ「手札から行動カードを3枚選び、それらを任意のキャラクターやボードに裏向きでセットしてください」",
+  "status": "confirmed"
+ },
+ {
+  "id": "illegal-mm-four-cards",
+  "desc": "脚本家が4枚置く",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {},
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "M",
+     "target": "B:SCH",
+     "card": "PAR-"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SCH",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "error": "脚本家は3枚セットする"
+  },
+  "source": "主人公の書 印刷p21 4-2 脚本家行動フェイズ「手札から行動カードを3枚選び」",
+  "status": "confirmed"
+ },
+ {
+  "id": "illegal-mm-three-par-plus",
+  "desc": "脚本家が不安+1を3枚（手札に2枚しかない）",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "C07",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "C08",
+     "card": "PAR+"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SCH",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "error": "手札に無い札（不安+1は2枚）"
+  },
+  "source": "主人公の書 印刷p43 手札リスト(脚本家)／主人公の書 印刷p20 3-4（脚本家の手札に不安+1は2枚）",
+  "status": "confirmed"
+ },
+ {
+  "id": "illegal-protagonist-card-not-in-hand",
+  "desc": "主人公Aが暗躍+1（脚本家の札）を出す",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "INT1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SCH",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "error": "手札に無い札"
+  },
+  "source": "主人公の書 印刷p42 手札リスト(主人公)（主人公の手札8枚に暗躍+1は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "illegal-mm-card-not-in-hand",
+  "desc": "脚本家が移動禁止（主人公の札）を出す",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "MVX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SCH",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "error": "手札に無い札"
+  },
+  "source": "主人公の書 印刷p43 手札リスト(脚本家)（脚本家の手札10枚に移動禁止は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "illegal-protagonist-two-cards",
+  "desc": "Aが2枚、Cが0枚",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "GW1"
+    },
+    {
+     "by": "A",
+     "target": "B:SCH",
+     "card": "PAR+"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "error": "主人公は1人1枚"
+  },
+  "source": "主人公の書 印刷p21 4-3「1人1枚をセットして、結果として3枚がセットされることになります」",
+  "status": "confirmed"
+ },
+ {
+  "id": "illegal-unknown-target",
+  "desc": "盤上に無いキャラクター(C20)を対象にする",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C20",
+     "card": "PAR+"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SCH",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "error": "対象が存在しない"
+  },
+  "source": "主人公の書 印刷p21 4-2 脚本家行動フェイズ「任意のキャラクターやボードに」（登場していないキャラクターは対象にならない）",
+  "status": "confirmed"
+ }
+]

@@ -1,0 +1,447 @@
+{
+ "_source": "キャラクターカード画像（wiki/characters/character-01〜09.md、2026-09-23 に全項目照合済み）。友好能力は段4で追加。C14・C17・C18 を 2026-09-23 に追加（画像照合済み）。友好能力は未実装",
+ "characters": {
+  "C01": {
+   "name": "男子学生",
+   "limit": 2,
+   "start": "SCH",
+   "forbidden": [],
+   "tags": [
+    "学生",
+    "少年"
+   ],
+   "src": "wiki/characters/character-01.md",
+   "engine": true
+  },
+  "C02": {
+   "name": "女子学生",
+   "limit": 3,
+   "start": "SCH",
+   "forbidden": [],
+   "tags": [
+    "学生",
+    "少女"
+   ],
+   "src": "wiki/characters/character-02.md",
+   "engine": true
+  },
+  "C03": {
+   "name": "お嬢様",
+   "limit": 1,
+   "start": "SCH",
+   "forbidden": [],
+   "tags": [
+    "学生",
+    "少女"
+   ],
+   "src": "wiki/characters/character-03.md",
+   "engine": true
+  },
+  "C04": {
+   "name": "巫女",
+   "limit": 2,
+   "start": "SHR",
+   "forbidden": [
+    "CIT"
+   ],
+   "tags": [
+    "学生",
+    "少女"
+   ],
+   "src": "wiki/characters/character-04.md",
+   "engine": true
+  },
+  "C05": {
+   "name": "刑事",
+   "limit": 3,
+   "start": "CIT",
+   "forbidden": [],
+   "tags": [
+    "大人",
+    "男性"
+   ],
+   "src": "wiki/characters/character-05.md",
+   "engine": true
+  },
+  "C06": {
+   "name": "サラリーマン",
+   "limit": 2,
+   "start": "CIT",
+   "forbidden": [
+    "SCH"
+   ],
+   "tags": [
+    "大人",
+    "男性"
+   ],
+   "src": "wiki/characters/character-06.md",
+   "engine": true
+  },
+  "C07": {
+   "name": "情報屋",
+   "limit": 3,
+   "start": "CIT",
+   "forbidden": [],
+   "tags": [
+    "大人",
+    "女性"
+   ],
+   "src": "wiki/characters/character-07.md",
+   "engine": true
+  },
+  "C08": {
+   "name": "医者",
+   "limit": 2,
+   "start": "HOS",
+   "forbidden": [],
+   "tags": [
+    "大人",
+    "男性"
+   ],
+   "src": "wiki/characters/character-08.md",
+   "engine": true
+  },
+  "C09": {
+   "name": "入院患者",
+   "limit": 2,
+   "start": "HOS",
+   "forbidden": [
+    "SHR",
+    "CIT",
+    "SCH"
+   ],
+   "tags": [
+    "少年"
+   ],
+   "src": "wiki/characters/character-09.md",
+   "engine": true
+  },
+  "C14": {
+   "name": "アイドル",
+   "limit": 2,
+   "start": "CIT",
+   "forbidden": [],
+   "tags": [
+    "学生",
+    "少女"
+   ],
+   "src": "wiki/characters/character-14.md",
+   "engine": true
+  },
+  "C17": {
+   "name": "ナース",
+   "limit": 3,
+   "start": "HOS",
+   "forbidden": [],
+   "tags": [
+    "大人",
+    "女性"
+   ],
+   "src": "wiki/characters/character-17.md",
+   "engine": true
+  },
+  "C18": {
+   "name": "手先",
+   "limit": 1,
+   "start": null,
+   "forbidden": [],
+   "tags": [
+    "大人",
+    "男性"
+   ],
+   "src": "wiki/characters/character-18.md",
+   "note": "初期エリアは各ループの準備で脚本家が任意に決定（カードの特性）",
+   "engine": true
+  },
+  "C10": {
+   "name": "委員長",
+   "limit": 2,
+   "start": "SCH",
+   "forbidden": [],
+   "tags": [
+    "学生",
+    "少女"
+   ],
+   "src": "wiki/characters/character-10.md",
+   "engine": true
+  },
+  "C11": {
+   "name": "イレギュラー",
+   "limit": 3,
+   "start": "SCH",
+   "forbidden": [],
+   "tags": [
+    "学生",
+    "少年"
+   ],
+   "src": "wiki/characters/character-11.md",
+   "engine": true
+  },
+  "C12": {
+   "name": "異世界人",
+   "limit": 2,
+   "start": "SHR",
+   "forbidden": [
+    "HOS"
+   ],
+   "tags": [
+    "少女"
+   ],
+   "src": "wiki/characters/character-12.md",
+   "engine": true
+  },
+  "C13": {
+   "name": "神格",
+   "limit": 3,
+   "start": "SHR",
+   "forbidden": [],
+   "tags": [
+    "男性",
+    "女性"
+   ],
+   "src": "wiki/characters/character-13.md",
+   "engine": true
+  },
+  "C15": {
+   "name": "マスコミ",
+   "limit": 2,
+   "start": "CIT",
+   "forbidden": [],
+   "tags": [
+    "大人",
+    "男性"
+   ],
+   "src": "wiki/characters/character-15.md",
+   "engine": true
+  },
+  "C16": {
+   "name": "大物",
+   "limit": 4,
+   "start": "CIT",
+   "forbidden": [],
+   "tags": [
+    "大人",
+    "男性"
+   ],
+   "src": "wiki/characters/character-16.md",
+   "engine": true
+  },
+  "C19": {
+   "name": "学者",
+   "limit": 2,
+   "start": "HOS",
+   "forbidden": [],
+   "tags": [
+    "大人",
+    "男性"
+   ],
+   "src": "wiki/characters/character-19.md",
+   "engine": true
+  },
+  "C20": {
+   "name": "幻想",
+   "limit": 3,
+   "start": "SHR",
+   "forbidden": [],
+   "tags": [
+    "虚構",
+    "女性"
+   ],
+   "src": "wiki/characters/character-20.md",
+   "engine": true
+  },
+  "C21": {
+   "name": "鑑識官",
+   "limit": 3,
+   "start": "CIT",
+   "forbidden": [],
+   "tags": [
+    "大人",
+    "男性"
+   ],
+   "src": "wiki/characters/character-21.md",
+   "engine": true
+  },
+  "C22": {
+   "name": "A.I.",
+   "limit": 4,
+   "start": "CIT",
+   "forbidden": [
+    "HOS",
+    "SHR",
+    "SCH"
+   ],
+   "tags": [
+    "造物"
+   ],
+   "src": "wiki/characters/character-22.md",
+   "engine": true
+  },
+  "C23": {
+   "name": "教師",
+   "limit": 2,
+   "start": "SCH",
+   "forbidden": [],
+   "tags": [
+    "大人",
+    "女性"
+   ],
+   "src": "wiki/characters/character-23.md",
+   "engine": true
+  },
+  "C24": {
+   "name": "転校生",
+   "limit": 2,
+   "start": "SCH",
+   "forbidden": [],
+   "tags": [
+    "学生",
+    "少女"
+   ],
+   "src": "wiki/characters/character-24.md",
+   "engine": true
+  },
+  "C25": {
+   "name": "軍人",
+   "limit": 3,
+   "start": "HOS",
+   "forbidden": [],
+   "tags": [
+    "大人",
+    "男性"
+   ],
+   "src": "wiki/characters/character-25.md",
+   "engine": true
+  },
+  "C26": {
+   "name": "黒猫",
+   "limit": 0,
+   "start": "SHR",
+   "forbidden": [],
+   "tags": [
+    "動物"
+   ],
+   "src": "wiki/characters/character-26.md",
+   "engine": true
+  },
+  "C27": {
+   "name": "女の子",
+   "limit": 1,
+   "start": "SCH",
+   "forbidden": [
+    "HOS",
+    "SHR",
+    "CIT"
+   ],
+   "tags": [
+    "学生",
+    "少女"
+   ],
+   "src": "wiki/characters/character-27.md",
+   "engine": true
+  },
+  "C28": {
+   "name": "コピーキャット",
+   "limit": 2,
+   "start": "CIT",
+   "forbidden": [],
+   "tags": [
+    "学生",
+    "少年"
+   ],
+   "src": "wiki/characters/character-28.md",
+   "engine": true
+  },
+  "C29": {
+   "name": "教祖",
+   "limit": 3,
+   "start": "SHR",
+   "forbidden": [],
+   "tags": [
+    "大人",
+    "女性"
+   ],
+   "src": "wiki/characters/character-29.md",
+   "engine": true
+  },
+  "C30": {
+   "name": "ご神木",
+   "limit": 4,
+   "start": "SHR",
+   "forbidden": [
+    "HOS",
+    "CIT",
+    "SCH"
+   ],
+   "tags": [
+    "樹木"
+   ],
+   "src": "wiki/characters/character-30.md",
+   "engine": true
+  },
+  "C31": {
+   "name": "妹",
+   "limit": 3,
+   "start": "SHR",
+   "forbidden": [],
+   "tags": [
+    "少女",
+    "妹"
+   ],
+   "src": "wiki/characters/character-31.md",
+   "engine": true
+  },
+  "C32": {
+   "name": "アルバイト",
+   "limit": 1,
+   "start": "CIT",
+   "forbidden": [],
+   "tags": [
+    "大人",
+    "男性"
+   ],
+   "src": "wiki/characters/character-32.md",
+   "engine": true
+  },
+  "C33": {
+   "name": "アルバイト？",
+   "limit": 3,
+   "start": "CIT",
+   "forbidden": [],
+   "tags": [
+    "少女"
+   ],
+   "src": "wiki/characters/character-33.md",
+   "engine": true
+  },
+  "C34": {
+   "name": "従者",
+   "limit": 3,
+   "start": null,
+   "start_choice": [
+    "CIT",
+    "SCH"
+   ],
+   "forbidden": [],
+   "tags": [
+    "大人",
+    "女性"
+   ],
+   "src": "wiki/characters/character-34.md",
+   "engine": true
+  },
+  "C35": {
+   "name": "上位存在",
+   "limit": 2,
+   "start": "SHR",
+   "forbidden": [],
+   "tags": [
+    "少女"
+   ],
+   "src": "wiki/characters/character-35.md",
+   "engine": false,
+   "note": "希望・絶望カウンター（Basic Tragedy X に無い）を使う友好能力。この惨劇セットでは扱わない"
+  }
+ },
+ "_engine_note": "engine: true = 特性と友好能力までエンジンが扱う。false = 基本値（不安臨界・初期エリア・禁止エリア・属性）だけで、特性・友好能力は未対応（plan/engine-smarter.md 段S5）。C14・C17・C18 は toukou_001 の記録で基本値だけ使った"
+}

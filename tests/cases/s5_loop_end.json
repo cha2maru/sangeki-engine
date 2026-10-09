@@ -1,0 +1,4995 @@
+[
+ {
+  "_interface": "段S5 のループ終了時の敗北・フレンド・不穏な噂。state は README の完全な状態に次を加える: init（{キャラ: 初期エリア}。ウィッチの初期エリアはここを見る）、incident_log（[{loop,id,occurred}]。未来改変プランは loop==state.loop かつ id==BUTTERFLY かつ occurred の記録があるかを見る）、revealed_roles（{キャラ: 役職}。ゲームを通して公開された役職の累積。フレンドの死亡・巫女・サラリーマンなど公開の原因を問わない）、ability_used_loop（このループに使った★能力。不穏な噂は X_RUMOR）。phase: loop_end → ph.loop_end_loss(state) を呼ぶ。戻り値は成立した敗北条件の列（'Y_SEAL'|'Y_CONTRACT'|'Y_FUTURE'|'Y_BOMB'|'FRIEND'、並びは問わない。空の列＝敗北なし。既存の `if not ph.loop_end_loss(s)` の真偽はそのまま保たれる）。フレンドの公開は、死亡しているフレンドを state.revealed_roles に書き足すことで表す（公開の出来事は呼び出し側が差分から作る）。規定日数前にループが終わった場合（主人公死亡・キーパーソン死亡）も呼ぶ（FAQ Ch07・Ch20）。主人公に告げるのは敗北したことと死亡したフレンドの正体だけで、どの条件が成立したかは告げない（FAQ Ru02）ので、reasons は推理（deduce）に公開情報として渡さないこと。loop_start → ph.loop_start(state, ph.default_init(state.chars))（later_stages と同じ）。revealed_roles の FRIEND に友好1、ability_used_loop を空にする。mm_ability → ph.mm_phase(state, choice.uses)。不穏な噂は {ability:'X_RUMOR', target:'B:<エリア>'}（char は無い）。expect: loop_end → {loss: bool, reasons: [..]（集合で比較）, reveal: {キャラ: 役職}（この呼び出しで revealed_roles に入っているべき死亡フレンド。既に公開済みでも含める）}。loop_start → loop/day と chars（載せたキャラの載せた項目だけ比較）、used_loop。mm_ability → boards（全体）と used_loop（全体、並びは問わない）、または error（IllegalPlacement などの例外で状態を変えない）。status: confirmed（一次資料で確定）/ unresolved（一次資料で決まらない。期待値は字面どおりの読みで、理由は unresolved 欄。試験は xfail とし、ユーザーの裁定を待つ）。"
+ },
+ {
+  "id": "seal-shrine-1",
+  "desc": "封印されしモノ・神社に暗躍1 → 敗北しない（ちょうど手前）",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 1,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_SEAL",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "KUROMAKU",
+     "C05": "CULTIST",
+     "C02": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 封印されしモノ「【敗北条件：ループ終了時】神社に[暗躍C]が2つ以上ある。」／主人公の書 印刷p24 §5 ループの終了（wiki/concepts/loop.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "seal-shrine-2",
+  "desc": "封印されしモノ・神社に暗躍2 → 敗北（ちょうど）",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 2,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_SEAL",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "KUROMAKU",
+     "C05": "CULTIST",
+     "C02": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": true,
+   "reasons": [
+    "Y_SEAL"
+   ],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 封印されしモノ「【敗北条件：ループ終了時】神社に[暗躍C]が2つ以上ある。」／主人公の書 印刷p24 §5 ループの終了（wiki/concepts/loop.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "seal-other-board",
+  "desc": "封印されしモノ・神社0で他ボードに暗躍3 → 敗北しない（神社だけを見る）",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 3,
+    "SHR": 0,
+    "CIT": 3,
+    "SCH": 3
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_SEAL",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "KUROMAKU",
+     "C05": "CULTIST",
+     "C02": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 封印されしモノ「【敗北条件：ループ終了時】神社に[暗躍C]が2つ以上ある。」",
+  "status": "confirmed"
+ },
+ {
+  "id": "seal-char-in-shrine",
+  "desc": "封印されしモノ・神社にいる巫女に暗躍3、神社ボードは0 → 敗北しない（キャラクターの暗躍はボードの暗躍ではない）",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 3,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_SEAL",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "KUROMAKU",
+     "C05": "CULTIST",
+     "C02": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 封印されしモノ「【敗北条件：ループ終了時】神社に[暗躍C]が2つ以上ある。」／wiki/concepts/turn-phases.md（ボードには暗躍カウンターだけが置かれる）",
+  "status": "confirmed"
+ },
+ {
+  "id": "contract-key-1",
+  "desc": "僕と契約しようよ！・キーパーソン(お嬢様)に暗躍1 → 敗北しない",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_CONTRACT",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 僕と契約しようよ！「【敗北条件：ループ終了時】キーパーソンに[暗躍C]が2つ以上ある。」／主人公の書 印刷p24 §5 ループの終了（wiki/concepts/loop.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "contract-key-2",
+  "desc": "僕と契約しようよ！・キーパーソンに暗躍2 → 敗北（ちょうど）",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_CONTRACT",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": true,
+   "reasons": [
+    "Y_CONTRACT"
+   ],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 僕と契約しようよ！「【敗北条件：ループ終了時】キーパーソンに[暗躍C]が2つ以上ある。」／主人公の書 印刷p24 §5 ループの終了（wiki/concepts/loop.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "contract-other-char",
+  "desc": "僕と契約しようよ！・キーパーソンは暗躍0、パーソン(女子学生)に暗躍3 → 敗北しない。僕と契約しようよ！が追加するキーパーソンは1人で、ルールXはキーパーソンを追加しない",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 3,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_CONTRACT",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 僕と契約しようよ！「【敗北条件：ループ終了時】キーパーソンに[暗躍C]が2つ以上ある。」／早見表 ルール表（rule-role-matrix.md: 僕と契約しようよ！はキーパーソン×1、ルールXはキーパーソンを追加しない）",
+  "status": "confirmed"
+ },
+ {
+  "id": "contract-board-under-key",
+  "desc": "僕と契約しようよ！・キーパーソンは暗躍0、キーパーソンのいる学校ボードに暗躍3 → 敗北しない（ボードではなくキャラクターの暗躍）",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 3
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_CONTRACT",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 僕と契約しようよ！「【敗北条件：ループ終了時】キーパーソンに[暗躍C]が2つ以上ある。」",
+  "status": "confirmed"
+ },
+ {
+  "id": "contract-rule-absent",
+  "desc": "殺人計画のキーパーソンに暗躍3 → 敗北しない（僕と契約しようよ！が使われていない。キラーはいるがループ終了時の判定ではない）",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 3,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "殺人計画の追加ルール欄は空（rule-role-matrix.md「追加ルールの文面」）／早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 僕と契約しようよ！「【敗北条件：ループ終了時】キーパーソンに[暗躍C]が2つ以上ある。」",
+  "status": "confirmed"
+ },
+ {
+  "id": "contract-factor-city",
+  "desc": "僕と契約しようよ！＋不定因子χ・都市に暗躍2でファクター(刑事)がキーパーソンの能力を得ており、ファクターに暗躍2、本物のキーパーソンは暗躍0 → 敗北しない（ファクターの役職はファクターのまま）",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 2,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_CONTRACT",
+     "X_FACTOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C05": "FACTOR"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 僕と契約しようよ！「【敗北条件：ループ終了時】キーパーソンに[暗躍C]が2つ以上ある。」／早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） ファクター「都市に[暗躍C]が2つ以上→このキャラクターはキーパーソンの能力を得る。（役職自体は変化しない。）」 ユーザー裁定 2026-09-23（wiki/notes/rulings.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "future-butterfly-this-loop",
+  "desc": "未来改変プラン・このループ(2)で蝶の羽ばたきが発生 → 敗北",
+  "phase": "loop_end",
+  "state": {
+   "loop": 2,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "CULTIST",
+     "C02": "TT",
+     "C08": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [
+    {
+     "loop": 2,
+     "id": "BUTTERFLY",
+     "occurred": true
+    }
+   ],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": true,
+   "reasons": [
+    "Y_FUTURE"
+   ],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 未来改変プラン「【敗北条件：ループ終了時】このループ中に蝶の羽ばたきが発生している。」／主人公の書 印刷p24 §5 ループの終了（wiki/concepts/loop.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "future-butterfly-prev-loop",
+  "desc": "未来改変プラン・蝶の羽ばたきは前のループ(1)で発生、このループ(2)では発生していない → 敗北しない",
+  "phase": "loop_end",
+  "state": {
+   "loop": 2,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "CULTIST",
+     "C02": "TT",
+     "C08": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [
+    {
+     "loop": 1,
+     "id": "BUTTERFLY",
+     "occurred": true
+    }
+   ],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 未来改変プラン「【敗北条件：ループ終了時】このループ中に蝶の羽ばたきが発生している。」（「このループ中に」）",
+  "status": "confirmed"
+ },
+ {
+  "id": "future-butterfly-misfire",
+  "desc": "未来改変プラン・このループの蝶の羽ばたきは不発（犯人の不安が臨界未満など、occurred=false） → 敗北しない",
+  "phase": "loop_end",
+  "state": {
+   "loop": 2,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "CULTIST",
+     "C02": "TT",
+     "C08": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [
+    {
+     "loop": 2,
+     "id": "BUTTERFLY",
+     "occurred": false
+    }
+   ],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 未来改変プラン「【敗北条件：ループ終了時】このループ中に蝶の羽ばたきが発生している。」／wiki/concepts/incident-effects.md 発生条件（犯人が生存かつ不安が臨界以上のときだけ発生）",
+  "status": "confirmed"
+ },
+ {
+  "id": "future-prev-occurred-now-misfire",
+  "desc": "未来改変プラン・前ループで発生、このループでは不発 → 敗北しない",
+  "phase": "loop_end",
+  "state": {
+   "loop": 2,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "CULTIST",
+     "C02": "TT",
+     "C08": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [
+    {
+     "loop": 1,
+     "id": "BUTTERFLY",
+     "occurred": true
+    },
+    {
+     "loop": 2,
+     "id": "BUTTERFLY",
+     "occurred": false
+    }
+   ],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 未来改変プラン「【敗北条件：ループ終了時】このループ中に蝶の羽ばたきが発生している。」",
+  "status": "confirmed"
+ },
+ {
+  "id": "future-other-incident",
+  "desc": "未来改変プラン・このループで殺人事件が発生、蝶の羽ばたきは無し → 敗北しない",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "CULTIST",
+     "C02": "TT",
+     "C08": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [
+    {
+     "loop": 1,
+     "id": "MURDER",
+     "occurred": true
+    }
+   ],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 未来改変プラン「【敗北条件：ループ終了時】このループ中に蝶の羽ばたきが発生している。」",
+  "status": "confirmed"
+ },
+ {
+  "id": "future-rule-absent",
+  "desc": "封印されしモノの脚本で、このループに蝶の羽ばたきが発生、神社は暗躍0 → 敗北しない（未来改変プランが使われていない）",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_SEAL",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "KUROMAKU",
+     "C05": "CULTIST",
+     "C02": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [
+    {
+     "loop": 1,
+     "id": "BUTTERFLY",
+     "occurred": true
+    }
+   ],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 未来改変プラン「【敗北条件：ループ終了時】このループ中に蝶の羽ばたきが発生している。」／早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 封印されしモノ「【敗北条件：ループ終了時】神社に[暗躍C]が2つ以上ある。」",
+  "status": "confirmed"
+ },
+ {
+  "id": "bomb-init-1",
+  "desc": "巨大時限爆弾X・ウィッチ(巫女)の初期エリア神社に暗躍1 → 敗北しない",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 1,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_BOMB",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C04": "WITCH",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 巨大時限爆弾Xの存在「【敗北条件：ループ終了時】ウィッチの初期エリアに[暗躍C]が2つ以上ある。」／主人公の書 印刷p24 §5 ループの終了（wiki/concepts/loop.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "bomb-init-2",
+  "desc": "巨大時限爆弾X・ウィッチの初期エリア神社に暗躍2（ウィッチは神社にいる） → 敗北",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 2,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_BOMB",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C04": "WITCH",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": true,
+   "reasons": [
+    "Y_BOMB"
+   ],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 巨大時限爆弾Xの存在「【敗北条件：ループ終了時】ウィッチの初期エリアに[暗躍C]が2つ以上ある。」／主人公の書 印刷p24 §5 ループの終了（wiki/concepts/loop.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "bomb-witch-moved",
+  "desc": "ウィッチは学校へ移動済み、初期エリア神社に暗躍2・学校は0 → 敗北（今いるエリアではなく初期エリア）",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 2,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_BOMB",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C04": "WITCH",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": true,
+   "reasons": [
+    "Y_BOMB"
+   ],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 巨大時限爆弾Xの存在「【敗北条件：ループ終了時】ウィッチの初期エリアに[暗躍C]が2つ以上ある。」",
+  "status": "confirmed"
+ },
+ {
+  "id": "bomb-current-area-only",
+  "desc": "ウィッチは学校へ移動済み、学校に暗躍3・初期エリア神社は0 → 敗北しない",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 3
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_BOMB",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C04": "WITCH",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 巨大時限爆弾Xの存在「【敗北条件：ループ終了時】ウィッチの初期エリアに[暗躍C]が2つ以上ある。」",
+  "status": "confirmed"
+ },
+ {
+  "id": "bomb-witch-char-int",
+  "desc": "ウィッチ自身に暗躍3、初期エリア神社ボードは0 → 敗北しない（「初期エリアに」＝ボード）",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 3,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_BOMB",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C04": "WITCH",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 巨大時限爆弾Xの存在「【敗北条件：ループ終了時】ウィッチの初期エリアに[暗躍C]が2つ以上ある。」",
+  "status": "confirmed"
+ },
+ {
+  "id": "bomb-init-from-state",
+  "desc": "初期エリアは state.init を見る。ウィッチ(医者)の init が HOS で、病院に暗躍2 → 敗北",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 2,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_BOMB",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "WITCH",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": true,
+   "reasons": [
+    "Y_BOMB"
+   ],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 巨大時限爆弾Xの存在「【敗北条件：ループ終了時】ウィッチの初期エリアに[暗躍C]が2つ以上ある。」",
+  "status": "confirmed"
+ },
+ {
+  "id": "bomb-witch-dead",
+  "desc": "ウィッチ(巫女)は死亡（死体は神社）、初期エリア神社に暗躍2 → 敗北（字面どおり初期エリアで判定）",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 2,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_BOMB",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C04": "WITCH",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": true,
+   "reasons": [
+    "Y_BOMB"
+   ],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 巨大時限爆弾Xの存在「【敗北条件：ループ終了時】ウィッチの初期エリアに[暗躍C]が2つ以上ある。」／公式FAQ Ru03「死亡したキャラクターはキャラクターとして扱わない」 ユーザー裁定 2026-09-23（wiki/notes/rulings.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "bomb-rule-absent",
+  "desc": "僕と契約しようよ！の脚本で神社に暗躍2（巫女はキーパーソン、暗躍0） → 敗北しない（巨大時限爆弾Xも封印されしモノも使われていない）",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 2,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_CONTRACT",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C04": "KEY",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 巨大時限爆弾Xの存在「【敗北条件：ループ終了時】ウィッチの初期エリアに[暗躍C]が2つ以上ある。」／早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 僕と契約しようよ！「【敗北条件：ループ終了時】キーパーソンに[暗躍C]が2つ以上ある。」",
+  "status": "confirmed"
+ },
+ {
+  "id": "friend-dead",
+  "desc": "潜む殺人鬼のフレンド(刑事)が死亡 → 敗北し、フレンドの役職を公開",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "FRIEND",
+     "C02": "SK"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": true,
+   "reasons": [
+    "FRIEND"
+   ],
+   "reveal": {
+    "C05": "FRIEND"
+   }
+  },
+  "source": "早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） フレンド「【敗北条件：ループ終了時】このカードが死亡している。その場合、このカードの役職を公開する。」／主人公の書 印刷p24 §5 ループの終了（wiki/concepts/loop.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "friend-alive",
+  "desc": "フレンドは生存 → 敗北せず、公開もしない",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "FRIEND",
+     "C02": "SK"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） フレンド「【敗北条件：ループ終了時】このカードが死亡している。その場合、このカードの役職を公開する。」",
+  "status": "confirmed"
+ },
+ {
+  "id": "friend-person-dead",
+  "desc": "パーソン(女子学生)が死亡、フレンドは生存 → 敗北しない（フレンドがいない脚本と同じ盤面でも同様）",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": false,
+   "reasons": [],
+   "reveal": {}
+  },
+  "source": "早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） フレンド「【敗北条件：ループ終了時】このカードが死亡している。その場合、このカードの役職を公開する。」（フレンドの役職能力。フレンドを追加するのは友情サークル・潜む殺人鬼だけ）",
+  "status": "confirmed"
+ },
+ {
+  "id": "friends-two-one-dead",
+  "desc": "友情サークルのフレンド2人（刑事・女子学生）のうち女子学生だけ死亡 → 敗北。公開は死亡した女子学生だけ",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "FRIEND",
+     "C02": "FRIEND",
+     "C07": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS",
+    "C07": "CIT"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": true,
+   "reasons": [
+    "FRIEND"
+   ],
+   "reveal": {
+    "C02": "FRIEND"
+   }
+  },
+  "source": "早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） フレンド「【敗北条件：ループ終了時】このカードが死亡している。その場合、このカードの役職を公開する。」（「このカード」ごとに判定）／公式FAQ Ru02 但し書き",
+  "status": "confirmed"
+ },
+ {
+  "id": "friends-two-both-dead",
+  "desc": "フレンド2人とも死亡 → 敗北。2人とも公開",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "FRIEND",
+     "C02": "FRIEND",
+     "C07": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS",
+    "C07": "CIT"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": true,
+   "reasons": [
+    "FRIEND"
+   ],
+   "reveal": {
+    "C02": "FRIEND",
+    "C05": "FRIEND"
+   }
+  },
+  "source": "早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） フレンド「【敗北条件：ループ終了時】このカードが死亡している。その場合、このカードの役職を公開する。」",
+  "status": "confirmed"
+ },
+ {
+  "id": "friend-dead-early-loop-end",
+  "desc": "主人公死亡などで規定日数前（3日目）にループが終わっても、死亡しているフレンドは公開する（敗北条件としても成立）",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 3,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "FRIEND",
+     "C02": "SK"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": true,
+   "reasons": [
+    "FRIEND"
+   ],
+   "reveal": {
+    "C05": "FRIEND"
+   }
+  },
+  "source": "早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） フレンド「【敗北条件：ループ終了時】このカードが死亡している。その場合、このカードの役職を公開する。」／公式FAQ Ch07「ループ終了時にフレンドが死亡していればいかなる場合でも公開されます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "friend-and-key-same-time",
+  "desc": "キーパーソンとフレンドが同時に死亡してループが終わった状態 → ループ終了時の効果でフレンドを公開する（キーパーソン死亡の敗北とは別に FRIEND も成立）",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "FRIEND",
+     "C02": "SK"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": true,
+   "reasons": [
+    "FRIEND"
+   ],
+   "reveal": {
+    "C05": "FRIEND"
+   }
+  },
+  "source": "早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） フレンド「【敗北条件：ループ終了時】このカードが死亡している。その場合、このカードの役職を公開する。」／公式FAQ Ch20「まずはループが終了し、その後にループ終了時の効果でフレンドの役職が公開されます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "friend-dead-already-revealed",
+  "desc": "前のループで公開済みのフレンドが再び死亡 → 敗北。公開する（既に公開済みでも reveal に含める）",
+  "phase": "loop_end",
+  "state": {
+   "loop": 2,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "FRIEND",
+     "C02": "SK"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {
+    "C05": "FRIEND"
+   },
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": true,
+   "reasons": [
+    "FRIEND"
+   ],
+   "reveal": {
+    "C05": "FRIEND"
+   }
+  },
+  "source": "早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） フレンド「【敗北条件：ループ終了時】このカードが死亡している。その場合、このカードの役職を公開する。」",
+  "status": "confirmed"
+ },
+ {
+  "id": "multi-seal-and-friend",
+  "desc": "封印されしモノの神社暗躍2＋フレンド死亡 → 敗北。理由は両方、フレンドは公開（どちらが成立したかを主人公に告げる義務は無い）",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 2,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_SEAL",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "KUROMAKU",
+     "C05": "CULTIST",
+     "C02": "FRIEND",
+     "C03": "SK"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": true,
+   "reasons": [
+    "Y_SEAL",
+    "FRIEND"
+   ],
+   "reveal": {
+    "C02": "FRIEND"
+   }
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 封印されしモノ「【敗北条件：ループ終了時】神社に[暗躍C]が2つ以上ある。」／早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） フレンド「【敗北条件：ループ終了時】このカードが死亡している。その場合、このカードの役職を公開する。」／公式FAQ Ru02（「あなたたちは敗北しました」で足りるが、死亡しているフレンドの正体は公開しなくてはならない）",
+  "status": "confirmed"
+ },
+ {
+  "id": "multi-contract-and-friend",
+  "desc": "僕と契約しようよ！のキーパーソンに暗躍2＋友情サークルのフレンド1人死亡 → 敗北。理由は両方、死亡したフレンドだけ公開",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_CONTRACT",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C05": "FRIEND",
+     "C02": "FRIEND",
+     "C04": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": true,
+   "reasons": [
+    "Y_CONTRACT",
+    "FRIEND"
+   ],
+   "reveal": {
+    "C05": "FRIEND"
+   }
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 僕と契約しようよ！「【敗北条件：ループ終了時】キーパーソンに[暗躍C]が2つ以上ある。」／早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） フレンド「【敗北条件：ループ終了時】このカードが死亡している。その場合、このカードの役職を公開する。」／公式FAQ Ru02",
+  "status": "confirmed"
+ },
+ {
+  "id": "multi-bomb-and-future-log",
+  "desc": "巨大時限爆弾Xで初期エリアに暗躍2、このループに蝶の羽ばたき発生（未来改変プランは不使用） → 敗北理由は Y_BOMB だけ",
+  "phase": "loop_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 2,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_BOMB",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C04": "WITCH",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [
+    {
+     "loop": 1,
+     "id": "BUTTERFLY",
+     "occurred": true
+    }
+   ],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loss": true,
+   "reasons": [
+    "Y_BOMB"
+   ],
+   "reveal": {}
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 巨大時限爆弾Xの存在「【敗北条件：ループ終了時】ウィッチの初期エリアに[暗躍C]が2つ以上ある。」／早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 未来改変プラン「【敗北条件：ループ終了時】このループ中に蝶の羽ばたきが発生している。」",
+  "status": "confirmed"
+ },
+ {
+  "id": "friend-loop-start-revealed",
+  "desc": "前ループ終了時に公開されたフレンド(刑事・死亡)が、次ループ開始時に生存で戻り友好1",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": false,
+     "par": 2,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "FRIEND",
+     "C02": "SK"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {
+    "C05": "FRIEND"
+   },
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loop": 2,
+   "day": 1,
+   "chars": {
+    "C05": {
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0
+    }
+   }
+  },
+  "source": "早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） フレンド「【強制：ループ開始時】このキャラクターの役職が公開されたことがある→このキャラクターに[友好C]を1つ置く。」／主人公の書 印刷p20 §3 ループの準備 3-2・3-3（wiki/concepts/loop.md）（カウンターを除去してからループ開始時のカウンターを置く）",
+  "status": "confirmed"
+ },
+ {
+  "id": "friend-loop-start-not-revealed",
+  "desc": "公開されたことのないフレンドはループ開始時に友好0",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "FRIEND",
+     "C02": "SK"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loop": 2,
+   "chars": {
+    "C05": {
+     "gw": 0
+    }
+   }
+  },
+  "source": "早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） フレンド「【強制：ループ開始時】このキャラクターの役職が公開されたことがある→このキャラクターに[友好C]を1つ置く。」／主人公の書 印刷p20 §3 ループの準備 3-2・3-3（wiki/concepts/loop.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "friend-loop-start-revealed-by-ability",
+  "desc": "巫女・サラリーマンなどの能力で役職が見られた（公開された）フレンドも、死亡したことが無くても次ループ開始時に友好1",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "FRIEND",
+     "C02": "SK"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {
+    "C05": "FRIEND"
+   },
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loop": 2,
+   "chars": {
+    "C05": {
+     "gw": 1
+    }
+   }
+  },
+  "source": "早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） フレンド「【強制：ループ開始時】このキャラクターの役職が公開されたことがある→このキャラクターに[友好C]を1つ置く。」／公式FAQ Ch21「はい、置かれます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "friend-loop-start-person-revealed",
+  "desc": "役職が公開されたのがフレンドでない（女子学生＝SK が公開済み）→ 友好は置かれない",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "FRIEND",
+     "C02": "SK"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {
+    "C02": "SK"
+   },
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loop": 2,
+   "chars": {
+    "C02": {
+     "gw": 0
+    },
+    "C05": {
+     "gw": 0
+    }
+   }
+  },
+  "source": "早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） フレンド「【強制：ループ開始時】このキャラクターの役職が公開されたことがある→このキャラクターに[友好C]を1つ置く。」（フレンドの役職能力）",
+  "status": "confirmed"
+ },
+ {
+  "id": "friend-loop-start-with-thread",
+  "desc": "因果の糸あり。友好2のまま死亡し公開されたフレンド → 次ループ開始時に不安2（因果の糸）と友好1（フレンド）",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "FRIEND",
+     "C02": "SK"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {
+    "C05": "FRIEND"
+   },
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loop": 2,
+   "chars": {
+    "C05": {
+     "alive": true,
+     "par": 2,
+     "gw": 1
+    }
+   }
+  },
+  "source": "早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） フレンド「【強制：ループ開始時】このキャラクターの役職が公開されたことがある→このキャラクターに[友好C]を1つ置く。」／早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 因果の糸「【強制：ループ開始時】ひとつ前のループ終了時に[友好C]の置かれていた全キャラクターに[不安C]を2つ置く。」／公式FAQ Ru01",
+  "status": "confirmed"
+ },
+ {
+  "id": "friend-loop-start-two-friends",
+  "desc": "友情サークルのフレンド2人のうち公開済みは刑事だけ → 刑事に友好1、女子学生は0",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "FRIEND",
+     "C02": "FRIEND",
+     "C07": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS",
+    "C07": "CIT"
+   },
+   "incident_log": [],
+   "revealed_roles": {
+    "C05": "FRIEND"
+   },
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loop": 2,
+   "chars": {
+    "C05": {
+     "gw": 1
+    },
+    "C02": {
+     "gw": 0
+    }
+   }
+  },
+  "source": "早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） フレンド「【強制：ループ開始時】このキャラクターの役職が公開されたことがある→このキャラクターに[友好C]を1つ置く。」",
+  "status": "confirmed"
+ },
+ {
+  "id": "friend-loop-start-every-loop",
+  "desc": "2ループ前に公開されたフレンドも、以後のループ開始時に毎回友好1（「公開されたことがある」）",
+  "phase": "loop_start",
+  "state": {
+   "loop": 2,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "FRIEND",
+     "C02": "SK"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {
+    "C05": "FRIEND"
+   },
+   "ability_used_loop": []
+  },
+  "expect": {
+   "loop": 3,
+   "chars": {
+    "C05": {
+     "gw": 1
+    }
+   }
+  },
+  "source": "早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） フレンド「【強制：ループ開始時】このキャラクターの役職が公開されたことがある→このキャラクターに[友好C]を1つ置く。」",
+  "status": "confirmed"
+ },
+ {
+  "id": "rumor-any-board",
+  "desc": "不穏な噂で、誰もいない神社ボードに暗躍1（エリアの制限なし）",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "choice": {
+   "uses": [
+    {
+     "ability": "X_RUMOR",
+     "target": "B:SHR"
+    }
+   ]
+  },
+  "expect": {
+   "boards": {
+    "HOS": 0,
+    "SHR": 1,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used_loop": [
+    "X_RUMOR"
+   ]
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 不穏な噂「【任意能力：脚本家能力フェイズ】任意のボード1つに[暗躍C]を1つ置く。（1ループ1回制限）」／公式FAQ 正誤（First Steps サマリー：不穏な噂は脚本家能力フェイズ）",
+  "status": "confirmed"
+ },
+ {
+  "id": "rumor-second-same-loop",
+  "desc": "同じループの前の日に不穏な噂を使用済み → 再使用は不可（error、状態不変）",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 3,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": [
+    "X_RUMOR"
+   ]
+  },
+  "choice": {
+   "uses": [
+    {
+     "ability": "X_RUMOR",
+     "target": "B:CIT"
+    }
+   ]
+  },
+  "expect": {
+   "error": "不穏な噂は1ループ1回"
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 不穏な噂「【任意能力：脚本家能力フェイズ】任意のボード1つに[暗躍C]を1つ置く。（1ループ1回制限）」／公式FAQ 正誤（First Steps サマリー：不穏な噂は脚本家能力フェイズ）",
+  "status": "confirmed"
+ },
+ {
+  "id": "rumor-twice-same-phase",
+  "desc": "同じフェイズに不穏な噂を2回 → 不可（error、状態不変）",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "choice": {
+   "uses": [
+    {
+     "ability": "X_RUMOR",
+     "target": "B:CIT"
+    },
+    {
+     "ability": "X_RUMOR",
+     "target": "B:SHR"
+    }
+   ]
+  },
+  "expect": {
+   "error": "不穏な噂は1ループ1回"
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 不穏な噂「【任意能力：脚本家能力フェイズ】任意のボード1つに[暗躍C]を1つ置く。（1ループ1回制限）」／公式FAQ 正誤（First Steps サマリー：不穏な噂は脚本家能力フェイズ）",
+  "status": "confirmed"
+ },
+ {
+  "id": "rumor-next-loop-ok",
+  "desc": "前のループで使用済みでも、ループ開始時に使用済みが空になっていれば再び使える（ループ2・1日目）",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 2,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "choice": {
+   "uses": [
+    {
+     "ability": "X_RUMOR",
+     "target": "B:HOS"
+    }
+   ]
+  },
+  "expect": {
+   "boards": {
+    "HOS": 1,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used_loop": [
+    "X_RUMOR"
+   ]
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 不穏な噂「【任意能力：脚本家能力フェイズ】任意のボード1つに[暗躍C]を1つ置く。（1ループ1回制限）」／公式FAQ 正誤（First Steps サマリー：不穏な噂は脚本家能力フェイズ）（1ループ1回制限）",
+  "status": "confirmed"
+ },
+ {
+  "id": "rumor-reset-at-loop-start",
+  "desc": "ループ開始時に、このループに使った★能力（不穏な噂を含む）の記録は空になる",
+  "phase": "loop_start",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": [
+    "X_RUMOR"
+   ]
+  },
+  "expect": {
+   "loop": 2,
+   "used_loop": []
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 不穏な噂「【任意能力：脚本家能力フェイズ】任意のボード1つに[暗躍C]を1つ置く。（1ループ1回制限）」／公式FAQ 正誤（First Steps サマリー：不穏な噂は脚本家能力フェイズ）（1ループ1回制限）／主人公の書 印刷p20 §3 ループの準備 3-2・3-3（wiki/concepts/loop.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "rumor-rule-absent",
+  "desc": "不穏な噂を使っていない脚本（友情サークル）では使えない（error）",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_CIRCLE",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "FRIEND",
+     "C02": "FRIEND",
+     "C07": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS",
+    "C07": "CIT"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "choice": {
+   "uses": [
+    {
+     "ability": "X_RUMOR",
+     "target": "B:SHR"
+    }
+   ]
+  },
+  "expect": {
+   "error": "不穏な噂は使われていない"
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 不穏な噂「【任意能力：脚本家能力フェイズ】任意のボード1つに[暗躍C]を1つ置く。（1ループ1回制限）」／公式FAQ 正誤（First Steps サマリー：不穏な噂は脚本家能力フェイズ）（ルールの追加能力。そのルールがある脚本でだけ）",
+  "status": "confirmed"
+ },
+ {
+  "id": "rumor-char-target",
+  "desc": "不穏な噂の対象はボードだけ。キャラクター(刑事)は不可（error）",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "choice": {
+   "uses": [
+    {
+     "ability": "X_RUMOR",
+     "target": "C05"
+    }
+   ]
+  },
+  "expect": {
+   "error": "ボード以外は不可"
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 不穏な噂「【任意能力：脚本家能力フェイズ】任意のボード1つに[暗躍C]を1つ置く。（1ループ1回制限）」／公式FAQ 正誤（First Steps サマリー：不穏な噂は脚本家能力フェイズ）（「任意のボード1つ」）",
+  "status": "confirmed"
+ },
+ {
+  "id": "rumor-with-kuromaku",
+  "desc": "同じフェイズにクロマク(巫女・神社)が神社ボードに暗躍1、不穏な噂でも神社に暗躍1 → 神社2（別の能力なので両方使える）",
+  "phase": "mm_ability",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_RUMOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "KEY",
+     "C08": "KILLER",
+     "C04": "KUROMAKU",
+     "C05": "MISLEADER"
+    },
+    "incidents": []
+   },
+   "init": {
+    "C02": "SCH",
+    "C03": "SCH",
+    "C04": "SHR",
+    "C05": "CIT",
+    "C08": "HOS"
+   },
+   "incident_log": [],
+   "revealed_roles": {},
+   "ability_used_loop": []
+  },
+  "choice": {
+   "uses": [
+    {
+     "char": "C04",
+     "ability": "KUROMAKU",
+     "target": "B:SHR"
+    },
+    {
+     "ability": "X_RUMOR",
+     "target": "B:SHR"
+    }
+   ]
+  },
+  "expect": {
+   "boards": {
+    "HOS": 0,
+    "SHR": 2,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used_loop": [
+    "X_RUMOR"
+   ]
+  },
+  "source": "早見表 追加ルール欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、summary.pdf 照合済み） 不穏な噂「【任意能力：脚本家能力フェイズ】任意のボード1つに[暗躍C]を1つ置く。（1ループ1回制限）」／公式FAQ 正誤（First Steps サマリー：不穏な噂は脚本家能力フェイズ）／早見表 役職欄（wiki/concepts/role-abilities.md、summary.pdf 照合済み） クロマク「同一エリアのキャラクター1人、またはこのキャラクターのいるボードに[暗躍C]を1つ置く」",
+  "status": "confirmed"
+ }
+]

@@ -1,0 +1,7526 @@
+[
+ {
+  "_format": "段4（友好能力・脚本家の友好能力使用・護衛・最後の戦い）。state は README の完全な状態で script を含む。追加フィールド: ability_used_today（このフェイズに使った能力 'C04#0' の列）、ability_used_loop（このループに使った★能力）、incident_log（[{loop,id,occurred}]）、unbound（医者[友好3]で禁止エリアを失ったキャラ）。action: ability {char, ability(カード上から0,1), arg: target|mode('place'|'remove')|incident(事件ID)|declare(ルールID)|null, refuse(脚本家の拒否の意思)} / mm_phase {uses:[{char, ability:'KUROMAKU'|'MISLEADER'|'DOCTOR', target, mode?}]} / move_after {placements}（行動解決。README の形） / kill {char, cause:'MURDER'|'SUICIDE'|'SK'} / final {guesses:[{char, role}]}（宣言順）。expect: chars は変化したキャラの最終値（載っていないキャラは不変、{} は変化なし）、boards は載っていれば全体、reveal は公開される情報（role:{char,role} / culprit:{incident,char} / rule_x:ID / rule_x_options:[ID…]＝脚本家がこの中から1つ選ぶ / {} は何も公開されない）、used_loop はこのループに使用済みの★能力の全体（並びは問わない）、refused は拒否されたか、unbound は使用後の全体、loop_end は kill のときの続行(null)/終了、final は {winner:'protagonists'|'mastermind', stopped_at: 外れた宣言の添字 or null}。error は状態を変えないこと（文字列は理由の要約で文言一致は求めない）。★=1ループ1回制限: 巫女[5]・刑事[4][5]・情報屋[5]。"
+ },
+ {
+  "id": "c01-remove-par-gw-exact",
+  "desc": "男子学生 友好2ちょうど→同じ学校の女子学生(不安2)から不安1を取り除く",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C01",
+   "ability": 0,
+   "arg": {
+    "target": "C02"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "refused": false
+  },
+  "source": "キャラクターカード character_01（wiki/characters/character-01.md 照合済み）「[友好2] 同一エリアの自身以外の学生1人から不安カウンターを1つ取り除く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c01-gw-short-error",
+  "desc": "男子学生 友好1（1足りない）→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C01",
+   "ability": 0,
+   "arg": {
+    "target": "C02"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "goodwill short"
+  },
+  "source": "キャラクターカード character_01（wiki/characters/character-01.md 照合済み）「[友好2] 同一エリアの自身以外の学生1人から不安カウンターを1つ取り除く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c01-par-zero-ok",
+  "desc": "不安0の女子学生を対象にできる→0のまま（負にならない）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C01",
+   "ability": 0,
+   "arg": {
+    "target": "C02"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "chars": {},
+   "refused": false
+  },
+  "source": "主人公の書 印刷p37 友好能力リスト 男子学生/女子学生「[主人公]男子学生/女子学生と同一エリアにいる他の学生1人を選びます。その学生に不安カウンターが置かれていなくても構いません」／FAQ Ch19「男子学生や医者の不安を取り除く効果を、不安0のキャラに対して使用することはできますか？…巫女の暗躍除去の効果を暗躍0の神社ボードに…」→「いずれも可能です」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c01-self-error",
+  "desc": "男子学生が自身を対象→error（自身以外）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C01",
+   "ability": 0,
+   "arg": {
+    "target": "C01"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "self not allowed"
+  },
+  "source": "キャラクターカード character_01（wiki/characters/character-01.md 照合済み）「[友好2] 同一エリアの自身以外の学生1人から不安カウンターを1つ取り除く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c01-non-student-error",
+  "desc": "学校にいる刑事(大人)を対象→error（学生のみ）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C01",
+   "ability": 0,
+   "arg": {
+    "target": "C05"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "not a student"
+  },
+  "source": "キャラクターカード character_01（wiki/characters/character-01.md 照合済み）「[友好2] 同一エリアの自身以外の学生1人から不安カウンターを1つ取り除く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c01-shrine-maiden-is-student",
+  "desc": "巫女は属性「学生」→学校にいれば対象にできる",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C01",
+   "ability": 0,
+   "arg": {
+    "target": "C04"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "chars": {
+    "C04": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "refused": false
+  },
+  "source": "キャラクターカード character_01（wiki/characters/character-01.md 照合済み）「[友好2] 同一エリアの自身以外の学生1人から不安カウンターを1つ取り除く」／キャラクターカード character_04（wiki/characters/character-04.md 照合済み）「属性 学生 / 少女」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c01-other-area-error",
+  "desc": "都市の女子学生を対象→error（同一エリア）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C01",
+   "ability": 0,
+   "arg": {
+    "target": "C02"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "not same area"
+  },
+  "source": "キャラクターカード character_01（wiki/characters/character-01.md 照合済み）「[友好2] 同一エリアの自身以外の学生1人から不安カウンターを1つ取り除く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c01-corpse-target-error",
+  "desc": "女子学生の死体を対象→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": false,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C01",
+   "ability": 0,
+   "arg": {
+    "target": "C02"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "corpse"
+  },
+  "source": "FAQ Ru05「死体に対してカードをセットすることは出来ず、キャラクターを対象とした能力の対象として選ぶことは出来ません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c01-dead-user-error",
+  "desc": "男子学生自身が死体→能力を使えない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C01",
+   "ability": 0,
+   "arg": {
+    "target": "C02"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "user dead"
+  },
+  "source": "FAQ Ru06「死体は能力を使用できません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c01-same-phase-twice-error",
+  "desc": "同じフェイズに男子学生の[2]を2回目→error（能力は1回ずつ）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   },
+   "ability_used_today": [
+    "C01#0"
+   ]
+  },
+  "action": {
+   "type": "ability",
+   "char": "C01",
+   "ability": 0,
+   "arg": {
+    "target": "C03"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "already used this phase"
+  },
+  "source": "主人公の書 印刷p23 4-6「複数の能力が使える場合、自由な順番でそれらを1回ずつ使えます。1人のキャラクターが持つ複数の能力を使うことも可能です」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c01-no-loop-limit",
+  "desc": "男子学生[2]は1ループ1回制限が無い→使用後も used_loop に載らない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   },
+   "ability_used_loop": []
+  },
+  "action": {
+   "type": "ability",
+   "char": "C01",
+   "ability": 0,
+   "arg": {
+    "target": "C02"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "used_loop": [],
+   "refused": false
+  },
+  "source": "キャラクターカード character_01（wiki/characters/character-01.md 照合済み）「[友好2] 同一エリアの自身以外の学生1人から不安カウンターを1つ取り除く」（回数制限の表記なし）",
+  "status": "confirmed"
+ },
+ {
+  "id": "c02-remove-par",
+  "desc": "女子学生 友好2→お嬢様(学生)の不安1を取り除く",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C02",
+   "ability": 0,
+   "arg": {
+    "target": "C03"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "refused": false
+  },
+  "source": "キャラクターカード character_02（wiki/characters/character-02.md 照合済み）「[友好2] 同一エリアの自身以外の学生1人から不安カウンターを1つ取り除く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c02-gw-short-error",
+  "desc": "女子学生 友好1→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C02",
+   "ability": 0,
+   "arg": {
+    "target": "C03"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "goodwill short"
+  },
+  "source": "キャラクターカード character_02（wiki/characters/character-02.md 照合済み）「[友好2] 同一エリアの自身以外の学生1人から不安カウンターを1つ取り除く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c02-patient-not-student-error",
+  "desc": "入院患者(少年・学生でない)を対象→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C02",
+   "ability": 0,
+   "arg": {
+    "target": "C09"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "not a student"
+  },
+  "source": "キャラクターカード character_02（wiki/characters/character-02.md 照合済み）「[友好2] 同一エリアの自身以外の学生1人から不安カウンターを1つ取り除く」／キャラクターカード character_09（wiki/characters/character-09.md 照合済み）「属性 少年」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c02-self-error",
+  "desc": "女子学生が自身を対象→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C02",
+   "ability": 0,
+   "arg": {
+    "target": "C02"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "self not allowed"
+  },
+  "source": "キャラクターカード character_02（wiki/characters/character-02.md 照合済み）「[友好2] 同一エリアの自身以外の学生1人から不安カウンターを1つ取り除く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c03-school-ok",
+  "desc": "お嬢様 学校・友好3ちょうど→男子学生に友好1",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C03",
+   "ability": 0,
+   "arg": {
+    "target": "C01"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "refused": false
+  },
+  "source": "キャラクターカード character_03（wiki/characters/character-03.md 照合済み）「[友好3] 学校か都市にいないと使えない。同一エリアのキャラクター1人に友好カウンターを1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c03-city-ok",
+  "desc": "お嬢様 都市→刑事に友好1（2→3）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C03",
+   "ability": 0,
+   "arg": {
+    "target": "C05"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "refused": false
+  },
+  "source": "キャラクターカード character_03（wiki/characters/character-03.md 照合済み）「[友好3] 学校か都市にいないと使えない。同一エリアのキャラクター1人に友好カウンターを1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c03-shrine-error",
+  "desc": "お嬢様が神社→使えない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C03",
+   "ability": 0,
+   "arg": {
+    "target": "C04"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "wrong location"
+  },
+  "source": "キャラクターカード character_03（wiki/characters/character-03.md 照合済み）「[友好3] 学校か都市にいないと使えない。同一エリアのキャラクター1人に友好カウンターを1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c03-hospital-error",
+  "desc": "お嬢様が病院→使えない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C03",
+   "ability": 0,
+   "arg": {
+    "target": "C08"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "wrong location"
+  },
+  "source": "キャラクターカード character_03（wiki/characters/character-03.md 照合済み）「[友好3] 学校か都市にいないと使えない。同一エリアのキャラクター1人に友好カウンターを1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c03-gw-short-error",
+  "desc": "お嬢様 友好2→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C03",
+   "ability": 0,
+   "arg": {
+    "target": "C01"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "goodwill short"
+  },
+  "source": "キャラクターカード character_03（wiki/characters/character-03.md 照合済み）「[友好3] 学校か都市にいないと使えない。同一エリアのキャラクター1人に友好カウンターを1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c03-self-ok",
+  "desc": "お嬢様が自身に友好1（自身を含む）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C03",
+   "ability": 0,
+   "arg": {
+    "target": "C03"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "refused": false
+  },
+  "source": "キャラクターカード character_03（wiki/characters/character-03.md 照合済み）「[友好3] 学校か都市にいないと使えない。同一エリアのキャラクター1人に友好カウンターを1つ置く」／FAQ Ch01「(同じエリアにいるキャラクターは)その能力を使うキャラクターを含みます。含まない場合は男子学生のように「自身以外の」と記述されます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c03-other-area-error",
+  "desc": "都市の男子学生を対象→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C03",
+   "ability": 0,
+   "arg": {
+    "target": "C01"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "not same area"
+  },
+  "source": "キャラクターカード character_03（wiki/characters/character-03.md 照合済み）「[友好3] 学校か都市にいないと使えない。同一エリアのキャラクター1人に友好カウンターを1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c03-corpse-error",
+  "desc": "男子学生の死体を対象→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C03",
+   "ability": 0,
+   "arg": {
+    "target": "C01"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "corpse"
+  },
+  "source": "FAQ Ru05「死体に対してカードをセットすることは出来ず、キャラクターを対象とした能力の対象として選ぶことは出来ません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c04-remove-shrine-int",
+  "desc": "巫女 神社・友好3→神社の暗躍2→1",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 2,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C04",
+   "ability": 0,
+   "arg": null,
+   "refuse": false
+  },
+  "expect": {
+   "boards": {
+    "HOS": 0,
+    "SHR": 1,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "refused": false
+  },
+  "source": "キャラクターカード character_04（wiki/characters/character-04.md 照合済み）「[友好3] 神社にいないと使えない。神社から暗躍カウンターを1つ取り除く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c04-shrine-zero-ok",
+  "desc": "神社の暗躍0でも使える→0のまま",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C04",
+   "ability": 0,
+   "arg": null,
+   "refuse": false
+  },
+  "expect": {
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "refused": false
+  },
+  "source": "主人公の書 印刷p38 巫女「神社に暗躍カウンターが置かれていなくても使用できます」／FAQ Ch19「男子学生や医者の不安を取り除く効果を、不安0のキャラに対して使用することはできますか？…巫女の暗躍除去の効果を暗躍0の神社ボードに…」→「いずれも可能です」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c04-gw-short-error",
+  "desc": "巫女 友好2→[3]は使えない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 2,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C04",
+   "ability": 0,
+   "arg": null,
+   "refuse": false
+  },
+  "expect": {
+   "error": "goodwill short"
+  },
+  "source": "キャラクターカード character_04（wiki/characters/character-04.md 照合済み）「[友好3] 神社にいないと使えない。神社から暗躍カウンターを1つ取り除く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c04-not-in-shrine-error",
+  "desc": "巫女が学校→[3]は使えない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C04": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 2,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C04",
+   "ability": 0,
+   "arg": null,
+   "refuse": false
+  },
+  "expect": {
+   "error": "wrong location"
+  },
+  "source": "キャラクターカード character_04（wiki/characters/character-04.md 照合済み）「[友好3] 神社にいないと使えない。神社から暗躍カウンターを1つ取り除く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c04-know-role",
+  "desc": "巫女 友好5→同じ神社の医者の役職(カルティスト)を知る。★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "CULTIST"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C04",
+   "ability": 1,
+   "arg": {
+    "target": "C08"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "reveal": {
+    "role": {
+     "char": "C08",
+     "role": "CULTIST"
+    }
+   },
+   "used_loop": [
+    "C04#1"
+   ],
+   "refused": false
+  },
+  "source": "キャラクターカード character_04（wiki/characters/character-04.md 照合済み）「[友好5]（1ループ1回制限）同一エリアのキャラクター1人の役職を知る」／主人公の書 印刷p38 巫女「[脚本家]選ばれたキャラクターの役職を伝えます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c04-know-role-person",
+  "desc": "脚本に役職の無いキャラ→パーソンと伝える",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C04",
+   "ability": 1,
+   "arg": {
+    "target": "C01"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "reveal": {
+    "role": {
+     "char": "C01",
+     "role": "PERSON"
+    }
+   },
+   "used_loop": [
+    "C04#1"
+   ],
+   "refused": false
+  },
+  "source": "キャラクターカード character_04（wiki/characters/character-04.md 照合済み）「[友好5]（1ループ1回制限）同一エリアのキャラクター1人の役職を知る」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c04-know-role-gw4-error",
+  "desc": "巫女 友好4→[5]は使えない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C04",
+   "ability": 1,
+   "arg": {
+    "target": "C08"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "goodwill short"
+  },
+  "source": "キャラクターカード character_04（wiki/characters/character-04.md 照合済み）「[友好5]（1ループ1回制限）同一エリアのキャラクター1人の役職を知る」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c04-know-own-role",
+  "desc": "巫女が自身の役職を知る（自身を含む）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C04": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C04",
+   "ability": 1,
+   "arg": {
+    "target": "C04"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "reveal": {
+    "role": {
+     "char": "C04",
+     "role": "KEY"
+    }
+   },
+   "used_loop": [
+    "C04#1"
+   ],
+   "refused": false
+  },
+  "source": "FAQ Ch12「巫女は友好効果で巫女の役職を知ることができますか？」→「はい、可能です」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c04-know-role-other-area-error",
+  "desc": "別エリアの医者→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C04",
+   "ability": 1,
+   "arg": {
+    "target": "C08"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "not same area"
+  },
+  "source": "キャラクターカード character_04（wiki/characters/character-04.md 照合済み）「[友好5]（1ループ1回制限）同一エリアのキャラクター1人の役職を知る」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c04-know-role-corpse-error",
+  "desc": "医者の死体の役職を見る→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "SHR",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "KILLER"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C04",
+   "ability": 1,
+   "arg": {
+    "target": "C08"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "corpse"
+  },
+  "source": "FAQ Ru03「死亡したキャラクターはキャラクターとして扱わないため、能力の対象とはなりません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c04-know-role-once-per-loop-error",
+  "desc": "このループで既に[5]を使用→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   },
+   "ability_used_loop": [
+    "C04#1"
+   ]
+  },
+  "action": {
+   "type": "ability",
+   "char": "C04",
+   "ability": 1,
+   "arg": {
+    "target": "C08"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "once per loop"
+  },
+  "source": "キャラクターカード character_04（wiki/characters/character-04.md 照合済み）「[友好5]（1ループ1回制限）同一エリアのキャラクター1人の役職を知る」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c04-both-abilities-same-phase",
+  "desc": "同じフェイズに[3]を使った後、[5]も使える（別の能力）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 2,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   },
+   "ability_used_today": [
+    "C04#0"
+   ]
+  },
+  "action": {
+   "type": "ability",
+   "char": "C04",
+   "ability": 1,
+   "arg": {
+    "target": "C08"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "reveal": {
+    "role": {
+     "char": "C08",
+     "role": "PERSON"
+    }
+   },
+   "used_loop": [
+    "C04#1"
+   ],
+   "refused": false
+  },
+  "source": "主人公の書 印刷p23 4-6「複数の能力が使える場合、自由な順番でそれらを1回ずつ使えます。1人のキャラクターが持つ複数の能力を使うことも可能です」／FAQ Ch06「あるキャラクターの持つ２つの能力を両方使用することは可能です」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c04-know-role-virus-sk",
+  "desc": "妄想拡大ウイルス。不安3のパーソン(女子学生)の役職→シリアルキラー",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SHR",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_VIRUS",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C02": "PERSON"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C04",
+   "ability": 1,
+   "arg": {
+    "target": "C02"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "reveal": {
+    "role": {
+     "char": "C02",
+     "role": "SK"
+    }
+   },
+   "used_loop": [
+    "C04#1"
+   ],
+   "refused": false
+  },
+  "source": "早見表 妄想拡大ウイルス「【強制：常時】パーソンは[不安C]が3つ以上置かれている限り、役職がシリアルキラーに変更される」／FAQ XY01「不安カウンターが２つ以下となったキャラクターはシリアルキラーではなくなります」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c05-culprit-occurred",
+  "desc": "刑事 友好4→このループ1日目に発生した殺人事件の犯人(情報屋)を知る",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 4,
+      "id": "SUICIDE",
+      "culprit": "C03"
+     }
+    ]
+   },
+   "incident_log": [
+    {
+     "loop": 1,
+     "id": "MURDER",
+     "occurred": true
+    }
+   ]
+  },
+  "action": {
+   "type": "ability",
+   "char": "C05",
+   "ability": 0,
+   "arg": {
+    "incident": "MURDER"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "reveal": {
+    "culprit": {
+     "incident": "MURDER",
+     "char": "C07"
+    }
+   },
+   "used_loop": [
+    "C05#0"
+   ],
+   "refused": false
+  },
+  "source": "キャラクターカード character_05（wiki/characters/character-05.md 照合済み）「[友好4]（1ループ1回制限）このループで発生した事件1つの犯人を知る」／主人公の書 印刷p38 刑事「公開シートに書かれた事件のうち、このループで発生したもの1つを選びます。未来に予定されている事件や、発生しなかった事件を選ぶことはできません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c05-culprit-no-victim",
+  "desc": "犯人と同じエリアに誰もおらず誰も死ななかった殺人事件も「発生した」→犯人を知れる",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "HOS",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 4,
+      "id": "SUICIDE",
+      "culprit": "C03"
+     }
+    ]
+   },
+   "incident_log": [
+    {
+     "loop": 1,
+     "id": "MURDER",
+     "occurred": true
+    }
+   ]
+  },
+  "action": {
+   "type": "ability",
+   "char": "C05",
+   "ability": 0,
+   "arg": {
+    "incident": "MURDER"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "reveal": {
+    "culprit": {
+     "incident": "MURDER",
+     "char": "C07"
+    }
+   },
+   "used_loop": [
+    "C05#0"
+   ],
+   "refused": false
+  },
+  "source": "FAQ Af01「「事件は発生したが、誰も死亡しなかった」と宣言します…※製品版の頒布に伴い、ルーリングを変更いたしました。「刑事」の友好能力の対象指定が理由となります」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c05-not-occurred-error",
+  "desc": "このループの殺人事件は発生しなかった→選べない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 4,
+      "id": "SUICIDE",
+      "culprit": "C03"
+     }
+    ]
+   },
+   "incident_log": [
+    {
+     "loop": 1,
+     "id": "MURDER",
+     "occurred": false
+    }
+   ]
+  },
+  "action": {
+   "type": "ability",
+   "char": "C05",
+   "ability": 0,
+   "arg": {
+    "incident": "MURDER"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "incident not occurred"
+  },
+  "source": "主人公の書 印刷p38 刑事「公開シートに書かれた事件のうち、このループで発生したもの1つを選びます。未来に予定されている事件や、発生しなかった事件を選ぶことはできません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c05-previous-loop-error",
+  "desc": "前ループで発生したが今ループではまだ→選べない",
+  "state": {
+   "loop": 2,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 4,
+      "id": "SUICIDE",
+      "culprit": "C03"
+     }
+    ]
+   },
+   "incident_log": [
+    {
+     "loop": 1,
+     "id": "MURDER",
+     "occurred": true
+    }
+   ]
+  },
+  "action": {
+   "type": "ability",
+   "char": "C05",
+   "ability": 0,
+   "arg": {
+    "incident": "MURDER"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "incident not occurred this loop"
+  },
+  "source": "FAQ Ru04「以前のループで発生したが、現在のループではまだ発生していない事件は見ることができないでよろしいでしょうか？」→「はい、その通りです」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c05-future-incident-error",
+  "desc": "4日目予定の自殺（未来）を選ぶ→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 4,
+      "id": "SUICIDE",
+      "culprit": "C03"
+     }
+    ]
+   },
+   "incident_log": [
+    {
+     "loop": 1,
+     "id": "MURDER",
+     "occurred": true
+    }
+   ]
+  },
+  "action": {
+   "type": "ability",
+   "char": "C05",
+   "ability": 0,
+   "arg": {
+    "incident": "SUICIDE"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "future incident"
+  },
+  "source": "主人公の書 印刷p38 刑事「公開シートに書かれた事件のうち、このループで発生したもの1つを選びます。未来に予定されている事件や、発生しなかった事件を選ぶことはできません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c05-culprit-gw3-error",
+  "desc": "刑事 友好3→[4]は使えない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 4,
+      "id": "SUICIDE",
+      "culprit": "C03"
+     }
+    ]
+   },
+   "incident_log": [
+    {
+     "loop": 1,
+     "id": "MURDER",
+     "occurred": true
+    }
+   ]
+  },
+  "action": {
+   "type": "ability",
+   "char": "C05",
+   "ability": 0,
+   "arg": {
+    "incident": "MURDER"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "goodwill short"
+  },
+  "source": "キャラクターカード character_05（wiki/characters/character-05.md 照合済み）「[友好4]（1ループ1回制限）このループで発生した事件1つの犯人を知る」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c05-culprit-once-per-loop-error",
+  "desc": "このループで[4]使用済み→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 4,
+      "id": "SUICIDE",
+      "culprit": "C03"
+     }
+    ]
+   },
+   "incident_log": [
+    {
+     "loop": 1,
+     "id": "MURDER",
+     "occurred": true
+    }
+   ],
+   "ability_used_loop": [
+    "C05#0"
+   ]
+  },
+  "action": {
+   "type": "ability",
+   "char": "C05",
+   "ability": 0,
+   "arg": {
+    "incident": "MURDER"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "once per loop"
+  },
+  "source": "キャラクターカード character_05（wiki/characters/character-05.md 照合済み）「[友好4]（1ループ1回制限）このループで発生した事件1つの犯人を知る」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c05-guard",
+  "desc": "刑事 友好5ちょうど→同じ都市の情報屋に護衛1。★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C05",
+   "ability": 1,
+   "arg": {
+    "target": "C07"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 1
+    }
+   },
+   "used_loop": [
+    "C05#1"
+   ],
+   "refused": false
+  },
+  "source": "キャラクターカード character_05（wiki/characters/character-05.md 照合済み）「[友好5]（1ループ1回制限）同一エリアのキャラクター1人に護衛カウンターを1つ置く。護衛カウンターが置かれたキャラクターが死亡する場合、代わりに護衛カウンターを1つ取り除く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c05-guard-gw4-error",
+  "desc": "刑事 友好4→[5]は使えない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C05",
+   "ability": 1,
+   "arg": {
+    "target": "C07"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "goodwill short"
+  },
+  "source": "キャラクターカード character_05（wiki/characters/character-05.md 照合済み）「[友好5]（1ループ1回制限）同一エリアのキャラクター1人に護衛カウンターを1つ置く。護衛カウンターが置かれたキャラクターが死亡する場合、代わりに護衛カウンターを1つ取り除く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c05-guard-self",
+  "desc": "刑事が自身に護衛（同一エリアは自身を含む）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C05",
+   "ability": 1,
+   "arg": {
+    "target": "C05"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 1
+    }
+   },
+   "used_loop": [
+    "C05#1"
+   ],
+   "refused": false
+  },
+  "source": "キャラクターカード character_05（wiki/characters/character-05.md 照合済み）「[友好5]（1ループ1回制限）同一エリアのキャラクター1人に護衛カウンターを1つ置く。護衛カウンターが置かれたキャラクターが死亡する場合、代わりに護衛カウンターを1つ取り除く」／FAQ Ch01「(同じエリアにいるキャラクターは)その能力を使うキャラクターを含みます。含まない場合は男子学生のように「自身以外の」と記述されます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c05-guard-other-area-error",
+  "desc": "病院の情報屋→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C05",
+   "ability": 1,
+   "arg": {
+    "target": "C07"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "not same area"
+  },
+  "source": "キャラクターカード character_05（wiki/characters/character-05.md 照合済み）「[友好5]（1ループ1回制限）同一エリアのキャラクター1人に護衛カウンターを1つ置く。護衛カウンターが置かれたキャラクターが死亡する場合、代わりに護衛カウンターを1つ取り除く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c05-guard-corpse-error",
+  "desc": "情報屋の死体に護衛→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C05",
+   "ability": 1,
+   "arg": {
+    "target": "C07"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "corpse"
+  },
+  "source": "FAQ Ru05「死体に対してカードをセットすることは出来ず、キャラクターを対象とした能力の対象として選ぶことは出来ません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c05-both-same-phase",
+  "desc": "同じフェイズで[4]を使った後に[5]→使える。used_loop は両方",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     },
+     {
+      "day": 4,
+      "id": "SUICIDE",
+      "culprit": "C03"
+     }
+    ]
+   },
+   "incident_log": [
+    {
+     "loop": 1,
+     "id": "MURDER",
+     "occurred": true
+    }
+   ],
+   "ability_used_today": [
+    "C05#0"
+   ],
+   "ability_used_loop": [
+    "C05#0"
+   ]
+  },
+  "action": {
+   "type": "ability",
+   "char": "C05",
+   "ability": 1,
+   "arg": {
+    "target": "C07"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 1
+    }
+   },
+   "used_loop": [
+    "C05#0",
+    "C05#1"
+   ],
+   "refused": false
+  },
+  "source": "主人公の書 印刷p23 4-6「複数の能力が使える場合、自由な順番でそれらを1回ずつ使えます。1人のキャラクターが持つ複数の能力を使うことも可能です」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c06-know-own-role",
+  "desc": "サラリーマン 友好3→自身の役職を知る。拒否しない(友好無視は任意)",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C06": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C06",
+   "ability": 0,
+   "arg": null,
+   "refuse": false
+  },
+  "expect": {
+   "reveal": {
+    "role": {
+     "char": "C06",
+     "role": "KUROMAKU"
+    }
+   },
+   "used_loop": [],
+   "refused": false
+  },
+  "source": "キャラクターカード character_06（wiki/characters/character-06.md 照合済み）「[友好3] このキャラクターの役職を知る」／FAQ Ch03「「友好無視」を持つキャラクターが能力の使用を求められたとき、それを拒否しないことはできますか？」→「はい、可能です」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c06-gw-short-error",
+  "desc": "サラリーマン 友好2→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C06",
+   "ability": 0,
+   "arg": null,
+   "refuse": false
+  },
+  "expect": {
+   "error": "goodwill short"
+  },
+  "source": "キャラクターカード character_06（wiki/characters/character-06.md 照合済み）「[友好3] このキャラクターの役職を知る」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c06-virus-sk",
+  "desc": "ウイルス。不安3のパーソンのサラリーマン→シリアルキラーと伝える",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_VIRUS",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C06",
+   "ability": 0,
+   "arg": null,
+   "refuse": false
+  },
+  "expect": {
+   "reveal": {
+    "role": {
+     "char": "C06",
+     "role": "SK"
+    }
+   },
+   "used_loop": [],
+   "refused": false
+  },
+  "source": "早見表 妄想拡大ウイルス「パーソンは[不安C]が3つ以上置かれている限り、役職がシリアルキラーに変更される」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c06-virus-par2-person",
+  "desc": "ウイルス。不安2（3未満）→パーソン",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_VIRUS",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C06",
+   "ability": 0,
+   "arg": null,
+   "refuse": false
+  },
+  "expect": {
+   "reveal": {
+    "role": {
+     "char": "C06",
+     "role": "PERSON"
+    }
+   },
+   "used_loop": [],
+   "refused": false
+  },
+  "source": "FAQ XY01「不安カウンターが２つ以下となったキャラクターはシリアルキラーではなくなります」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c06-virus-sk-cannot-refuse",
+  "desc": "ウイルスでSKになったパーソンは友好無視を持たない→拒否は error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_VIRUS",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C06",
+   "ability": 0,
+   "arg": null,
+   "refuse": true
+  },
+  "expect": {
+   "error": "no goodwill refusal"
+  },
+  "source": "主人公の書 印刷p23 4-6「拒否できるのは、友好無視を持つキャラクターの友好能力のみです。拒否が行われたとしても「1ループ1回制限」の能力は使用済になります」／早見表 シリアルキラーの条文能力欄は空",
+  "status": "confirmed"
+ },
+ {
+  "id": "c07-declare-used",
+  "desc": "潜む殺人鬼を宣言→もう一方の因果の糸を公開。★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C07",
+   "ability": 0,
+   "arg": {
+    "declare": "X_KILLER"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "reveal": {
+    "rule_x": "X_THREAD"
+   },
+   "used_loop": [
+    "C07#0"
+   ],
+   "refused": false
+  },
+  "source": "キャラクターカード character_07（wiki/characters/character-07.md 照合済み）「[友好5]（1ループ1回制限）ルールXの名前1つを宣言する。脚本家は脚本に使われているルールXのうち、宣言された名前でないもの1つを公開する」／主人公の書 印刷p39 情報屋「その名前はゲームで用いられている惨劇セットに含まれたルールXのものでなくてはなりません…主人公が宣言した名前が、脚本に用いられたルールXのどちらでもない場合、どちらを伝えても構いません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c07-declare-unused-mm-chooses",
+  "desc": "使われていない友情サークルを宣言→使われている2つのどちらかを脚本家が選んで公開",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C07",
+   "ability": 0,
+   "arg": {
+    "declare": "X_CIRCLE"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "reveal": {
+    "rule_x_options": [
+     "X_KILLER",
+     "X_THREAD"
+    ]
+   },
+   "used_loop": [
+    "C07#0"
+   ],
+   "refused": false
+  },
+  "source": "主人公の書 印刷p39 情報屋「その名前はゲームで用いられている惨劇セットに含まれたルールXのものでなくてはなりません…主人公が宣言した名前が、脚本に用いられたルールXのどちらでもない場合、どちらを伝えても構いません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c07-declare-rule-y-error",
+  "desc": "ルールY(殺人計画)の名前を宣言→error（ルールXでない）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C07",
+   "ability": 0,
+   "arg": {
+    "declare": "Y_MURDER"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "not a rule X"
+  },
+  "source": "主人公の書 印刷p39 情報屋「その名前はゲームで用いられている惨劇セットに含まれたルールXのものでなくてはなりません…主人公が宣言した名前が、脚本に用いられたルールXのどちらでもない場合、どちらを伝えても構いません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c07-gw4-error",
+  "desc": "情報屋 友好4→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 4,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C07",
+   "ability": 0,
+   "arg": {
+    "declare": "X_KILLER"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "goodwill short"
+  },
+  "source": "キャラクターカード character_07（wiki/characters/character-07.md 照合済み）「[友好5]（1ループ1回制限）ルールXの名前1つを宣言する。脚本家は脚本に使われているルールXのうち、宣言された名前でないもの1つを公開する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c07-once-per-loop-error",
+  "desc": "このループで使用済み→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   },
+   "ability_used_loop": [
+    "C07#0"
+   ]
+  },
+  "action": {
+   "type": "ability",
+   "char": "C07",
+   "ability": 0,
+   "arg": {
+    "declare": "X_KILLER"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "once per loop"
+  },
+  "source": "キャラクターカード character_07（wiki/characters/character-07.md 照合済み）「[友好5]（1ループ1回制限）ルールXの名前1つを宣言する。脚本家は脚本に使われているルールXのうち、宣言された名前でないもの1つを公開する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c07-refused-still-used",
+  "desc": "キラーの情報屋が拒否→何も公開されず、★は使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C07": "KILLER"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C07",
+   "ability": 0,
+   "arg": {
+    "declare": "X_KILLER"
+   },
+   "refuse": true
+  },
+  "expect": {
+   "reveal": {},
+   "used_loop": [
+    "C07#0"
+   ],
+   "refused": true
+  },
+  "source": "主人公の書 印刷p23 4-6「拒否できるのは、友好無視を持つキャラクターの友好能力のみです。拒否が行われたとしても「1ループ1回制限」の能力は使用済になります」／FAQ Ch10「ループに1回までの友好能力は、友好効果の無視が起こった場合に、友好能力を使ったことになるのですか？」→「能力は使ったものとして扱います」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c07-single-rule-x-declared",
+  "desc": "ルールXが1つだけの脚本でそのXを宣言→公開できるものが無い",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C07",
+   "ability": 0,
+   "arg": {
+    "declare": "X_KILLER"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "reveal": {},
+   "used_loop": [
+    "C07#0"
+   ],
+   "refused": false
+  },
+  "source": "主人公の書 印刷p39 情報屋「その名前はゲームで用いられている惨劇セットに含まれたルールXのものでなくてはなりません…主人公が宣言した名前が、脚本に用いられたルールXのどちらでもない場合、どちらを伝えても構いません」（ルールXが1つの場合の記述は無い。Basic Tragedy X の脚本ではルールXは通常2つ） ／ ユーザー裁定 2026-09-23（wiki/notes/rulings.md）。Basic Tragedy X の脚本はルールXを必ず2つ使うので起こりえない",
+  "status": "not_applicable"
+ },
+ {
+  "id": "c08-remove",
+  "desc": "医者 友好2→入院患者の不安1を取り除く",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C08",
+   "ability": 0,
+   "arg": {
+    "target": "C09",
+    "mode": "remove"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "refused": false
+  },
+  "source": "キャラクターカード character_08（wiki/characters/character-08.md 照合済み）「[友好2] 同一エリアの自身以外のキャラクターから不安カウンターを1つ取り除く。または不安カウンターを1つ置く。このキャラクターが友好無視を持ち、さらに友好カウンターが2つ以上置かれている場合、脚本家はこの能力を脚本家能力フェイズに使用できる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c08-place",
+  "desc": "医者 友好2→入院患者に不安1を置く",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C08",
+   "ability": 0,
+   "arg": {
+    "target": "C09",
+    "mode": "place"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "refused": false
+  },
+  "source": "キャラクターカード character_08（wiki/characters/character-08.md 照合済み）「[友好2] 同一エリアの自身以外のキャラクターから不安カウンターを1つ取り除く。または不安カウンターを1つ置く。このキャラクターが友好無視を持ち、さらに友好カウンターが2つ以上置かれている場合、脚本家はこの能力を脚本家能力フェイズに使用できる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c08-remove-zero",
+  "desc": "不安0の入院患者から取り除く→0のまま",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C08",
+   "ability": 0,
+   "arg": {
+    "target": "C09",
+    "mode": "remove"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "chars": {},
+   "refused": false
+  },
+  "source": "FAQ Ch19「男子学生や医者の不安を取り除く効果を、不安0のキャラに対して使用することはできますか？…巫女の暗躍除去の効果を暗躍0の神社ボードに…」→「いずれも可能です」／主人公の書 印刷p40 医者「不安カウンターが置かれていないキャラクターを選び、取り除くことを宣言しても構いません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c08-gw-short-error",
+  "desc": "医者 友好1→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C08",
+   "ability": 0,
+   "arg": {
+    "target": "C09",
+    "mode": "remove"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "goodwill short"
+  },
+  "source": "キャラクターカード character_08（wiki/characters/character-08.md 照合済み）「[友好2] 同一エリアの自身以外のキャラクターから不安カウンターを1つ取り除く。または不安カウンターを1つ置く。このキャラクターが友好無視を持ち、さらに友好カウンターが2つ以上置かれている場合、脚本家はこの能力を脚本家能力フェイズに使用できる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c08-self-error",
+  "desc": "医者が自身を対象→error（自身以外）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 1,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C08",
+   "ability": 0,
+   "arg": {
+    "target": "C08",
+    "mode": "remove"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "self not allowed"
+  },
+  "source": "キャラクターカード character_08（wiki/characters/character-08.md 照合済み）「[友好2] 同一エリアの自身以外のキャラクターから不安カウンターを1つ取り除く。または不安カウンターを1つ置く。このキャラクターが友好無視を持ち、さらに友好カウンターが2つ以上置かれている場合、脚本家はこの能力を脚本家能力フェイズに使用できる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c08-other-area-error",
+  "desc": "都市の刑事→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C08",
+   "ability": 0,
+   "arg": {
+    "target": "C05",
+    "mode": "remove"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "not same area"
+  },
+  "source": "キャラクターカード character_08（wiki/characters/character-08.md 照合済み）「[友好2] 同一エリアの自身以外のキャラクターから不安カウンターを1つ取り除く。または不安カウンターを1つ置く。このキャラクターが友好無視を持ち、さらに友好カウンターが2つ以上置かれている場合、脚本家はこの能力を脚本家能力フェイズに使用できる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c08-unbind-patient",
+  "desc": "医者 友好3→このループ中、入院患者は禁止エリアを失う",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C08",
+   "ability": 1,
+   "arg": null,
+   "refuse": false
+  },
+  "expect": {
+   "unbound": [
+    "C09"
+   ],
+   "used_loop": [],
+   "refused": false
+  },
+  "source": "キャラクターカード character_08（wiki/characters/character-08.md 照合済み）「[友好3] このループ中、入院患者は禁止エリアを失い、病院以外に移動できるようになる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c08-unbind-gw2-error",
+  "desc": "医者 友好2→[3]は使えない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C08",
+   "ability": 1,
+   "arg": null,
+   "refuse": false
+  },
+  "expect": {
+   "error": "goodwill short"
+  },
+  "source": "キャラクターカード character_08（wiki/characters/character-08.md 照合済み）「[友好3] このループ中、入院患者は禁止エリアを失い、病院以外に移動できるようになる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c08-unbound-patient-moves",
+  "desc": "医者[3]使用後、入院患者に移動←→→神社へ移動できる",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   },
+   "unbound": [
+    "C09"
+   ]
+  },
+  "action": {
+   "type": "move_after",
+   "placements": [
+    {
+     "by": "M",
+     "target": "C09",
+     "card": "MV_H"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   }
+  },
+  "source": "キャラクターカード character_08（wiki/characters/character-08.md 照合済み）「[友好3] このループ中、入院患者は禁止エリアを失い、病院以外に移動できるようになる」／FAQ 2013/05/03 根幹ルール非優先の原則「医者の友好能力により入院患者が病院以外に移動できるようになったとする…入院患者は禁止エリアへと移動できる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c08-bound-patient-stays",
+  "desc": "医者[3]を使っていない→入院患者は病院に留まる",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "move_after",
+   "placements": [
+    {
+     "by": "M",
+     "target": "C09",
+     "card": "MV_H"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {}
+  },
+  "source": "キャラクターカード character_09（wiki/characters/character-09.md 照合済み）「禁止エリア 神社/都市/学校」",
+  "status": "confirmed"
+ },
+ {
+  "id": "c08-gw-in-resolution-not-enough",
+  "desc": "医者(友好1)に友好+2で3になっても、同じ行動解決の入院患者の移動は禁止エリアで止まる",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "move_after",
+   "placements": [
+    {
+     "by": "M",
+     "target": "C09",
+     "card": "MV_H"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:CIT",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "C08",
+     "card": "GW2"
+    },
+    {
+     "by": "B",
+     "target": "B:SHR",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:CIT",
+     "card": "GW1"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   }
+  },
+  "source": "FAQ Ch14「医者に友好カウンターが1つ置かれている状態で、医者に友好＋2、入院患者に縦（or横）移動が置かれた場合、入院患者は移動可能ですか？」→「いいえ、移動できません。医者の能力を主人公能力使用フェイズに使用する必要があります」",
+  "status": "confirmed"
+ },
+ {
+  "id": "mm-doctor-kuromaku-gw2",
+  "desc": "クロマク(友好無視)の医者に友好2→脚本家が入院患者に不安1を置く",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "mm_phase",
+   "uses": [
+    {
+     "char": "C08",
+     "ability": "DOCTOR",
+     "target": "C09",
+     "mode": "place"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   }
+  },
+  "source": "キャラクターカード character_08（wiki/characters/character-08.md 照合済み）「[友好2] 同一エリアの自身以外のキャラクターから不安カウンターを1つ取り除く。または不安カウンターを1つ置く。このキャラクターが友好無視を持ち、さらに友好カウンターが2つ以上置かれている場合、脚本家はこの能力を脚本家能力フェイズに使用できる」／主人公の書 印刷p40 医者「[脚本家能力フェイズでの使用]医者に2つ以上の友好カウンターがないと使用できません。脚本家能力フェイズに、医者と同一エリアにいる他のキャラクターから不安カウンターを1つ取り除くか、不安カウンターを1つ置きます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "mm-doctor-gw1-error",
+  "desc": "クロマクの医者に友好1→脚本家は使えない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "mm_phase",
+   "uses": [
+    {
+     "char": "C08",
+     "ability": "DOCTOR",
+     "target": "C09",
+     "mode": "place"
+    }
+   ]
+  },
+  "expect": {
+   "error": "goodwill short"
+  },
+  "source": "FAQ Ch04「医者の能力は友好能力ですので、脚本家であっても十分な友好カウンターがなければ能力を利用できません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "mm-doctor-person-error",
+  "desc": "パーソン(友好無視なし)の医者に友好3→脚本家は使えない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "mm_phase",
+   "uses": [
+    {
+     "char": "C08",
+     "ability": "DOCTOR",
+     "target": "C09",
+     "mode": "place"
+    }
+   ]
+  },
+  "expect": {
+   "error": "no goodwill refusal"
+  },
+  "source": "キャラクターカード character_08（wiki/characters/character-08.md 照合済み）「[友好2] 同一エリアの自身以外のキャラクターから不安カウンターを1つ取り除く。または不安カウンターを1つ置く。このキャラクターが友好無視を持ち、さらに友好カウンターが2つ以上置かれている場合、脚本家はこの能力を脚本家能力フェイズに使用できる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "mm-doctor-witch",
+  "desc": "ウィッチ(絶対友好無視)の医者に友好2→脚本家が使える（入院患者の不安を取り除く）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_BOMB",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "WITCH"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "mm_phase",
+   "uses": [
+    {
+     "char": "C08",
+     "ability": "DOCTOR",
+     "target": "C09",
+     "mode": "remove"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   }
+  },
+  "source": "FAQ Ch16「「ウィッチ」である医者に友好カウンタが２つ乗っている場合…脚本家は１つ目の能力を起動可能ですか？」→「可能であり、効果を得ることができます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "mm-doctor-cultist",
+  "desc": "カルティスト(絶対友好無視)の医者に友好2→脚本家が使える",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_SEAL",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "CULTIST"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "mm_phase",
+   "uses": [
+    {
+     "char": "C08",
+     "ability": "DOCTOR",
+     "target": "C09",
+     "mode": "place"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   }
+  },
+  "source": "キャラクターカード character_08（wiki/characters/character-08.md 照合済み）「[友好2] 同一エリアの自身以外のキャラクターから不安カウンターを1つ取り除く。または不安カウンターを1つ置く。このキャラクターが友好無視を持ち、さらに友好カウンターが2つ以上置かれている場合、脚本家はこの能力を脚本家能力フェイズに使用できる」／FAQ Ch16（ウィッチと同じ絶対友好無視） ／ ユーザー裁定 2026-09-23（wiki/notes/rulings.md）。BakaFire 回答「友好無視による拒否は主人公能力フェイズのルール上の処理に含まれるものとなりますので、他のフェイズではチェックされません」https://twitter.com/BakaFire/status/352781694006329345",
+  "status": "confirmed"
+ },
+ {
+  "id": "mm-doctor-self-error",
+  "desc": "脚本家が医者[2]で医者自身に→error（他のキャラクター）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "mm_phase",
+   "uses": [
+    {
+     "char": "C08",
+     "ability": "DOCTOR",
+     "target": "C08",
+     "mode": "place"
+    }
+   ]
+  },
+  "expect": {
+   "error": "self not allowed"
+  },
+  "source": "主人公の書 印刷p40 医者「[脚本家能力フェイズでの使用]医者に2つ以上の友好カウンターがないと使用できません。脚本家能力フェイズに、医者と同一エリアにいる他のキャラクターから不安カウンターを1つ取り除くか、不安カウンターを1つ置きます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "mm-doctor-and-kuromaku-both",
+  "desc": "クロマクの医者: 同じフェイズにクロマク能力(病院ボードに暗躍1)と医者[2](入院患者に不安1)を両方使う",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "mm_phase",
+   "uses": [
+    {
+     "char": "C08",
+     "ability": "KUROMAKU",
+     "target": "B:HOS"
+    },
+    {
+     "char": "C08",
+     "ability": "DOCTOR",
+     "target": "C09",
+     "mode": "place"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 1,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   }
+  },
+  "source": "主人公の書 印刷p23 4-5「複数の能力が使える場合、可能な全ての能力を1回ずつ使えます。1人のキャラクターが持つ複数の能力を両方使うことも可能です」",
+  "status": "confirmed"
+ },
+ {
+  "id": "mm-doctor-twice-error",
+  "desc": "脚本家が医者[2]を同じフェイズに2回→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "mm_phase",
+   "uses": [
+    {
+     "char": "C08",
+     "ability": "DOCTOR",
+     "target": "C09",
+     "mode": "place"
+    },
+    {
+     "char": "C08",
+     "ability": "DOCTOR",
+     "target": "C09",
+     "mode": "place"
+    }
+   ]
+  },
+  "expect": {
+   "error": "ability used twice"
+  },
+  "source": "主人公の書 印刷p23 4-5「可能な全ての能力を1回ずつ使えます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "mm-doctor-dead-error",
+  "desc": "医者が死体→脚本家も使えない",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "mm_phase",
+   "uses": [
+    {
+     "char": "C08",
+     "ability": "DOCTOR",
+     "target": "C09",
+     "mode": "place"
+    }
+   ]
+  },
+  "expect": {
+   "error": "user dead"
+  },
+  "source": "FAQ Ru06「死体は能力を使用できません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "mm-kuromaku-twice-error",
+  "desc": "クロマクが同じフェイズに2回（ボードと自身）→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "mm_phase",
+   "uses": [
+    {
+     "char": "C08",
+     "ability": "KUROMAKU",
+     "target": "B:HOS"
+    },
+    {
+     "char": "C08",
+     "ability": "KUROMAKU",
+     "target": "C08"
+    }
+   ]
+  },
+  "expect": {
+   "error": "ability used twice"
+  },
+  "source": "FAQ Ch11「ある１ターンの間では自身か他のキャラクターのどちらか片方にしかカウンターを乗せることはできません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "mm-factor-misleader",
+  "desc": "ファクター(お嬢様)、学校に暗躍2→ミスリーダーの能力を得て男子学生に不安1",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 2
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_FACTOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "FACTOR"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "mm_phase",
+   "uses": [
+    {
+     "char": "C03",
+     "ability": "MISLEADER",
+     "target": "C01"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   }
+  },
+  "source": "早見表 ファクター「【強制：常時】学校に[暗躍C]が2つ以上→このキャラクターはミスリーダーの能力を得る」",
+  "status": "confirmed"
+ },
+ {
+  "id": "mm-factor-misleader-int1-error",
+  "desc": "学校の暗躍1→ファクターはミスリーダーの能力を持たない→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 1
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_FACTOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C03": "FACTOR"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "mm_phase",
+   "uses": [
+    {
+     "char": "C03",
+     "ability": "MISLEADER",
+     "target": "C01"
+    }
+   ]
+  },
+  "expect": {
+   "error": "no such ability"
+  },
+  "source": "早見表 ファクター（学校に[暗躍C]が2つ以上）",
+  "status": "confirmed"
+ },
+ {
+  "id": "refuse-killer-optional",
+  "desc": "キラーの男子学生が拒否→効果なし",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C01": "KILLER"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C01",
+   "ability": 0,
+   "arg": {
+    "target": "C02"
+   },
+   "refuse": true
+  },
+  "expect": {
+   "chars": {},
+   "used_loop": [],
+   "refused": true
+  },
+  "source": "主人公の書 印刷p23 4-6「拒否できるのは、友好無視を持つキャラクターの友好能力のみです。拒否が行われたとしても「1ループ1回制限」の能力は使用済になります」／早見表 キラー 条文能力「友好無視」",
+  "status": "confirmed"
+ },
+ {
+  "id": "refuse-killer-declines",
+  "desc": "キラーの男子学生が拒否しない（任意）→解決",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C01": "KILLER"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C01",
+   "ability": 0,
+   "arg": {
+    "target": "C02"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "refused": false
+  },
+  "source": "FAQ Ch03「はい、可能です」（友好無視で拒否しないこと）",
+  "status": "confirmed"
+ },
+ {
+  "id": "refuse-kuromaku",
+  "desc": "クロマクの医者が[3]を拒否→入院患者は拘束されたまま",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "KUROMAKU"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C08",
+   "ability": 1,
+   "arg": null,
+   "refuse": true
+  },
+  "expect": {
+   "unbound": [],
+   "used_loop": [],
+   "refused": true
+  },
+  "source": "主人公の書 印刷p23 4-6「拒否できるのは、友好無視を持つキャラクターの友好能力のみです。拒否が行われたとしても「1ループ1回制限」の能力は使用済になります」",
+  "status": "confirmed"
+ },
+ {
+  "id": "refuse-cultist-absolute",
+  "desc": "カルティストの医者: 脚本家が拒否しないと言っても必ず拒否",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_SEAL",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "CULTIST"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C08",
+   "ability": 1,
+   "arg": null,
+   "refuse": false
+  },
+  "expect": {
+   "unbound": [],
+   "used_loop": [],
+   "refused": true
+  },
+  "source": "wiki/concepts/role-abilities.md 早見表 カルティスト 条文能力「絶対友好無視」／FAQ Ch03「但し［ウィッチ］は、拒否を必ず行わなくてはなりません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "refuse-witch-absolute-star-used",
+  "desc": "ウィッチの刑事[5]は必ず拒否。★は使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_BOMB",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "WITCH"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C05",
+   "ability": 1,
+   "arg": {
+    "target": "C07"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "chars": {},
+   "used_loop": [
+    "C05#1"
+   ],
+   "refused": true
+  },
+  "source": "FAQ Ch03「［ウィッチ］は、拒否を必ず行わなくてはなりません」／主人公の書 印刷p23 4-6「拒否できるのは、友好無視を持つキャラクターの友好能力のみです。拒否が行われたとしても「1ループ1回制限」の能力は使用済になります」",
+  "status": "confirmed"
+ },
+ {
+  "id": "refuse-factor-optional",
+  "desc": "ファクター(友好無視)の巫女が[5]を拒否→公開なし、★使用済み",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_FACTOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C04": "FACTOR"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C04",
+   "ability": 1,
+   "arg": {
+    "target": "C04"
+   },
+   "refuse": true
+  },
+  "expect": {
+   "reveal": {},
+   "used_loop": [
+    "C04#1"
+   ],
+   "refused": true
+  },
+  "source": "主人公の書 印刷p23 4-6「拒否できるのは、友好無視を持つキャラクターの友好能力のみです。拒否が行われたとしても「1ループ1回制限」の能力は使用済になります」／早見表 ファクター 条文能力「友好無視」",
+  "status": "confirmed"
+ },
+ {
+  "id": "refuse-key-error",
+  "desc": "キーパーソン(友好無視なし)で拒否→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C01": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C01",
+   "ability": 0,
+   "arg": {
+    "target": "C02"
+   },
+   "refuse": true
+  },
+  "expect": {
+   "error": "no goodwill refusal"
+  },
+  "source": "主人公の書 印刷p23 4-6「拒否できるのは、友好無視を持つキャラクターの友好能力のみです。拒否が行われたとしても「1ループ1回制限」の能力は使用済になります」",
+  "status": "confirmed"
+ },
+ {
+  "id": "refuse-person-error",
+  "desc": "パーソンで拒否→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C01",
+   "ability": 0,
+   "arg": {
+    "target": "C02"
+   },
+   "refuse": true
+  },
+  "expect": {
+   "error": "no goodwill refusal"
+  },
+  "source": "主人公の書 印刷p23 4-6「拒否できるのは、友好無視を持つキャラクターの友好能力のみです。拒否が行われたとしても「1ループ1回制限」の能力は使用済になります」",
+  "status": "confirmed"
+ },
+ {
+  "id": "refuse-friend-error",
+  "desc": "フレンドで拒否→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 5,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C07": "FRIEND"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C07",
+   "ability": 0,
+   "arg": {
+    "declare": "X_KILLER"
+   },
+   "refuse": true
+  },
+  "expect": {
+   "error": "no goodwill refusal"
+  },
+  "source": "主人公の書 印刷p23 4-6「拒否できるのは、友好無視を持つキャラクターの友好能力のみです。拒否が行われたとしても「1ループ1回制限」の能力は使用済になります」",
+  "status": "confirmed"
+ },
+ {
+  "id": "refuse-invalid-target-still-error",
+  "desc": "拒否できる役職でも、対象が不正（学生でない）なら宣言自体が error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C01": "KILLER"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "ability",
+   "char": "C01",
+   "ability": 0,
+   "arg": {
+    "target": "C05"
+   },
+   "refuse": true
+  },
+  "expect": {
+   "error": "not a student"
+  },
+  "source": "主人公の書 印刷p37 友好能力リスト 前文「まずはリーダーは[主人公]に書かれたことをすべて行ってください。それが行えない場合、その能力は使えません」／FAQ Ch08「リーダーによる対象指定が先になります」",
+  "status": "confirmed"
+ },
+ {
+  "id": "refused-counts-as-used-today",
+  "desc": "同じフェイズで拒否された男子学生[2]をもう一度宣言→error",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C01": "KILLER"
+    },
+    "incidents": []
+   },
+   "ability_used_today": [
+    "C01#0"
+   ]
+  },
+  "action": {
+   "type": "ability",
+   "char": "C01",
+   "ability": 0,
+   "arg": {
+    "target": "C02"
+   },
+   "refuse": false
+  },
+  "expect": {
+   "error": "already used this phase"
+  },
+  "source": "主人公の書 印刷p23 4-6「1回ずつ使えます」／FAQ Ch10「能力は使ったものとして扱います」（★以外への適用は明記なし） ／ ユーザー裁定 2026-09-23（wiki/notes/rulings.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "guard-murder",
+  "desc": "護衛1の情報屋が殺人事件で死亡する→代わりに護衛を取り除き生存",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 1
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "kill",
+   "char": "C07",
+   "cause": "MURDER"
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   }
+  },
+  "source": "主人公の書 印刷p38 刑事「以降、護衛カウンターが置かれたキャラクターが死亡する場合、それを解決する代わりにその護衛カウンターを取り除いてください」",
+  "status": "confirmed"
+ },
+ {
+  "id": "guard-suicide",
+  "desc": "護衛1のお嬢様が自殺→護衛を取り除き生存",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 1
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "kill",
+   "char": "C03",
+   "cause": "SUICIDE"
+  },
+  "expect": {
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   }
+  },
+  "source": "主人公の書 印刷p38 刑事「以降、護衛カウンターが置かれたキャラクターが死亡する場合、それを解決する代わりにその護衛カウンターを取り除いてください」",
+  "status": "confirmed"
+ },
+ {
+  "id": "guard-serial-killer",
+  "desc": "護衛1の入院患者がシリアルキラーにより死亡→護衛を取り除き生存",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 1
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "kill",
+   "char": "C09",
+   "cause": "SK"
+  },
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   }
+  },
+  "source": "主人公の書 印刷p38 刑事「以降、護衛カウンターが置かれたキャラクターが死亡する場合、それを解決する代わりにその護衛カウンターを取り除いてください」",
+  "status": "confirmed"
+ },
+ {
+  "id": "guard-none-dies",
+  "desc": "護衛なし→死亡",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "kill",
+   "char": "C07",
+   "cause": "MURDER"
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   }
+  },
+  "source": "主人公の書 印刷p38 刑事「以降、護衛カウンターが置かれたキャラクターが死亡する場合、それを解決する代わりにその護衛カウンターを取り除いてください」",
+  "status": "confirmed"
+ },
+ {
+  "id": "guard-two-counters",
+  "desc": "護衛2→1回防いで護衛1が残る",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 2
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {},
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "kill",
+   "char": "C07",
+   "cause": "MURDER"
+  },
+  "expect": {
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 1
+    }
+   }
+  },
+  "source": "主人公の書 印刷p38 刑事「以降、護衛カウンターが置かれたキャラクターが死亡する場合、それを解決する代わりにその護衛カウンターを取り除いてください」（護衛カウンターを1つ取り除く） ／ ユーザー裁定 2026-09-23（wiki/notes/rulings.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "guard-saves-key",
+  "desc": "護衛1のキーパーソンが殺人事件→生存、ループは続く",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 1
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C01": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "kill",
+   "char": "C01",
+   "cause": "MURDER"
+  },
+  "expect": {
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "主人公の書 印刷p38 刑事「以降、護衛カウンターが置かれたキャラクターが死亡する場合、それを解決する代わりにその護衛カウンターを取り除いてください」／早見表 キーパーソン「このキャラクターの死亡時」",
+  "status": "confirmed"
+ },
+ {
+  "id": "guard-none-key-dies",
+  "desc": "護衛なしのキーパーソンが死亡→ループ終了（敗北）",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C01": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "kill",
+   "char": "C01",
+   "cause": "MURDER"
+  },
+  "expect": {
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": {
+    "reason": "KEY_DIED",
+    "defeat": true
+   }
+  },
+  "source": "早見表 キーパーソン「【強制:このキャラクターの死亡時】主人公は敗北し、直ちにループを終了する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "guard-not-used-by-immortal",
+  "desc": "護衛1のタイムトラベラー(死亡しない)が殺人事件の対象→死なないので護衛は残る",
+  "state": {
+   "loop": 1,
+   "day": 2,
+   "leader": "A",
+   "chars": {
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 1
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C06": "TT"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "kill",
+   "char": "C06",
+   "cause": "MURDER"
+  },
+  "expect": {
+   "chars": {}
+  },
+  "source": "主人公の書 印刷p38 刑事「不死などの理由でそのキャラクターが死亡しない場合、置き換えるもとの効果が発生しないので護衛カウンターは取り除きません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "final-all-correct",
+  "desc": "全員正解→主人公の勝ち",
+  "state": {
+   "loop": 4,
+   "day": 5,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "KUROMAKU",
+     "C08": "KILLER",
+     "C02": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "final",
+   "guesses": [
+    {
+     "char": "C01",
+     "role": "PERSON"
+    },
+    {
+     "char": "C02",
+     "role": "KEY"
+    },
+    {
+     "char": "C05",
+     "role": "KUROMAKU"
+    },
+    {
+     "char": "C08",
+     "role": "KILLER"
+    }
+   ]
+  },
+  "expect": {
+   "winner": "protagonists",
+   "stopped_at": null
+  },
+  "source": "主人公の書 印刷p25 §6 ii「正解の場合、引き続きまだ宣言されていない別のキャラクターについて同様の判定を行います。不正解の場合、その時点で最後の戦いは終了となり、ゲームは脚本家の勝利で終了します…キャラクター全員について役職を正答できた場合、主人公の勝利」",
+  "status": "confirmed"
+ },
+ {
+  "id": "final-wrong-second",
+  "desc": "2人目で外れ→その時点で脚本家の勝ち（以降は判定しない）",
+  "state": {
+   "loop": 4,
+   "day": 5,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "KUROMAKU",
+     "C08": "KILLER",
+     "C02": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "final",
+   "guesses": [
+    {
+     "char": "C01",
+     "role": "PERSON"
+    },
+    {
+     "char": "C02",
+     "role": "FRIEND"
+    },
+    {
+     "char": "C05",
+     "role": "KUROMAKU"
+    },
+    {
+     "char": "C08",
+     "role": "KILLER"
+    }
+   ]
+  },
+  "expect": {
+   "winner": "mastermind",
+   "stopped_at": 1
+  },
+  "source": "主人公の書 印刷p25 §6 ii「正解の場合、引き続きまだ宣言されていない別のキャラクターについて同様の判定を行います。不正解の場合、その時点で最後の戦いは終了となり、ゲームは脚本家の勝利で終了します…キャラクター全員について役職を正答できた場合、主人公の勝利」",
+  "status": "confirmed"
+ },
+ {
+  "id": "final-wrong-first",
+  "desc": "1人目で外れ→脚本家の勝ち",
+  "state": {
+   "loop": 4,
+   "day": 5,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "KUROMAKU",
+     "C08": "KILLER",
+     "C02": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "final",
+   "guesses": [
+    {
+     "char": "C08",
+     "role": "KUROMAKU"
+    },
+    {
+     "char": "C05",
+     "role": "KILLER"
+    },
+    {
+     "char": "C01",
+     "role": "PERSON"
+    },
+    {
+     "char": "C02",
+     "role": "KEY"
+    }
+   ]
+  },
+  "expect": {
+   "winner": "mastermind",
+   "stopped_at": 0
+  },
+  "source": "主人公の書 印刷p25 §6 ii「正解の場合、引き続きまだ宣言されていない別のキャラクターについて同様の判定を行います。不正解の場合、その時点で最後の戦いは終了となり、ゲームは脚本家の勝利で終了します…キャラクター全員について役職を正答できた場合、主人公の勝利」",
+  "status": "confirmed"
+ },
+ {
+  "id": "final-virus-person",
+  "desc": "ウイルス。最終状態で不安3の女子学生(パーソン)→答えはパーソン（盤面の再構築でカウンターが消える）",
+  "state": {
+   "loop": 3,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_CONTRACT",
+     "X_VIRUS",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C07": "MISLEADER",
+     "C03": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "final",
+   "guesses": [
+    {
+     "char": "C03",
+     "role": "KEY"
+    },
+    {
+     "char": "C02",
+     "role": "PERSON"
+    },
+    {
+     "char": "C07",
+     "role": "MISLEADER"
+    }
+   ]
+  },
+  "expect": {
+   "winner": "protagonists",
+   "stopped_at": null
+  },
+  "source": "FAQ XY02「パーソンを言い当ててください…※第３版にて最後の戦いの手順が明確化」／主人公の書 印刷p25 §6 i「すべてのキャラクターとボードに置かれているカウンター全てを取り除く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "final-virus-sk-wrong",
+  "desc": "同じ状況で女子学生をシリアルキラーと答える→外れ",
+  "state": {
+   "loop": 3,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_CONTRACT",
+     "X_VIRUS",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C07": "MISLEADER",
+     "C03": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "final",
+   "guesses": [
+    {
+     "char": "C03",
+     "role": "KEY"
+    },
+    {
+     "char": "C02",
+     "role": "SK"
+    },
+    {
+     "char": "C07",
+     "role": "MISLEADER"
+    }
+   ]
+  },
+  "expect": {
+   "winner": "mastermind",
+   "stopped_at": 1
+  },
+  "source": "FAQ XY02「パーソンを言い当ててください」",
+  "status": "confirmed"
+ },
+ {
+  "id": "final-factor-not-key",
+  "desc": "ファクターがキーパーソンの能力を得ていても、答えはファクター（キーパーソンと答えると外れ）",
+  "state": {
+   "loop": 3,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 2,
+    "SCH": 2
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_FACTOR",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C06": "FACTOR",
+     "C01": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "final",
+   "guesses": [
+    {
+     "char": "C06",
+     "role": "KEY"
+    },
+    {
+     "char": "C01",
+     "role": "KEY"
+    }
+   ]
+  },
+  "expect": {
+   "winner": "mastermind",
+   "stopped_at": 0
+  },
+  "source": "早見表 ファクター「（役職自体は変化しない。）」",
+  "status": "confirmed"
+ },
+ {
+  "id": "final-dead-char-included",
+  "desc": "最終ループで死亡したキャラも全員に含まれる（盤面の再構築で生存に戻る）",
+  "state": {
+   "loop": 3,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C04": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_CONTRACT",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C08": "SK",
+     "C04": "KEY",
+     "C01": "FRIEND"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "final",
+   "guesses": [
+    {
+     "char": "C04",
+     "role": "KEY"
+    },
+    {
+     "char": "C08",
+     "role": "SK"
+    },
+    {
+     "char": "C01",
+     "role": "FRIEND"
+    }
+   ]
+  },
+  "expect": {
+   "winner": "protagonists",
+   "stopped_at": null
+  },
+  "source": "主人公の書 印刷p25 §6 i「すべてのキャラクターをボード上の初期エリアに生存する状態で配置する」／ii「キャラクター全員について役職を正答」",
+  "status": "confirmed"
+ },
+ {
+  "id": "final-missing-char-error",
+  "desc": "全員分を宣言していない（途中まで正解で終わる）→error",
+  "state": {
+   "loop": 4,
+   "day": 5,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_KILLER",
+     "X_THREAD"
+    ],
+    "roles": {
+     "C05": "KUROMAKU",
+     "C08": "KILLER",
+     "C02": "KEY"
+    },
+    "incidents": []
+   }
+  },
+  "action": {
+   "type": "final",
+   "guesses": [
+    {
+     "char": "C01",
+     "role": "PERSON"
+    },
+    {
+     "char": "C02",
+     "role": "KEY"
+    }
+   ]
+  },
+  "expect": {
+   "error": "not all characters declared"
+  },
+  "source": "主人公の書 印刷p25 §6 ii「正解の場合、引き続きまだ宣言されていない別のキャラクターについて同様の判定を行います。不正解の場合、その時点で最後の戦いは終了となり、ゲームは脚本家の勝利で終了します…キャラクター全員について役職を正答できた場合、主人公の勝利」（未宣言が残ったまま終わる手順は無い） ／ ユーザー裁定 2026-09-23（wiki/notes/rulings.md）",
+  "status": "confirmed"
+ }
+]

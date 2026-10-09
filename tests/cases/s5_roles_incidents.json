@@ -1,0 +1,4505 @@
+[
+ {
+  "_interface": "段S5 3・4（役職: タイムトラベラー・ラバーズ・メインラバーズ／事件: 病院の事件・遠隔殺人・行方不明・流布・蝶の羽ばたき）。state は README の完全な状態。script.days は規定日数（fixtures の script.json と同じ名前。TT の「最終日」は state.day == script.days）。phase: incident → later_stages と同じ（ph.incident_today → incident_occurs → run_incident(state, inc, choice)）。事件の脚本家の選択（README の決定点 kind=incident_target）: HOSPITAL は選択なし（null）、REMOTE {target}（候補が無ければ null）、MISSING {board: 'HOS'|'SHR'|'CIT'|'SCH'}（留まるなら現在のエリアを書く。禁止エリアは error）、RUMOR_SPREAD {from, to}（別のキャラ）、BUTTERFLY {target, counter: 'gw'|'par'|'int'}（target は犯人と同一エリアの生存キャラ。犯人自身を含む）。phase: turn_end → ph.turn_end(state, choice.optional)。任意能力は既存のキラーに倣い {char, ability}: タイムトラベラーは 'TT_LOSS'（最終日・友好2以下）、メインラバーズは 'MAIN_LOVERS'（暗躍1以上かつ不安3以上）。TT_LOSS の結果は LoopEnd(reason='TT_LOSS', loss=True)（expect.loop_end は {reason:'TT_LOSS', defeat:true}。試験側の REASON 対応表に足す）。phase: action → resolve_actions(state, input.placements)（action_resolution と同じ。TT の友好禁止の無視は state.script.roles を見る）。ラバーズ・メインラバーズの不安6は、相手の死亡の原因を問わず起きる（事件・ターン終了のシリアルキラー・遠隔殺人・自殺・病院の事件）。死亡させる処理を1か所にまとめ、そこで「死亡した者の相手が生存していれば不安+6」を行うことを提案する。同時に死亡した場合（病院の事件で2人とも・SK の同時解決）は、全員を死体にしてから相手の生死を見るので何も置かない（公式FAQ Ch15）。タイムトラベラーの「死亡しない」も同じ1か所で扱う（対象には選べ、何も起きない。公式FAQ Ch18）。護衛は既存どおり「死亡する場合、代わりに1つ取り除く」。expect: later_stages と同じ（chars は載せたキャラの載せた項目、boards は全体、occurred、loop_end は null か {reason, defeat}、error は状態を変えない）。action は action_resolution と同じ（chars・boards・used）。expect.incident_log があれば、その各記録が呼び出し後の state.incident_log に含まれること（s5_loop_end の未来改変プランが読む）。status: confirmed（一次資料で確定）/ unresolved（一次資料で決まらない。期待値は字面どおりの読みで、理由は unresolved 欄。試験は xfail とし、ユーザーの裁定を待つ）。"
+ },
+ {
+  "id": "tt-murder-target-survives",
+  "desc": "TT(刑事)を殺人事件の対象に選ぶ→選べる。事件は発生し、TTは死亡しない",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "TT"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C05"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 役職表 タイムトラベラー「【強制：常時】このキャラクターは死亡しない。【強制：行動解決フェイズ】このキャラクターへの友好禁止を無視する。【任意能力：最終日のターン終了フェイズ】このキャラクターに[友好C]が2つ以下→主人公は敗北し、直ちにループを終了する」／公式FAQ Ch18「ドリッパーの…強制能力は、死亡しないメイタンテイを対象にすることはできますか？→はい、可能です。その上でドリッパーは能力を使ったものとして扱います。結果として何も起きません」（死亡しないキャラクターも対象に選べ、何も起きない）",
+  "status": "confirmed"
+ },
+ {
+  "id": "tt-suicide-culprit-survives",
+  "desc": "自殺の犯人がTT(お嬢様・臨界1)→事件は発生するが犯人は死亡しない",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C03": "TT"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "SUICIDE",
+      "culprit": "C03"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 事件 自殺「犯人は死亡する」／早見表 役職表 タイムトラベラー「【強制：常時】このキャラクターは死亡しない。【強制：行動解決フェイズ】このキャラクターへの友好禁止を無視する。【任意能力：最終日のターン終了フェイズ】このキャラクターに[友好C]が2つ以下→主人公は敗北し、直ちにループを終了する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "tt-hospital-survives",
+  "desc": "病院の事件(病院に暗躍1)。病院にTT(医者)と入院患者→入院患者だけ死亡",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 1,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C08": "TT"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "HOSPITAL",
+      "culprit": "C01"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 事件 病院の事件「病院に[暗躍C]が1つ以上→病院にいるすべてのキャラクターを死亡させる。病院に[暗躍C]が2つ以上→主人公を死亡させる」／早見表 役職表 タイムトラベラー「【強制：常時】このキャラクターは死亡しない。【強制：行動解決フェイズ】このキャラクターへの友好禁止を無視する。【任意能力：最終日のターン終了フェイズ】このキャラクターに[友好C]が2つ以下→主人公は敗北し、直ちにループを終了する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "tt-sk-alone-survives",
+  "desc": "シリアルキラー(医者)とTT(入院患者)だけが病院に→TTは死亡しない",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C08": "SK",
+     "C09": "TT"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": []
+  },
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 シリアルキラー「【強制：ターン終了フェイズ】このキャラクターと同一エリアにいるキャラクターが1人だけ→そのキャラクターを死亡させる」／早見表 役職表 タイムトラベラー「【強制：常時】このキャラクターは死亡しない。【強制：行動解決フェイズ】このキャラクターへの友好禁止を無視する。【任意能力：最終日のターン終了フェイズ】このキャラクターに[友好C]が2つ以下→主人公は敗北し、直ちにループを終了する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "tt-remote-target-survives",
+  "desc": "遠隔殺人で暗躍2のTT(刑事)を選ぶ→選べるが死亡しない",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "TT"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "REMOTE",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C05"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C05": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 事件 遠隔殺人「[暗躍C]が2つ以上置かれたキャラクター1人を死亡させる」／早見表 役職表 タイムトラベラー「【強制：常時】このキャラクターは死亡しない。【強制：行動解決フェイズ】このキャラクターへの友好禁止を無視する。【任意能力：最終日のターン終了フェイズ】このキャラクターに[友好C]が2つ以下→主人公は敗北し、直ちにループを終了する」／公式FAQ Ch18「ドリッパーの…強制能力は、死亡しないメイタンテイを対象にすることはできますか？→はい、可能です。その上でドリッパーは能力を使ったものとして扱います。結果として何も起きません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "tt-guard-not-consumed",
+  "desc": "護衛1のTT(刑事)を殺人事件の対象に→TTは死亡しないので、護衛は取り除かれない（字面の読み）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 1
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "TT"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C05"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 1
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 役職表 タイムトラベラー「【強制：常時】このキャラクターは死亡しない。【強制：行動解決フェイズ】このキャラクターへの友好禁止を無視する。【任意能力：最終日のターン終了フェイズ】このキャラクターに[友好C]が2つ以下→主人公は敗北し、直ちにループを終了する」／キャラクターカード 刑事［友好5］「護衛カウンターが置かれたキャラクターが死亡する場合、代わりに護衛カウンターを1つ取り除く」（wiki/characters/character-05.md） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "護衛の文面は「死亡する場合、代わりに」で、死亡しないTTはその場合に当たらないと読めるが、両者の優先を述べた資料が無い。護衛が先に働き1つ取り除かれる読みもありうる"
+ },
+ {
+  "id": "tt-hospital-int2-protagonists-die",
+  "desc": "病院の事件(病院に暗躍2)。病院のTTは生き残るが主人公は死亡→ループ終了（敗北）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 2,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C08": "TT"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "HOSPITAL",
+      "culprit": "C01"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": {
+    "reason": "PROTAGONIST_DIED",
+    "defeat": true
+   }
+  },
+  "source": "早見表 事件 病院の事件「病院に[暗躍C]が1つ以上→病院にいるすべてのキャラクターを死亡させる。病院に[暗躍C]が2つ以上→主人公を死亡させる」／早見表 役職表 タイムトラベラー「【強制：常時】このキャラクターは死亡しない。【強制：行動解決フェイズ】このキャラクターへの友好禁止を無視する。【任意能力：最終日のターン終了フェイズ】このキャラクターに[友好C]が2つ以下→主人公は敗北し、直ちにループを終了する」／主人公の書 印刷p19 主人公の殺害「そのループは主人公プレイヤーの敗北として直ちに終了」",
+  "status": "confirmed"
+ },
+ {
+  "id": "tt-gwx-ignored-gw1",
+  "desc": "TT(刑事)に友好禁止＋友好+1→友好禁止を無視し友好1",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "TT"
+    },
+    "incidents": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "C05",
+     "card": "GW1"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PAR-"
+    },
+    {
+     "by": "B",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "choice": null,
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "早見表 役職表 タイムトラベラー「【強制：常時】このキャラクターは死亡しない。【強制：行動解決フェイズ】このキャラクターへの友好禁止を無視する。【任意能力：最終日のターン終了フェイズ】このキャラクターに[友好C]が2つ以下→主人公は敗北し、直ちにループを終了する」／主人公の書 印刷p43 手札リスト(脚本家) 友好禁止「『友好+1』『友好+2』と重なった場合それを無効化」",
+  "status": "confirmed"
+ },
+ {
+  "id": "tt-gwx-ignored-gw2",
+  "desc": "TT(刑事・友好1)に友好禁止＋友好+2→無視して友好3。友好+2は使用済み",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "TT"
+    },
+    "incidents": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C05",
+     "card": "GWX"
+    },
+    {
+     "by": "B",
+     "target": "C05",
+     "card": "GW2"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PAR-"
+    },
+    {
+     "by": "A",
+     "target": "B:HOS",
+     "card": "GW1"
+    },
+    {
+     "by": "C",
+     "target": "B:SHR",
+     "card": "GW1"
+    }
+   ]
+  },
+  "choice": null,
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [
+     "GW2"
+    ],
+    "C": []
+   }
+  },
+  "source": "早見表 役職表 タイムトラベラー「【強制：常時】このキャラクターは死亡しない。【強制：行動解決フェイズ】このキャラクターへの友好禁止を無視する。【任意能力：最終日のターン終了フェイズ】このキャラクターに[友好C]が2つ以下→主人公は敗北し、直ちにループを終了する」／主人公の書 印刷p43 手札リスト(脚本家) 友好禁止「『友好+1』『友好+2』と重なった場合それを無効化」／主人公の書 印刷p22（1ループ1回の札は使用済み）",
+  "status": "confirmed"
+ },
+ {
+  "id": "tt-gwx-still-works-on-others",
+  "desc": "TT(刑事)がいても、別のキャラ(情報屋)への友好禁止は効く。情報屋の友好+1は無効、TTへの友好+1は通る",
+  "phase": "action",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "TT"
+    },
+    "incidents": []
+   }
+  },
+  "input": {
+   "placements": [
+    {
+     "by": "M",
+     "target": "C07",
+     "card": "GWX"
+    },
+    {
+     "by": "A",
+     "target": "C07",
+     "card": "GW1"
+    },
+    {
+     "by": "B",
+     "target": "C05",
+     "card": "GW1"
+    },
+    {
+     "by": "M",
+     "target": "B:HOS",
+     "card": "PARX"
+    },
+    {
+     "by": "M",
+     "target": "B:SHR",
+     "card": "PAR-"
+    },
+    {
+     "by": "C",
+     "target": "B:HOS",
+     "card": "GW1"
+    }
+   ]
+  },
+  "choice": null,
+  "expect": {
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    },
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   }
+  },
+  "source": "早見表 役職表 タイムトラベラー「【強制：常時】このキャラクターは死亡しない。【強制：行動解決フェイズ】このキャラクターへの友好禁止を無視する。【任意能力：最終日のターン終了フェイズ】このキャラクターに[友好C]が2つ以下→主人公は敗北し、直ちにループを終了する」（「このキャラクターへの」友好禁止に限る）／主人公の書 印刷p43 手札リスト(脚本家) 友好禁止「『友好+1』『友好+2』と重なった場合それを無効化」",
+  "status": "confirmed"
+ },
+ {
+  "id": "tt-loss-final-day-gw2",
+  "desc": "最終日(4日目/4日)のターン終了、TT(刑事)に友好2→任意能力で主人公敗北、直ちにループ終了",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "TT"
+    },
+    "incidents": [],
+    "days": 4
+   }
+  },
+  "choice": {
+   "optional": [
+    {
+     "char": "C05",
+     "ability": "TT_LOSS"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {},
+   "loop_end": {
+    "reason": "TT_LOSS",
+    "defeat": true
+   }
+  },
+  "source": "早見表 役職表 タイムトラベラー「【強制：常時】このキャラクターは死亡しない。【強制：行動解決フェイズ】このキャラクターへの友好禁止を無視する。【任意能力：最終日のターン終了フェイズ】このキャラクターに[友好C]が2つ以下→主人公は敗北し、直ちにループを終了する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "tt-loss-final-day-gw3-error",
+  "desc": "最終日、TTの友好3→使えない",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "TT"
+    },
+    "incidents": [],
+    "days": 4
+   }
+  },
+  "choice": {
+   "optional": [
+    {
+     "char": "C05",
+     "ability": "TT_LOSS"
+    }
+   ]
+  },
+  "expect": {
+   "error": "TTの友好が2を超える"
+  },
+  "source": "早見表 役職表 タイムトラベラー「【強制：常時】このキャラクターは死亡しない。【強制：行動解決フェイズ】このキャラクターへの友好禁止を無視する。【任意能力：最終日のターン終了フェイズ】このキャラクターに[友好C]が2つ以下→主人公は敗北し、直ちにループを終了する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "tt-loss-not-final-day-error",
+  "desc": "最終日でない(3日目/4日)ターン終了、TTの友好0→使えない",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 3,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "TT"
+    },
+    "incidents": [],
+    "days": 4
+   }
+  },
+  "choice": {
+   "optional": [
+    {
+     "char": "C05",
+     "ability": "TT_LOSS"
+    }
+   ]
+  },
+  "expect": {
+   "error": "最終日でない"
+  },
+  "source": "早見表 役職表 タイムトラベラー「【強制：常時】このキャラクターは死亡しない。【強制：行動解決フェイズ】このキャラクターへの友好禁止を無視する。【任意能力：最終日のターン終了フェイズ】このキャラクターに[友好C]が2つ以下→主人公は敗北し、直ちにループを終了する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "tt-loss-declined",
+  "desc": "最終日、TTの友好1だが脚本家は使わない（任意）→ループは続行扱い（ループ終了時の判定は別）",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 4,
+   "leader": "A",
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "TT"
+    },
+    "incidents": [],
+    "days": 4
+   }
+  },
+  "choice": {
+   "optional": []
+  },
+  "expect": {
+   "chars": {},
+   "loop_end": null
+  },
+  "source": "早見表 役職表 タイムトラベラー「【強制：常時】このキャラクターは死亡しない。【強制：行動解決フェイズ】このキャラクターへの友好禁止を無視する。【任意能力：最終日のターン終了フェイズ】このキャラクターに[友好C]が2つ以下→主人公は敗北し、直ちにループを終了する」／haunted_p12「【任意】区分の能力は脚本家の任意で使用するかを決定することができます」",
+  "status": "confirmed"
+ },
+ {
+  "id": "lovers-murder-lovers",
+  "desc": "殺人事件でラバーズ(刑事)死亡→メインラバーズ(女子学生・不安1)に不安6で不安7",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "LOVERS",
+     "C02": "MAIN_LOVERS"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C05"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 7,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 役職表 メインラバーズ「【強制：ラバーズの死亡時】このキャラクターに[不安C]を6つ置く。【任意能力：ターン終了フェイズ】このキャラクターに[暗躍C]が1つ以上かつ[不安C]が3つ以上→主人公を死亡させる」／早見表 殺人事件",
+  "status": "confirmed"
+ },
+ {
+  "id": "lovers-murder-main",
+  "desc": "殺人事件でメインラバーズ(刑事)死亡→ラバーズ(女子学生)に不安6",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "MAIN_LOVERS",
+     "C02": "LOVERS"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C05"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 6,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 役職表 ラバーズ「【強制：メインラバーズの死亡時】このキャラクターに[不安C]を6つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "lovers-both-die-hospital",
+  "desc": "病院の事件(病院に暗躍1)でラバーズ(医者)とメインラバーズ(入院患者)が同時に死亡→どちらにも不安は置かれない",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 1,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C08": "LOVERS",
+     "C09": "MAIN_LOVERS"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "HOSPITAL",
+      "culprit": "C01"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 事件 病院の事件「病院に[暗躍C]が1つ以上→病院にいるすべてのキャラクターを死亡させる。病院に[暗躍C]が2つ以上→主人公を死亡させる」／公式FAQ Ch15「ラバーズとメインラバーズが同時に死亡した場合どうなりますか？→カウンターを乗せるべき対象がすでに死体となっているため、何も起こりません」",
+  "status": "confirmed"
+ },
+ {
+  "id": "lovers-partner-already-dead",
+  "desc": "メインラバーズ(女子学生)が既に死体。ラバーズ(刑事)が殺人事件で死亡→死体には不安を置かない",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "LOVERS",
+     "C02": "MAIN_LOVERS"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C05"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 役職表 メインラバーズ「【強制：ラバーズの死亡時】このキャラクターに[不安C]を6つ置く。【任意能力：ターン終了フェイズ】このキャラクターに[暗躍C]が1つ以上かつ[不安C]が3つ以上→主人公を死亡させる」／公式FAQ Ru05（死体はキャラクターを対象とした能力の対象にならない）・Ru06（死体は能力を使用できない）／公式FAQ Ch15「ラバーズとメインラバーズが同時に死亡した場合どうなりますか？→カウンターを乗せるべき対象がすでに死体となっているため、何も起こりません」（対象が死体なら何も起こらない）",
+  "status": "confirmed"
+ },
+ {
+  "id": "lovers-sk-kills-lovers",
+  "desc": "シリアルキラー(医者)がラバーズ(入院患者)を殺す→メインラバーズ(刑事・都市)に不安6",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C08": "SK",
+     "C09": "LOVERS",
+     "C05": "MAIN_LOVERS"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": []
+  },
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 6,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 役職表 メインラバーズ「【強制：ラバーズの死亡時】このキャラクターに[不安C]を6つ置く。【任意能力：ターン終了フェイズ】このキャラクターに[暗躍C]が1つ以上かつ[不安C]が3つ以上→主人公を死亡させる」／早見表 シリアルキラー",
+  "status": "confirmed"
+ },
+ {
+  "id": "lovers-sk-then-main-kills-same-phase",
+  "desc": "SKがラバーズを殺し、メインラバーズ(暗躍1)に不安6。同じターン終了フェイズの任意でメインラバーズの主人公殺害を使う→主人公死亡（字面の読み）",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C08": "SK",
+     "C09": "LOVERS",
+     "C05": "MAIN_LOVERS"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": [
+    {
+     "char": "C05",
+     "ability": "MAIN_LOVERS"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 6,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    }
+   },
+   "loop_end": {
+    "reason": "PROTAGONIST_DIED",
+    "defeat": true
+   }
+  },
+  "source": "早見表 役職表 メインラバーズ「【強制：ラバーズの死亡時】このキャラクターに[不安C]を6つ置く。【任意能力：ターン終了フェイズ】このキャラクターに[暗躍C]が1つ以上かつ[不安C]が3つ以上→主人公を死亡させる」／haunted_p12 解決順（i 強制を全て同時に解決 → ii 任意） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "死亡時の強制（不安6）が、SKの強制と同じ i の中で解決されるか、i の後・ii の前に解決されるか、ii の後かを述べた資料が無い。haunted_p12 例2は「i の時点ではまだ死体ではない」とするのみ。字面では死亡の直後に置かれ、ii の任意の条件判定に間に合うと読んだ"
+ },
+ {
+  "id": "lovers-remote-lovers",
+  "desc": "遠隔殺人で暗躍2のラバーズ(刑事)を死亡→メインラバーズ(女子学生)に不安6",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "SHR",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "LOVERS",
+     "C02": "MAIN_LOVERS"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "REMOTE",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C05"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C05": {
+     "area": "SHR",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 6,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 事件 遠隔殺人「[暗躍C]が2つ以上置かれたキャラクター1人を死亡させる」／早見表 役職表 メインラバーズ「【強制：ラバーズの死亡時】このキャラクターに[不安C]を6つ置く。【任意能力：ターン終了フェイズ】このキャラクターに[暗躍C]が1つ以上かつ[不安C]が3つ以上→主人公を死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "lovers-guard-prevents-trigger",
+  "desc": "護衛1のラバーズ(刑事)を殺人事件の対象に→護衛が1つ取り除かれ死亡しない。メインラバーズに不安は置かれない",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 1
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "LOVERS",
+     "C02": "MAIN_LOVERS"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MURDER",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C05"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "キャラクターカード 刑事［友好5］「護衛カウンターが置かれたキャラクターが死亡する場合、代わりに護衛カウンターを1つ取り除く」（wiki/characters/character-05.md）／早見表 役職表 メインラバーズ「【強制：ラバーズの死亡時】このキャラクターに[不安C]を6つ置く。【任意能力：ターン終了フェイズ】このキャラクターに[暗躍C]が1つ以上かつ[不安C]が3つ以上→主人公を死亡させる」（死亡時の強制は死亡しなければ起きない）",
+  "status": "confirmed"
+ },
+ {
+  "id": "main-kill-int1-par3",
+  "desc": "メインラバーズ(女子学生)に暗躍1・不安3→任意で主人公死亡、ループ終了（敗北）",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "LOVERS",
+     "C02": "MAIN_LOVERS"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": [
+    {
+     "char": "C02",
+     "ability": "MAIN_LOVERS"
+    }
+   ]
+  },
+  "expect": {
+   "chars": {},
+   "loop_end": {
+    "reason": "PROTAGONIST_DIED",
+    "defeat": true
+   }
+  },
+  "source": "早見表 役職表 メインラバーズ「【強制：ラバーズの死亡時】このキャラクターに[不安C]を6つ置く。【任意能力：ターン終了フェイズ】このキャラクターに[暗躍C]が1つ以上かつ[不安C]が3つ以上→主人公を死亡させる」／主人公の書 印刷p19 主人公の殺害「そのループは主人公プレイヤーの敗北として直ちに終了」",
+  "status": "confirmed"
+ },
+ {
+  "id": "main-kill-int1-par2-error",
+  "desc": "メインラバーズに暗躍1・不安2→使えない",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "LOVERS",
+     "C02": "MAIN_LOVERS"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": [
+    {
+     "char": "C02",
+     "ability": "MAIN_LOVERS"
+    }
+   ]
+  },
+  "expect": {
+   "error": "不安が3未満"
+  },
+  "source": "早見表 役職表 メインラバーズ「【強制：ラバーズの死亡時】このキャラクターに[不安C]を6つ置く。【任意能力：ターン終了フェイズ】このキャラクターに[暗躍C]が1つ以上かつ[不安C]が3つ以上→主人公を死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "main-kill-int0-par3-error",
+  "desc": "メインラバーズに暗躍0・不安3→使えない",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "LOVERS",
+     "C02": "MAIN_LOVERS"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": [
+    {
+     "char": "C02",
+     "ability": "MAIN_LOVERS"
+    }
+   ]
+  },
+  "expect": {
+   "error": "暗躍が1未満"
+  },
+  "source": "早見表 役職表 メインラバーズ「【強制：ラバーズの死亡時】このキャラクターに[不安C]を6つ置く。【任意能力：ターン終了フェイズ】このキャラクターに[暗躍C]が1つ以上かつ[不安C]が3つ以上→主人公を死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "main-kill-dead-error",
+  "desc": "メインラバーズが死体（暗躍1・不安6）→使えない",
+  "phase": "turn_end",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C02": {
+     "area": "SCH",
+     "alive": false,
+     "par": 6,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C05": "LOVERS",
+     "C02": "MAIN_LOVERS"
+    },
+    "incidents": []
+   }
+  },
+  "choice": {
+   "optional": [
+    {
+     "char": "C02",
+     "ability": "MAIN_LOVERS"
+    }
+   ]
+  },
+  "expect": {
+   "error": "死体は能力を使えない"
+  },
+  "source": "早見表 役職表 メインラバーズ「【強制：ラバーズの死亡時】このキャラクターに[不安C]を6つ置く。【任意能力：ターン終了フェイズ】このキャラクターに[暗躍C]が1つ以上かつ[不安C]が3つ以上→主人公を死亡させる」／公式FAQ Ru05（死体はキャラクターを対象とした能力の対象にならない）・Ru06（死体は能力を使用できない）",
+  "status": "confirmed"
+ },
+ {
+  "id": "hosp-int0",
+  "desc": "病院の事件。病院に暗躍0→発生するが何も起きない（病院の医者は生存）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "HOSPITAL",
+      "culprit": "C01"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": true,
+   "chars": {},
+   "loop_end": null
+  },
+  "source": "早見表 事件 病院の事件「病院に[暗躍C]が1つ以上→病院にいるすべてのキャラクターを死亡させる。病院に[暗躍C]が2つ以上→主人公を死亡させる」／主人公の書 印刷p24 4-7（発生条件: 犯人が生存し、不安臨界以上の不安C）",
+  "status": "confirmed"
+ },
+ {
+  "id": "hosp-int1",
+  "desc": "病院に暗躍1→病院の医者・入院患者が死亡。都市の刑事は無事。主人公は生存",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 1,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "HOSPITAL",
+      "culprit": "C01"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 事件 病院の事件「病院に[暗躍C]が1つ以上→病院にいるすべてのキャラクターを死亡させる。病院に[暗躍C]が2つ以上→主人公を死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "hosp-int1-culprit-in-hospital",
+  "desc": "犯人(入院患者)自身が病院にいる、病院に暗躍1→犯人も含め病院の全員が死亡",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 1,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "HOSPITAL",
+      "culprit": "C09"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": false,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 事件 病院の事件「病院に[暗躍C]が1つ以上→病院にいるすべてのキャラクターを死亡させる。病院に[暗躍C]が2つ以上→主人公を死亡させる」（「すべてのキャラクター」に犯人を除く記述は無い）",
+  "status": "confirmed"
+ },
+ {
+  "id": "hosp-int2",
+  "desc": "病院に暗躍2→病院の全員死亡、さらに主人公死亡でループ終了（敗北）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 2,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "HOSPITAL",
+      "culprit": "C01"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": {
+    "reason": "PROTAGONIST_DIED",
+    "defeat": true
+   }
+  },
+  "source": "早見表 事件 病院の事件「病院に[暗躍C]が1つ以上→病院にいるすべてのキャラクターを死亡させる。病院に[暗躍C]が2つ以上→主人公を死亡させる」／主人公の書 印刷p19 主人公の殺害「そのループは主人公プレイヤーの敗北として直ちに終了」",
+  "status": "confirmed"
+ },
+ {
+  "id": "hosp-empty-int1",
+  "desc": "病院に誰もいない、暗躍1→事件は発生したが誰も死亡しない",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 1,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "HOSPITAL",
+      "culprit": "C01"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": true,
+   "chars": {},
+   "loop_end": null
+  },
+  "source": "早見表 事件 病院の事件「病院に[暗躍C]が1つ以上→病院にいるすべてのキャラクターを死亡させる。病院に[暗躍C]が2つ以上→主人公を死亡させる」／公式FAQ Af01「事件は発生したが、誰も死亡しなかった」と宣言する",
+  "status": "confirmed"
+ },
+ {
+  "id": "hosp-empty-int2",
+  "desc": "病院に誰もいない、暗躍2→主人公は死亡する（病院に人がいるかは条件でない）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 2,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "HOSPITAL",
+      "culprit": "C01"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": true,
+   "chars": {},
+   "loop_end": {
+    "reason": "PROTAGONIST_DIED",
+    "defeat": true
+   }
+  },
+  "source": "早見表 事件 病院の事件「病院に[暗躍C]が1つ以上→病院にいるすべてのキャラクターを死亡させる。病院に[暗躍C]が2つ以上→主人公を死亡させる」／主人公の書 印刷p19 主人公の殺害「そのループは主人公プレイヤーの敗北として直ちに終了」",
+  "status": "confirmed"
+ },
+ {
+  "id": "hosp-key-int1",
+  "desc": "キーパーソン(入院患者)が病院、暗躍1→キーパーソン死亡、ループ終了（敗北）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 1,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C09": "KEY"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "HOSPITAL",
+      "culprit": "C01"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": {
+    "reason": "KEY_DIED",
+    "defeat": true
+   }
+  },
+  "source": "早見表 事件 病院の事件「病院に[暗躍C]が1つ以上→病院にいるすべてのキャラクターを死亡させる。病院に[暗躍C]が2つ以上→主人公を死亡させる」／早見表 キーパーソン「【強制：このキャラクターの死亡時】主人公は敗北し、直ちにループを終了する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "hosp-key-int2",
+  "desc": "キーパーソン(入院患者)が病院、暗躍2→キーパーソン死亡と主人公死亡の両方。どちらの理由でループが終わるか（字面の読み: 事件の効果は最後まで解決され、主人公も死亡）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 2,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C09": "KEY"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "HOSPITAL",
+      "culprit": "C01"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": {
+    "reason": "KEY_DIED",
+    "defeat": true
+   }
+  },
+  "source": "早見表 事件 病院の事件「病院に[暗躍C]が1つ以上→病院にいるすべてのキャラクターを死亡させる。病院に[暗躍C]が2つ以上→主人公を死亡させる」／早見表 キーパーソン「【強制：このキャラクターの死亡時】主人公は敗北し、直ちにループを終了する」／公式FAQ Af02（キーパーソン殺害の後も同じ事件フェイズの事件は順次発生し、その後にループが終わる） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "敗北であることは確定。1行目の死亡でキーパーソンの「直ちにループを終了」が2行目より先に効くのか、Af02 のように事件の解決を終えてから終わるのかが資料で決まらない。エンジンの reason（推理に渡る死因の公開情報）が KEY_DIED か PROTAGONIST_DIED か、両方かの裁定が要る"
+ },
+ {
+  "id": "hosp-guard",
+  "desc": "病院に暗躍1。護衛1の入院患者は護衛を1つ失って生存、医者は死亡",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C08": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 1
+    }
+   },
+   "boards": {
+    "HOS": 1,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "HOSPITAL",
+      "culprit": "C01"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C08": {
+     "area": "HOS",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 事件 病院の事件「病院に[暗躍C]が1つ以上→病院にいるすべてのキャラクターを死亡させる。病院に[暗躍C]が2つ以上→主人公を死亡させる」／キャラクターカード 刑事［友好5］「護衛カウンターが置かれたキャラクターが死亡する場合、代わりに護衛カウンターを1つ取り除く」（wiki/characters/character-05.md）",
+  "status": "confirmed"
+ },
+ {
+  "id": "remote-int2",
+  "desc": "遠隔殺人。別エリア(学校)の暗躍2の男子学生を選ぶ→死亡（エリアは問わない）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "REMOTE",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C01"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C01": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 事件 遠隔殺人「[暗躍C]が2つ以上置かれたキャラクター1人を死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "remote-int1-error",
+  "desc": "暗躍1のキャラを選ぶ→error",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "REMOTE",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C01"
+  },
+  "expect": {
+   "error": "暗躍が2未満"
+  },
+  "source": "早見表 事件 遠隔殺人「[暗躍C]が2つ以上置かれたキャラクター1人を死亡させる」",
+  "status": "confirmed"
+ },
+ {
+  "id": "remote-no-candidate",
+  "desc": "暗躍2以上のキャラクターがいない（暗躍1のみ）→事件は発生し、誰も死亡しない（不発ではない）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "REMOTE",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": true,
+   "chars": {},
+   "loop_end": null
+  },
+  "source": "早見表 事件 遠隔殺人「[暗躍C]が2つ以上置かれたキャラクター1人を死亡させる」／主人公の書 印刷p24 4-7（発生条件: 犯人が生存し、不安臨界以上の不安C）（発生条件は犯人の生存と不安だけ）／公式FAQ Af01",
+  "status": "confirmed"
+ },
+ {
+  "id": "remote-no-choice-error",
+  "desc": "候補(暗躍2の男子学生)がいるのに対象を選ばない→error（効果は必ず解決する）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "REMOTE",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {},
+  "expect": {
+   "error": "候補がいるので対象の指定が必要"
+  },
+  "source": "早見表 事件 遠隔殺人「[暗躍C]が2つ以上置かれたキャラクター1人を死亡させる」／haunted_p12「【強制】区分の能力は条件を満たしたならば必ず解決」（事件は必ず発生）",
+  "status": "confirmed"
+ },
+ {
+  "id": "remote-self",
+  "desc": "犯人(情報屋)自身が暗躍2→犯人を選べる（「犯人以外」とは書かれていない）。犯人死亡",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "REMOTE",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C07"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": false,
+     "par": 3,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 事件 遠隔殺人「[暗躍C]が2つ以上置かれたキャラクター1人を死亡させる」（殺人事件は「犯人以外の」と明記）／公式FAQ Ch01（「同一エリアにいるキャラクター」は能力を使うキャラクター自身を含む。含まない場合は「自身以外の」と記述される）",
+  "status": "confirmed"
+ },
+ {
+  "id": "remote-corpse-error",
+  "desc": "暗躍2の死体を選ぶ→error（死体はキャラクターでない）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    },
+    "C02": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "REMOTE",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C01"
+  },
+  "expect": {
+   "error": "死体は対象にできない"
+  },
+  "source": "早見表 事件 遠隔殺人「[暗躍C]が2つ以上置かれたキャラクター1人を死亡させる」／haunted_p12 ルールの調整と整備（wiki/concepts/terminology.md）「キャラクター」は生存しているキャラクターカード",
+  "status": "confirmed"
+ },
+ {
+  "id": "remote-key",
+  "desc": "暗躍2のキーパーソン(お嬢様)を選ぶ→死亡、ループ終了（敗北）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C03": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {
+     "C03": "KEY"
+    },
+    "incidents": [
+     {
+      "day": 1,
+      "id": "REMOTE",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C03"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C03": {
+     "area": "SCH",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 2,
+     "guard": 0
+    }
+   },
+   "loop_end": {
+    "reason": "KEY_DIED",
+    "defeat": true
+   }
+  },
+  "source": "早見表 事件 遠隔殺人「[暗躍C]が2つ以上置かれたキャラクター1人を死亡させる」／早見表 キーパーソン「【強制：このキャラクターの死亡時】主人公は敗北し、直ちにループを終了する」",
+  "status": "confirmed"
+ },
+ {
+  "id": "missing-move",
+  "desc": "行方不明。犯人(情報屋・都市)を神社へ移動→神社に暗躍1",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MISSING",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "board": "SHR"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C07": {
+     "area": "SHR",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 1,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "loop_end": null
+  },
+  "source": "早見表 事件 行方不明「犯人を任意のボードに移動させる。その後、犯人のいるボードに[暗躍C]を1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "missing-stay",
+  "desc": "犯人(情報屋)をその場(都市)に留める→都市に暗躍1",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MISSING",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "board": "CIT"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 1,
+    "SCH": 0
+   },
+   "loop_end": null
+  },
+  "source": "早見表 事件 行方不明「犯人を任意のボードに移動させる。その後、犯人のいるボードに[暗躍C]を1つ置く」／非公式wiki FAQ（BakaFire 氏の回答。wiki/sources/unofficial-wiki.md）「犯人が元いたボードに留まる場合も暗躍カウンターを置くだけ」",
+  "status": "confirmed"
+ },
+ {
+  "id": "missing-forbidden-error",
+  "desc": "犯人(サラリーマン・禁止エリア学校)を学校へ→error",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C06": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MISSING",
+      "culprit": "C06"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "board": "SCH"
+  },
+  "expect": {
+   "error": "禁止エリアへは移動できない"
+  },
+  "source": "早見表 事件 行方不明「犯人を任意のボードに移動させる。その後、犯人のいるボードに[暗躍C]を1つ置く」／非公式wiki FAQ（BakaFire 氏の回答。wiki/sources/unofficial-wiki.md）「サラリーマンを学校に移動…いいえ、不可能です」",
+  "status": "confirmed"
+ },
+ {
+  "id": "missing-inpatient-stays",
+  "desc": "犯人(入院患者・病院以外すべて禁止)→病院に留めるしかない。病院に暗躍1",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MISSING",
+      "culprit": "C09"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "board": "HOS"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C09": {
+     "area": "HOS",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 1,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "loop_end": null
+  },
+  "source": "早見表 事件 行方不明「犯人を任意のボードに移動させる。その後、犯人のいるボードに[暗躍C]を1つ置く」／非公式wiki FAQ（BakaFire 氏の回答。wiki/sources/unofficial-wiki.md）（禁止エリア不可・留まってよい）",
+  "status": "confirmed"
+ },
+ {
+  "id": "missing-no-choice-error",
+  "desc": "移動先のボードを選ばない→error（留まる場合も現在のボードを指定する）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MISSING",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {},
+  "expect": {
+   "error": "移動先のボードの指定が必要"
+  },
+  "source": "早見表 事件 行方不明「犯人を任意のボードに移動させる。その後、犯人のいるボードに[暗躍C]を1つ置く」（インターフェースの取り決め: 留まるなら現在のボードを board に書く）",
+  "status": "confirmed"
+ },
+ {
+  "id": "missing-below-limit",
+  "desc": "犯人(情報屋)の不安2（臨界3未満）→発生しない。移動も暗躍も無い",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 2,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "MISSING",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": false,
+   "chars": {},
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "loop_end": null
+  },
+  "source": "主人公の書 印刷p24 4-7（発生条件: 犯人が生存し、不安臨界以上の不安C）",
+  "status": "confirmed"
+ },
+ {
+  "id": "rumor-basic",
+  "desc": "流布。刑事(友好3)から友好2を取り除き、男子学生(友好0・別エリア)に友好2",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "RUMOR_SPREAD",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "from": "C05",
+   "to": "C01"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 事件 流布「任意のキャラクター1人から[友好C]を2つ取り除き、別のキャラクター1人に[友好C]を2つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "rumor-from-gw1",
+  "desc": "友好1しかない刑事から取り除く→刑事は友好0、男子学生には友好2（取り除けた数によらず置く）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "RUMOR_SPREAD",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "from": "C05",
+   "to": "C01"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 2,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 事件 流布「任意のキャラクター1人から[友好C]を2つ取り除き、別のキャラクター1人に[友好C]を2つ置く」（取り除くことと置くことは別の文で、置く数は取り除けた数に依らない）／公式FAQ Ch19（不安0のキャラクターに不安を取り除く効果を使用できる） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "Ch19 は友好能力による「取り除く」効果の問答で、事件の流布について足りない友好から取り除けるか、その場合に相手へ2つ置くかを直接述べた資料は無い。字面の読み（0で止まり、相手には2つ置く）を期待値にした"
+ },
+ {
+  "id": "rumor-same-char-error",
+  "desc": "取り除く相手と置く相手に同じキャラ→error（「別のキャラクター」）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "RUMOR_SPREAD",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "from": "C05",
+   "to": "C05"
+  },
+  "expect": {
+   "error": "別のキャラクターに"
+  },
+  "source": "早見表 事件 流布「任意のキャラクター1人から[友好C]を2つ取り除き、別のキャラクター1人に[友好C]を2つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "rumor-corpse-error",
+  "desc": "死体(友好3)から取り除く→error",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 3,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_MURDER",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "RUMOR_SPREAD",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "from": "C05",
+   "to": "C01"
+  },
+  "expect": {
+   "error": "死体は対象にできない"
+  },
+  "source": "早見表 事件 流布「任意のキャラクター1人から[友好C]を2つ取り除き、別のキャラクター1人に[友好C]を2つ置く」／haunted_p12 ルールの調整と整備（wiki/concepts/terminology.md）「キャラクター」は生存しているキャラクターカード／公式FAQ Ru05",
+  "status": "confirmed"
+ },
+ {
+  "id": "butterfly-par",
+  "desc": "蝶の羽ばたき。犯人(情報屋・都市)と同じ都市の刑事に不安1。incident_log に発生が残る",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "BUTTERFLY",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C05",
+   "counter": "par"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 1,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null,
+   "incident_log": [
+    {
+     "loop": 1,
+     "id": "BUTTERFLY",
+     "occurred": true
+    }
+   ]
+  },
+  "source": "早見表 事件 蝶の羽ばたき「犯人と同一エリアにいるキャラクター1人にいずれかのカウンターを1つ置く」／早見表 未来改変プラン「このループ中に蝶の羽ばたきが発生」（s5_loop_end の incident_log）",
+  "status": "confirmed"
+ },
+ {
+  "id": "butterfly-int",
+  "desc": "同じ都市の刑事に暗躍1",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "BUTTERFLY",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C05",
+   "counter": "int"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 1,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 事件 蝶の羽ばたき「犯人と同一エリアにいるキャラクター1人にいずれかのカウンターを1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "butterfly-gw",
+  "desc": "同じ都市の刑事に友好1（字面では「いずれかのカウンター」に友好を含む）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "BUTTERFLY",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C05",
+   "counter": "gw"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 1,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 事件 蝶の羽ばたき「犯人と同一エリアにいるキャラクター1人にいずれかのカウンターを1つ置く」／主人公の書 印刷p18 友好カウンター「主人公のみがキャラクターの上に置くことができ」 ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "印刷p18 は友好カウンターを置けるのは主人公のみとする。流布は友好を置くと明記するが、蝶の羽ばたきは「いずれかのカウンター」としか書かず、脚本家が解決する事件で友好を選べるかを述べた資料が無い"
+ },
+ {
+  "id": "butterfly-guard-counter",
+  "desc": "「いずれかのカウンター」に護衛カウンターを選ぶ→error（字面の読み: 3種類のカウンターのどれか）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "BUTTERFLY",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C05",
+   "counter": "guard"
+  },
+  "expect": {
+   "error": "友好・不安・暗躍のどれか"
+  },
+  "source": "早見表 事件 蝶の羽ばたき「犯人と同一エリアにいるキャラクター1人にいずれかのカウンターを1つ置く」／主人公の書 印刷p18（「3種類のカウンター」と、進行状況用のカウンター。護衛カウンターは後者） ／ユーザー裁定 2026-09-24（wiki/notes/rulings.md）",
+  "status": "confirmed",
+  "ruling_note": "印刷p18 は状態を表す3種類と、進行状況用（ループ・日数・事件・Exゲージ・縄張り・護衛）を分けて紹介するが、「いずれかのカウンター」がどちらを指すかを定めた資料が無い"
+ },
+ {
+  "id": "butterfly-culprit-alone",
+  "desc": "犯人(情報屋)だけが都市にいる→犯人自身を選び不安1（犯人を含む）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "BUTTERFLY",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C07",
+   "counter": "par"
+  },
+  "expect": {
+   "occurred": true,
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 4,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "loop_end": null
+  },
+  "source": "早見表 事件 蝶の羽ばたき「犯人と同一エリアにいるキャラクター1人にいずれかのカウンターを1つ置く」（殺人事件は「犯人以外の」と明記、こちらには無い）／公式FAQ Ch01（「同一エリアにいるキャラクター」は能力を使うキャラクター自身を含む。含まない場合は「自身以外の」と記述される）",
+  "status": "confirmed"
+ },
+ {
+  "id": "butterfly-other-area-error",
+  "desc": "別エリア(学校)の男子学生を選ぶ→error",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C01": {
+     "area": "SCH",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "BUTTERFLY",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C01",
+   "counter": "par"
+  },
+  "expect": {
+   "error": "犯人と同一エリアでない"
+  },
+  "source": "早見表 事件 蝶の羽ばたき「犯人と同一エリアにいるキャラクター1人にいずれかのカウンターを1つ置く」",
+  "status": "confirmed"
+ },
+ {
+  "id": "butterfly-corpse-error",
+  "desc": "同じ都市の刑事の死体を選ぶ→error",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": true,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": false,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "BUTTERFLY",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": {
+   "target": "C05",
+   "counter": "int"
+  },
+  "expect": {
+   "error": "死体は対象にできない"
+  },
+  "source": "早見表 事件 蝶の羽ばたき「犯人と同一エリアにいるキャラクター1人にいずれかのカウンターを1つ置く」／haunted_p12 ルールの調整と整備（wiki/concepts/terminology.md）「キャラクター」は生存しているキャラクターカード",
+  "status": "confirmed"
+ },
+ {
+  "id": "butterfly-culprit-dead",
+  "desc": "犯人(情報屋・不安3)が死体→発生しない。incident_log に発生の記録は残らない（未来改変プランは成り立たない）",
+  "phase": "incident",
+  "state": {
+   "loop": 1,
+   "day": 1,
+   "leader": "A",
+   "chars": {
+    "C07": {
+     "area": "CIT",
+     "alive": false,
+     "par": 3,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    },
+    "C05": {
+     "area": "CIT",
+     "alive": true,
+     "par": 0,
+     "gw": 0,
+     "int": 0,
+     "guard": 0
+    }
+   },
+   "boards": {
+    "HOS": 0,
+    "SHR": 0,
+    "CIT": 0,
+    "SCH": 0
+   },
+   "used": {
+    "M": [],
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "script": {
+    "rules": [
+     "Y_FUTURE",
+     "X_LOVE",
+     "X_KILLER"
+    ],
+    "roles": {},
+    "incidents": [
+     {
+      "day": 1,
+      "id": "BUTTERFLY",
+      "culprit": "C07"
+     }
+    ]
+   }
+  },
+  "choice": null,
+  "expect": {
+   "occurred": false,
+   "chars": {},
+   "loop_end": null
+  },
+  "source": "主人公の書 印刷p24 4-7（発生条件: 犯人が生存し、不安臨界以上の不安C）",
+  "status": "confirmed"
+ }
+]
