@@ -250,6 +250,7 @@ PYTHONPATH=../sangeki-engine python -m selfplay.tune positions/*.json --side mm 
 - 開発中のため、コマンドや形式は予告なく変わることがあります
 
 不具合や裁定の誤りを見つけたら、Issue で教えてください。
+ブラウザ版での不具合なら、ディスクのメニューの『リプレイの URL をコピー』で作った URL（試合の途中なら『この場面から再開する URL』）を添えてもらえると、とても助かります。
 
 ## 原作と出典
 
@@ -266,7 +267,7 @@ PYTHONPATH=../sangeki-engine python -m selfplay.tune positions/*.json --side mm 
 
 ## 連絡先
 
-作者: cha2maru（X: [@withoutcane](https://x.com/withoutcane) ／ GitHub: [cha2maru/sangeki-engine](https://github.com/cha2maru/sangeki-engine)）。不具合や裁定の誤りは [GitHub の Issue](https://github.com/cha2maru/sangeki-engine/issues) か X へ。
+作者: cha2maru（X: [@withoutcane](https://x.com/withoutcane) ／ GitHub: [cha2maru/sangeki-engine](https://github.com/cha2maru/sangeki-engine)）。不具合や裁定の誤りは [GitHub の Issue](https://github.com/cha2maru/sangeki-engine/issues) か X へ。リプレイの URL を添えてもらえると助かります。
 
 ## ライセンス
 
