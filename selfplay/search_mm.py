@@ -767,6 +767,7 @@ class SearchMastermind(RouteMastermind):
             return mm
         self._start_loop(s)
         self._reply_of = {}
+        self._prog(0.02, '盤面を読んでいます')
         scored = self.rank_moves(s)
         if not scored:
             return super().mm_cards(s)
@@ -777,6 +778,7 @@ class SearchMastermind(RouteMastermind):
             k = self.rng.randrange(min(8, len(scored)))
         v, mm, v_reply, v_mean = scored[k]
         if self.calc:
+            self._prog(0.85, '負け筋を逆算しています（このループを取れるか' + ('・伏せ札の賭け' if self.gamble else '') + '）')
             fp = forced_plan(s, self.days, hidden=bool(self.gamble), watch=self._watch(s) if self.gamble else None)
             if fp['locked'] or self._locked(s):
                 # 確定したループは押さずに隠す（メモリ mastermind-hide-after-locked-loop）: 閾値に一番近い情報・守りの能力の持ち主に友好禁止。
@@ -823,6 +825,12 @@ class SearchMastermind(RouteMastermind):
             if L < s['loop']:
                 w[t] = w.get(t, 0) + 3
         return w
+
+    def _prog(self, frac, text):
+        """進み具合を知らせる（progress(割合 0〜1, 何をしているか)。対AIモードの盤面のローディングが使う。判断には影響しない）。"""
+        cb = getattr(self, 'progress', None)
+        if cb:
+            cb(frac, text)
 
     @staticmethod
     def _bluff_cards(s, mv):
@@ -893,7 +901,9 @@ class SearchMastermind(RouteMastermind):
                                                       [{'by': 'M', 'target': u, 'card': k} for u, k in zip(others, cards)])
         locked = bool(self.hide_culprit) and self._locked(s)
         culprits_today = {i['culprit'] for i in s['script']['incidents'] if i['day'] >= s['day']} if locked else set()
-        for ts in self._triples(s) + [list(k) for k in forced]:
+        tss = self._triples(s) + [list(k) for k in forced]
+        for i_ts, ts in enumerate(tss):
+            self._prog(0.05 + 0.75 * i_ts / max(1, len(tss)), f'伏せ札の置き場所を比べています（{i_ts + 1}/{len(tss)} 組）')
             cands = list(forced.get(tuple(ts), []))
             for _ in range(self.nc):
                 cards = self._deal(hand, ts)

@@ -512,9 +512,29 @@ THINK = {'loop_setup': 'ループの準備', 'mm_cards': '伏せ札', 'mm_abilit
 
 def _thinking(t, what, f):
     def g(*a, **k):
-        t.show(waiting={'kind': 'thinking', 'text': f'脚本家が考えています（{what}）', 'what': what, 'since': time.time(), 'options': []}, bump=False)
+        s = a[0] if a and isinstance(a[0], dict) and 'chars' in a[0] else None  # 1日目は盤面がまだ書かれていないので、ここで渡す
+        t.show(s, waiting={'kind': 'thinking', 'text': f'脚本家が考えています（{what}）', 'what': what, 'since': time.time(), 'options': []}, bump=False)
         return f(*a, **k)
     return g
+
+
+def _progress(t, every=0.3):
+    """脚本家の進み具合（SearchMastermind._prog）を盤面に書く。書き込みは every 秒に1回まで（最後の 1.0 は必ず）。"""
+    last = [0.0]
+
+    def cb(frac, text):
+        now = time.time()
+        if (t.waiting or {}).get('kind') != 'thinking' or (now - last[0] < every and frac < 1.0):
+            return
+        last[0] = now
+        t.show(waiting={**t.waiting, 'progress': round(frac, 3), 'step': text}, bump=False)
+    return cb
+
+
+def short_id(sid):
+    """開始時に出す脚本の ID。最後の _ 以降（例 s03_bomb の bomb、gen_s11_036 の 036）は隠す（名前は内容の手がかりになる）。"""
+    head, _, base = sid.rpartition('/')
+    return (head + '/' if head else '') + base.rsplit('_', 1)[0]
 
 
 def list_scripts():
@@ -566,10 +586,11 @@ def main():
         f = getattr(mm, meth, None)
         if callable(f):
             setattr(mm, meth, _thinking(t, what, f))
+    mm.progress = _progress(t)
     player = Combo(mm, pc)
     nar = Narrator(t)
     # 題名は内容の手がかりになるので、開始時は ID だけ出す（題名はゲーム終了時の非公開シートの公開で出す）
-    t.log(f'対AIモード開始。脚本 {a.script}（ループ {script["loops"]} 回・1ループ {script["days"]} 日・'
+    t.log(f'対AIモード開始。脚本 {short_id(a.script)}（ループ {script["loops"]} 回・1ループ {script["days"]} 日・'
           f'{script.get("set", "BTX")}）。脚本家は' + ('Claude' if a.mm == 'claude' else f'自動（{a.mm}）'))
 
     def log0(kind, rec):

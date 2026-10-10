@@ -145,9 +145,15 @@ table.sh input { width:100%; box-sizing:border-box; }
 #uxpanel.on { display:block; } #uxpanel label { display:flex; justify-content:space-between; gap:12px; margin:5px 0; }
 #uxpanel select, #uxpanel input { font:inherit; background:#111; color:var(--fg); border:1px solid #555; }
 /* 考え中: 盤面は見え・触れたまま、上に小さな表示を出す */
-#think { position:fixed; z-index:15; left:50%; top:calc(var(--bandh, 52px) + 10px); transform:translateX(-50%); display:none; align-items:center; gap:10px;
-  background:rgba(0,0,0,.88); border:1px solid var(--acc); border-radius:20px; padding:6px 16px; font-weight:700; pointer-events:none; }
-body.thinking #think { display:flex; } body.thinking #board { filter:brightness(.72); transition:filter .3s; }
+/* 考え中・読み込み中: 画面の中央に、何をしているかと進み具合のバー（分からないときは流れる帯）。盤面は見え・触れたまま */
+#think { position:fixed; z-index:15; left:50%; top:50%; transform:translate(-50%, -50%); display:none; flex-direction:column; gap:8px;
+  width:min(440px, 86vw); background:rgba(0,0,0,.92); border:1px solid var(--acc); border-radius:8px; padding:14px 18px; pointer-events:none; box-shadow:0 6px 24px #000; }
+body.thinking #think { display:flex; }
+#think .t { display:flex; align-items:center; gap:10px; font-weight:700; } #think .t #thinksec { margin-left:auto; }
+#think .step { color:var(--mut); font-size:12px; min-height:1.5em; }
+.pbar { height:8px; background:#333; border-radius:4px; overflow:hidden; } .pbar i { display:block; height:100%; width:0; background:var(--acc); transition:width .4s; }
+.pbar.ind i { width:35%; animation:ind 1.3s ease-in-out infinite; }
+@keyframes ind { from { transform:translateX(-100%); } to { transform:translateX(290%); } } body.thinking #board { filter:brightness(.72); transition:filter .3s; }
 .spin { width:16px; height:16px; border:3px solid #555; border-top-color:var(--acc); border-radius:50%; animation:spin 1s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
 #band .wait.mine { background:#1f7a45; animation:pulse 1.4s ease-in-out 3; }
@@ -216,6 +222,12 @@ body.mode-ai .manual-only { display:none; }
 #welcome h1 { margin:0; color:var(--acc); font-size:24px; } #welcome .lead { color:var(--mut); margin:2px 0 12px; }
 #welcome h3 { margin:12px 0 4px; color:var(--acc); font-size:14px; } #welcome ul, #welcome ol { margin:0 0 0 1.3em; padding:0; } #welcome li { margin:2px 0; }
 #welcome .btns { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; } #welcome a { color:var(--mut); }
+/* キャラクターの説明のポップアップ */
+#chartip { position:fixed; z-index:22; display:none; width:min(400px, 92vw); background:#1b1a18; border:1px solid var(--acc); border-radius:6px;
+  padding:10px 12px; font-size:14px; line-height:1.55; box-shadow:0 6px 24px #000; pointer-events:none; }
+#chartip .h { font-size:17px; font-weight:800; color:var(--acc); margin-bottom:4px; } #chartip .h2 { font-weight:700; color:var(--acc); margin:8px 0 2px; }
+#chartip table { border-collapse:collapse; width:100%; } #chartip th { text-align:left; color:var(--mut); font-weight:400; white-space:nowrap; padding:1px 10px 1px 0; vertical-align:top; }
+#chartip ul { margin:0 0 0 1.2em; padding:0; } #chartip li { margin:3px 0; }
 </style>
 
 <div id="band"></div>
@@ -259,7 +271,8 @@ body.mode-ai .manual-only { display:none; }
 </div>
 <p class="mut" style="margin:8px 12px">画像: <a href="http://bakafire.main.jp/rooper/sr_dl_04_sozai.htm" target="_blank" style="color:var(--mut)">惨劇コモンズ5th</a>（惨劇コモンズ作成: BakaFire・紺ノ玲、CC BY-SA 2.1 JP）</p>
 <div id="menu"></div>
-<div id="think"><span class="spin"></span><span id="thinktxt">脚本家が考えています</span><span id="thinksec" class="mut"></span></div>
+<div id="think" role="status" aria-live="polite"><div class="t"><span class="spin"></span><span id="thinktxt">脚本家が考えています</span><span id="thinksec" class="mut"></span></div>
+  <div class="pbar" id="thinkbar"><i></i></div><div class="step" id="thinkstep"></div></div>
 <div id="scene"><div class="box"><h2 id="sc-t"></h2><div class="sub" id="sc-s"></div><div class="body"><ul id="sc-l"></ul></div>
   <div class="btns"><span class="left" id="sc-n"></span><span id="sc-ba"></span><button id="sc-look">盤面を見る</button><button class="go" id="sc-next">閉じる</button></div></div></div>
 <div id="welcome"><div class="box">
@@ -562,13 +575,33 @@ function charTag(c) {
     c.intrigue && `<span class="b i">暗${c.intrigue}</span>`, c.guard && `<span class="b gd">護${c.guard}</span>`].filter(Boolean).join('');
   const cards = allCards().filter(x => x.target === c.name).map(cardTag).join('');
   const hasM = (S.cards || []).some(x => x.owner === 'M' && x.target === c.name);
-  const cp = CHARPUB[c.name] || {};
-  const tip = [`${c.name} 不安臨界${c.limit}`, cp.forbidden?.length ? '禁止エリア: ' + cp.forbidden.map(a => ({ HOS: '病院', SHR: '神社', CIT: '都市', SCH: '学校' })[a]).join('・') : '',
-    (cp.tags || []).join('・'), cp.traits ? '特性: ' + cp.traits : '', ...(cp.abilities || []).map(a => `友好${a.need}${a.once ? '★' : ''}: ${a.text}`)].filter(Boolean).join('\n');
-  return `<div class="ch ${c.alive === false ? 'dead' : ''} ${hasM ? 'hasm' : ''} ${CHG.has(c.name) ? 'chg' : ''}" data-char="${esc(c.name)}" tabindex="0" aria-label="${esc(c.name)}" title="${esc(tip)}${c.role ? ' / 役職:' + esc(c.role) : ''}">
+  return `<div class="ch ${c.alive === false ? 'dead' : ''} ${hasM ? 'hasm' : ''} ${CHG.has(c.name) ? 'chg' : ''}" data-char="${esc(c.name)}" tabindex="0" aria-label="${esc(c.name)}">
     <div class="ccards">${cards}</div>${noimg() ? '' : `<img class="st" src="${IMG}chara_stand/chara_stand_${c.card}.png">`}
     <span class="lim" title="不安臨界">臨<b>${c.limit}</b></span><div class="nm">${esc(c.name)}</div><div class="cnt">${cnt}</div></div>`;
 }
+// キャラクターの説明（ポイントすると大きめのポップアップ。ブラウザの title の小さな吹き出しの代わり）
+const AREA_JA = { HOS: '病院', SHR: '神社', CIT: '都市', SCH: '学校' };
+function charTipHTML(name) {
+  const c = (S.characters || []).find(x => x.name === name); if (!c) return '';
+  const cp = CHARPUB[name] || {};
+  const row = (k, v) => v ? `<tr><th>${k}</th><td>${v}</td></tr>` : '';
+  return `<div class="h">${esc(name)}${c.alive === false ? ' <span style="color:var(--warn)">死亡</span>' : ''}${c.role ? ` <span class="mut">役職: ${esc(c.role)}</span>` : ''}</div><table>`
+    + row('不安臨界', esc(c.limit)) + row('カウンター', `不安 ${c.paranoia || 0}・友好 ${c.goodwill || 0}・暗躍 ${c.intrigue || 0}${c.guard ? '・護衛 ' + c.guard : ''}`)
+    + row('初期エリア', esc(AREA_JA[cp.start] || cp.start || '')) + row('禁止エリア', esc((cp.forbidden || []).map(a => AREA_JA[a] || a).join('・')))
+    + row('属性', esc((cp.tags || []).join('・'))) + row('特性', esc(cp.traits || ''))
+    + '</table>' + ((cp.abilities || []).length ? '<div class="h2">友好能力</div><ul>' + cp.abilities.map(a =>
+      `<li><b>友好${a.need}${a.once ? '★' : ''}</b> ${esc(a.text)}</li>`).join('') + '</ul>' : '');
+}
+const ctip = Object.assign(document.createElement('div'), { id: 'chartip' }); document.body.appendChild(ctip);
+let ctipFor = null;
+document.addEventListener('mouseover', e => { const ch = e.target.closest('#board .ch'); if (!ch || e.target.closest('.card') || $('menu').style.display === 'block') return;
+  if (ctipFor !== ch.dataset.char) { ctipFor = ch.dataset.char; ctip.innerHTML = charTipHTML(ctipFor); } ctip.style.display = 'block'; });
+document.addEventListener('mousemove', e => { if (ctip.style.display !== 'block') return;
+  const w = ctip.offsetWidth, h = ctip.offsetHeight;
+  ctip.style.left = Math.max(4, Math.min(e.clientX + 18, innerWidth - w - 8)) + 'px';
+  ctip.style.top = Math.max(4, e.clientY + 18 + h > innerHeight ? e.clientY - h - 12 : e.clientY + 18) + 'px'; });
+document.addEventListener('mouseout', e => { const ch = e.target.closest('#board .ch'); if (ch && !ch.contains(e.relatedTarget)) { ctip.style.display = 'none'; ctipFor = null; } });
+document.addEventListener('contextmenu', () => { ctip.style.display = 'none'; }, true);
 let logFollow = true;
 // 今日の出来事: 公開ログのうち、いちばん新しい日の分をフェイズごとにまとめて操作欄に出す（ログだけだと見づらい。ユーザー要望）
 function renderToday() {
@@ -829,9 +862,14 @@ function renderThink() {
   const on = ux('think') && !viewing && (w.kind === 'thinking' || (awaiting && Date.now() - awaiting < 120000));
   document.body.classList.toggle('thinking', !!on);
   if (on) {
-    const since = w.kind === 'thinking' && w.since ? w.since * 1000 : awaiting;
-    $('thinktxt').textContent = w.kind === 'thinking' ? (w.text || '脚本家が考えています') : '送信しました。処理を待っています';
+    const th = w.kind === 'thinking', since = th && w.since ? w.since * 1000 : awaiting;
+    $('thinktxt').textContent = th ? (w.text || '脚本家が考えています') : S.loop ? '送信しました。処理を待っています' : 'ゲームを準備しています';
     $('thinksec').textContent = since ? Math.max(0, Math.round((Date.now() - since) / 1000)) + '秒' : '';
+    // 進み具合: 脚本家が知らせた割合（伏せ札の計算）があればその長さ、無ければ流れる帯
+    const pr = th && typeof w.progress === 'number' ? w.progress : null;
+    $('thinkbar').classList.toggle('ind', pr == null);
+    $('thinkbar').firstElementChild.style.width = pr == null ? '' : Math.round(pr * 100) + '%';
+    $('thinkstep').textContent = th ? (w.step || '') : S.loop ? '盤面の更新を待っています' : '脚本を読み込み、推理を準備しています';
   }
   const ended = (S.phaseName || '').startsWith('ゲーム終了');
   document.title = ended ? '終了 ― 惨劇RoopeR' : myTurn() ? '★あなたの番 ― 惨劇RoopeR' : on ? '考え中… ― 惨劇RoopeR' : '惨劇RoopeR 盤面';
@@ -839,9 +877,23 @@ function renderThink() {
 setInterval(renderThink, 1000);
 
 // 場面カード: 公開ログをフェイズの区切り（── L?D? 名前 ──）でまとめ、区切りが変わったら1枚にして順に出す
-let seenN = null, group = null, sceneQ = [], scene = null, sceneTimer = null, lastLD = null;
+let seenN = null, group = null, sceneQ = [], scene = null, sceneTimer = null, lastLD = null, lastHdr = null, day = null;
 const SPEED = { slow: 1.6, normal: 1, fast: 0.5, none: 0 };
-function flushGroup() { if (group && group.lines.length) sceneQ.push(group); group = null; }
+const INPUT_PHASE = /主人公(行動|能力)フェイズ|最後の戦い/;  // 自分の入力を待つフェイズ（何も起きなくてもカードは出さない）
+function flushGroup() {
+  if (group && (group.lines.length || !INPUT_PHASE.test(group.title))) {
+    // 区切りに付いた情報（脚本家行動フェイズの伏せ札の置き場所など）があれば、それを本文に
+    if (!group.lines.length) group.lines.push(group.extra ? (/伏せ札/.test(group.extra) ? '脚本家が' + group.extra.replace(/^伏せ札[:：]\s*/, '伏せ札を置いた: ') : group.extra) : '（特に何も起きなかった）');
+    sceneQ.push(group);
+  }
+  group = null;
+}
+// 日の終わり: その日に起きたことをまとめた1枚。自動では閉じない（『次の日へ』で次に進む＝考える時間）
+function flushDay(label) {
+  if (day && day.lines.length) sceneQ.push({ title: label || `${day.dayNo}日目の終わり`, sub: `ループ${day.loop} ・ ${day.dayNo}日目 ・ 振り返り`,
+    lines: day.lines, first: day.first, last: day.last, hold: true });
+  day = null;
+}
 function sceneOnLog() {
   if (seenN == null) { seenN = LOG.length ? LOG[LOG.length - 1].n : 0; return; }  // 開いた時点より前はさかのぼらない
   for (const l of LOG.filter(x => x.n > seenN)) {
@@ -849,18 +901,33 @@ function sceneOnLog() {
     const m = /^── (L(\d+)D(\d+)) (.+?) ──(.*)$/.exec(l.text || '');
     if (m) {
       flushGroup();
-      const ld = m[1], fresh = lastLD && ld !== lastLD ? (+m[2] !== +lastLD.slice(1).split('D')[0] ? `ループ${m[2]} 開始` : `${m[3]}日目`) : '';
+      const ld = m[1];
+      if (lastLD && ld !== lastLD) flushDay(+m[2] !== +lastLD.slice(1).split('D')[0] ? `ループ${lastLD.slice(1).split('D')[0]}の終わり` : null);
+      const fresh = lastLD && ld !== lastLD ? (+m[2] !== +lastLD.slice(1).split('D')[0] ? `ループ${m[2]} 開始` : `${m[3]}日目`) : '';
       lastLD = ld;
-      group = { title: m[4], sub: `ループ${m[2]} ・ ${m[3]}日目${fresh ? ' ・ ' + fresh : ''}${m[5] ? ' ・ ' + m[5].trim() : ''}`, lines: [], first: l.n + 1, last: l.n };
+      if (!day) day = { loop: m[2], dayNo: m[3], lines: [], first: l.n + 1, last: l.n };
+      lastHdr = { title: m[4], sub: `ループ${m[2]} ・ ${m[3]}日目${fresh ? ' ・ ' + fresh : ''}`, extra: (m[5] || '').trim() };
+      group = { ...lastHdr, lines: [], first: l.n + 1, last: l.n };
     } else {
-      if (!group) group = { title: 'お知らせ', sub: '', lines: [], first: l.n, last: l.n };
+      // 区切りの後で出た行（自分の入力の結果など）は、直前のフェイズの続きとして扱う
+      if (!group) group = { ...(lastHdr || { title: 'お知らせ', sub: '' }), lines: [], first: l.n, last: l.n };
       group.lines.push(l.text); group.last = l.n;
+      if (day) { day.lines.push(l.text); day.last = l.n; }
     }
   }
-  if (myTurn() || /ゲーム終了/.test((LOG[LOG.length - 1] || {}).text || '')) flushGroup();
+  const last = (LOG[LOG.length - 1] || {}).text || '';
+  if (/ゲーム終了/.test(last)) { flushGroup(); flushDay('ゲーム終了'); }
+  else if (myTurn()) flushGroup();
   nextScene();
 }
-function sceneOnState() { if (myTurn()) { flushGroup(); nextScene(); } }
+function sceneOnState(v) {
+  // 脚本家が次の日の伏せ札を考え始めた＝前の日が終わった。日の終わりのカードをすぐ出す（脚本家はその間に考える）
+  const w = (v || S).waiting || {};
+  if (day && w.kind === 'thinking' && w.what === '伏せ札' && ((v || S).day !== +day.dayNo || (v || S).loop !== +day.loop)) {
+    flushGroup(); flushDay((v || S).loop !== +day.loop ? `ループ${day.loop}の終わり` : null); lastLD = null; nextScene(); return;
+  }
+  if (myTurn()) { flushGroup(); nextScene(); }
+}
 function nextScene(force) {
   if (!ux('scene')) { sceneQ = []; return closeScene(); }
   if (scene && !force) return;
@@ -873,11 +940,11 @@ function nextScene(force) {
   const k = SPEED[ux('speed')] ?? 1;
   $('sc-l').innerHTML = scene.lines.map((x, i) => `<li style="animation-delay:${(i * 0.18 * k).toFixed(2)}s">${esc(x)}</li>`).join('');
   $('sc-n').textContent = sceneQ.length ? `あと ${sceneQ.length} 件` : '';
-  $('sc-next').textContent = sceneQ.length ? '次へ' : '閉じる';
+  $('sc-next').textContent = scene.hold ? (sceneQ.length ? '次の日へ' : '閉じる') : sceneQ.length ? '次へ' : '閉じる';
   $('sc-ba').innerHTML = scene.first <= scene.last ? '<button data-ba="before">解決前</button> <button data-ba="after">解決後</button>' : '';
   // 自動で閉じる: 自分の番で最後の1枚なら閉じない（見落とさないように、閉じるまで操作できない）
   const sec = ux('autoclose') * (k || 1);
-  if (sec > 0 && !(myTurn() && !sceneQ.length)) sceneTimer = setTimeout(() => { if ($('scene').classList.contains('mini')) return; scene = null; nextScene(); }, sec * 1000);
+  if (sec > 0 && !scene.hold && !(myTurn() && !sceneQ.length)) sceneTimer = setTimeout(() => { if ($('scene').classList.contains('mini')) return; scene = null; nextScene(); }, sec * 1000);
 }
 function closeScene() { scene = null; clearTimeout(sceneTimer); $('scene').classList.remove('on', 'mini'); }
 $('sc-next').onclick = () => { backToLive(); scene = null; nextScene(); };
@@ -943,7 +1010,7 @@ $('startf').onsubmit = async e => {
   } catch (err) { return alert('開始できなかった: ' + err.message); }
   $('start').classList.remove('on');
   // 前の試合の表示を片付ける（盤面・ログ・送信待ち・場面カード）
-  S = {}; LOG = []; pending = []; sent = []; lastState = lastLog = lastDed = ''; seenN = null; group = null; sceneQ = []; closeScene(); backToLive();
+  S = {}; LOG = []; pending = []; sent = []; lastState = lastLog = lastDed = ''; seenN = null; group = null; sceneQ = []; day = null; lastHdr = null; lastLD = null; closeScene(); backToLive();
   awaiting = Date.now(); render(); renderLog();
 };
 applyUX();
