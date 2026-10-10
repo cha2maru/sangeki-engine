@@ -207,6 +207,8 @@ span.turf { position:absolute; right:6px; bottom:6px; background:#6b5a1a; color:
 #start select, #start input[type=number] { font:inherit; width:100%; box-sizing:border-box; background:#111; color:var(--fg); border:1px solid #555; padding:4px; }
 #start .row { display:flex; gap:8px; align-items:center; } #start .row button { white-space:nowrap; } #start .btns { display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
 #start .note { color:var(--mut); font-size:12px; margin-top:4px; }
+/* 対AIモード（ai_gm.py・GitHub Pages 版）では、人が進行役を務める手動モード用の欄を出さない */
+body.mode-ai .manual-only { display:none; }
 </style>
 
 <div id="band"></div>
@@ -227,12 +229,12 @@ span.turf { position:absolute; right:6px; bottom:6px; background:#6b5a1a; color:
       <table class="inc" id="abil"></table></section>
     <section><h3>手札</h3><div id="hands"></div></section>
     <section><h3>事件予定</h3><table class="inc" id="inc"></table></section>
-    <section><h3>脚本家に伝える</h3><textarea id="msg" rows="2" placeholder="質問・宣言など（Enterで送信、Shift+Enterで改行）"></textarea></section>
-    <section><details><summary>操作と記号</summary><div class="mut">右クリック: キャラクター・エリア → 札を置く／友好能力／役職の指摘。ログの行をクリック → その時点の盤面、右クリック → 異議。
+    <section class="manual-only"><h3>脚本家に伝える</h3><textarea id="msg" rows="2" placeholder="質問・宣言など（Enterで送信、Shift+Enterで改行）"></textarea></section>
+    <section><details><summary>操作と記号</summary><div class="mut">右クリック: キャラクター・エリア → 札を置く／友好能力／役職の指摘。ログの行をクリック → その時点の盤面<span class="manual-only">、右クリック → 異議</span>。
       ボード左右の丸はエリアの暗躍。駒の <span class="b p">不</span> 不安 <span class="b g">友</span> 友好 <span class="b i">暗</span> 暗躍 <span class="b gd">護</span> 護衛、赤枠は不安臨界以上。
       手札の札をクリックしてからキャラクターかエリアをクリックしても置ける（タップ・Enter も可、Esc で解除）。
       右の欄は見出しで畳める。畳むと盤面が大きくなる。</div></details></section>
-    <section><details><summary>ハッシュでの固定</summary><div id="commits" class="commit"></div></details></section>
+    <section class="manual-only"><details><summary>ハッシュでの固定</summary><div id="commits" class="commit"></div></details></section>
    </div></section>
    <section class="pane" id="p-sheet"><div class="ph"><button class="tog" aria-expanded="true">推理</button>
      <button id="engbtn" class="extra" aria-pressed="false" title="公開された出来事から、ルール上ありうる組み合わせを数えた割合を重ねて表示する">エンジンの候補</button></div><div class="body">
@@ -317,6 +319,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;
 // ---- 描画 ----
 function render() {
   const w = S.waiting || {};
+  document.body.classList.toggle('mode-ai', S.mode === 'ai');
   $('band').innerHTML = S.loop ? `<span>ループ <b>${S.loop}</b>/${S.loops}</span><span>日 <b>${S.day ?? '-'}</b>/${S.days}</span>
     <span class="ph">${esc(S.phaseName)}</span><span>リーダー <b>${esc(S.leader)}</b></span>
     <span class="wait ${myTurn() ? 'mine' : ''}">${esc(w.text || '入力待ちなし')}</span><button id="uxbtn" title="表示の設定">⚙</button>`
@@ -618,6 +621,7 @@ document.addEventListener('contextmenu', e => {
   const ch = e.target.closest('[data-char]'), ar = e.target.closest('[data-area]'), lg = e.target.closest('[data-log]');
   if (!ch && !ar && !lg) return;
   e.preventDefault();
+  if (lg && S.mode === 'ai') return;  // 異議は手動モード（進行役が人）だけ
   if (lg) return menu(e.clientX, e.clientY, `ログ #${lg.dataset.log}`, [{ label: '異議を送る…', go: () => {
     const t = prompt(`#${lg.dataset.log} への異議（どこがおかしいか）`); if (t) post({ type: 'objection', log: +lg.dataset.log, text: t }); } }]);
   if (ch) return targetMenu(e.clientX, e.clientY, ch.dataset.char);

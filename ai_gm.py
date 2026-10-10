@@ -127,7 +127,8 @@ class Table:
                               'territory': AREA_JA.get(sc.get('territory')) if sc.get('territory') else None,
                               'appear': appear, 'special': sc.get('special') or ''}
         pub['loop'] = min(pub['loop'], self.script['loops'])  # 最後の戦いではエンジンのループ番号が1つ進んでいる
-        pub.update({'game': self.game, 'phaseId': self.phase_id, 'phaseName': self.phase_name, 'waiting': self.waiting,
+        pub.update({'mode': 'ai',  # 対AIモード（盤面は手動モード用の欄＝脚本家に伝える・ハッシュ・異議を出さない）
+                    'game': self.game, 'phaseId': self.phase_id, 'phaseName': self.phase_name, 'waiting': self.waiting,
                     'loops': self.script['loops'], 'days': self.script['days'],
                     # 盤面は「キャラクター名#番号」で使用済みを判定する（エンジンは「C07#0」）
                     'abilityUsedToday': [self._tag(x) for x in self.s.get('ability_used_today', [])],
