@@ -1,0 +1,45 @@
+# ブラウザ版（Pyodide）を GitHub Pages に公開する。main に push するたびに組み立てる。
+# 脚本（設計・自動生成）と調整した重みは sangeki-scripts から、盤面の画像は惨劇コモンズ5th の公式の配布ページから取る（キャッシュする）
+name: Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: cha2maru/sangeki-scripts
+          path: _scripts
+      - name: sangeki-scripts を隣に置く（build.sh は ../sangeki-scripts を読む）
+        run: mv _scripts ../sangeki-scripts
+      - uses: actions/cache@v4
+        with:
+          path: assets
+          key: tragedy-commons-5th-v1
+      - name: 盤面の画像（惨劇コモンズ5th）
+        run: '[ -d assets/tragedy_commons_5th/board ] || bash setup_images.sh'
+      - name: 組み立て
+        run: bash web/build.sh
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

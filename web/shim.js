@@ -26,7 +26,10 @@
     started = true;
     store.state = JSON.stringify({ ...st, waiting: { kind: 'none', text: 'エラーで止まりました: ' + String(msg).split('\n').filter(Boolean).slice(-2).join(' ') } });
   }
-  boot();
+  // 人の操作を待つところに JSPI（WebAssembly.Suspending）を使う。無いブラウザでは始めずに案内を出す
+  if (typeof WebAssembly === 'undefined' || typeof WebAssembly.Suspending !== 'function') {
+    setTimeout(() => fail('このブラウザは未対応です。Chrome・Edge の最近の版（137 以降）で開いてください'), 0);
+  } else boot();
   const loading = () => JSON.stringify({ waiting: { kind: 'thinking', text: 'ブラウザで Python を準備しています', step, since, options: [] } });
   const reply = (body, type = 'application/json') => new Response(body, { status: 200, headers: { 'Content-Type': type } });
   const origFetch = window.fetch.bind(window);
