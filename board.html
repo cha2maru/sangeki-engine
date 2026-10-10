@@ -1112,7 +1112,9 @@ const RP = {
     const u = new URLSearchParams(location.search).get('replay');
     if (u) fetch(u).then(r => r.json()).then(d => this.load(d)).catch(e => alert('リプレイを読み込めなかった: ' + e.message));
     if (location.hash.startsWith('#r=')) this.unpack(location.hash.slice(3)).then(d => this.load(d)).catch(e => alert('リプレイの URL を読めなかった: ' + e.message));
-    if (location.hash.startsWith('#p=')) this.build(location.hash.slice(3));
+    // 短い URL は ?p=（X などで # の後ろがハッシュタグと取り違えられないように、2026-10-10）。以前の #p= も開ける
+    const pq = new URLSearchParams(location.search).get('p');
+    if (pq || location.hash.startsWith('#p=')) this.build(pq || location.hash.slice(3));
   },
   // ---- 短い URL（#p=）: 両陣営の判断（record.json）だけを入れ、開くときにエンジンで再生して盤面の記録を作り直す（約1000文字）。
   // 自動の脚本家は考えずに記録した判断を返すので、Python の準備のあとは数秒で終わる。照合値が合わなければ（エンジンの版の違い）知らせる
@@ -1166,9 +1168,9 @@ const RP = {
       const base = location.href.split('#')[0].split('?')[0];
       // この試合の判断の記録があれば短い URL（#p=）。リプレイのファイルを開いて見ているときなどは、盤面の記録ごと入れる（#r=、長い）
       const rec = RP.on ? (RP.data.record || null) : JSON.parse(await (await fetch('/record')).text() || '{}');
-      const url = !full && rec && rec.v ? base + '#p=' + this.b64enc(await this.z(new TextEncoder().encode(JSON.stringify(rec)), true))
+      const url = !full && rec && rec.v ? base + '?p=' + this.b64enc(await this.z(new TextEncoder().encode(JSON.stringify(rec)), true))
         : base + '#r=' + await this.pack(d);
-      const note = url.includes('#p=') ? '開くときにエンジンで試合を作り直します（エンジンの版が変わると再現できないことがあります。バグの報告には「長い URL」を）。'
+      const note = url.includes('?p=') ? '開くときにエンジンで試合を作り直します（エンジンの版が変わると再現できないことがあります。バグの報告には「長い URL」を）。'
         : '盤面の記録をそのまま入れています。';
       await copyText(url, `リプレイの URL（${url.length.toLocaleString()} 文字）をコピーしました。${note}` + (d.complete ? '最後まで進んだ試合なので、脚本の中身（非公開シート）も入っています。' : '試合の途中までで、脚本の中身は入っていません。'));
     } catch (e) { alert('URL を作れなかった: ' + e.message); }
@@ -1207,7 +1209,7 @@ fetch('/scripts').then(r => r.ok ? r.json() : null).then(d => {
 }).catch(() => {});
 // 初めの案内（タイトル・免責事項・遊び方）。開始画面のあるとき（SANGEKI_AI=1）に、ページを開くたびに出す。?ux=off では出さない
 function openWelcome() {
-  if (RP.on || /^#[rp]=/.test(location.hash)) return;  // リプレイを開いたとき（?replay=・#r=・#p=）は案内を出さない
+  if (RP.on || /^#[rp]=/.test(location.hash) || new URLSearchParams(location.search).get('p')) return;  // リプレイを開いたとき（?replay=・#r=・#p=）は案内を出さない
   if (new URLSearchParams(location.search).get('ux') === 'off') { if (!S.loop) openStart(); return; }
   $('wl-cont').style.display = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '' : 'none';
   $('wl-close').style.display = 'none'; $('wl-start').style.display = '';
