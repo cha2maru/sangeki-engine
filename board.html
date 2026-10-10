@@ -103,7 +103,7 @@ body.arming .area, body.arming .ch { cursor:crosshair; }
 button { font:inherit; background:#333; color:var(--fg); border:1px solid #666; border-radius:3px; padding:2px 10px; cursor:pointer; }
 button.go { background:var(--acc); color:#000; border-color:var(--acc); font-weight:700; }
 #log { font-size:12px; }
-#log div { padding:2px 0; border-bottom:1px solid var(--line); }
+#log div { padding:2px 0; border-bottom:1px solid var(--line); display:flow-root; }  /* 行の右端の『盤面』が次の行にはみ出さない */
 #log .snapbtn { float:right; font-size:11px; padding:0 6px; margin-left:6px; opacity:.55; } #log div:hover .snapbtn { opacity:1; }
 #log div:hover { background:#2a2826; } #log div.sel { background:#3a3020; outline:1px solid var(--acc); }
 #log .n { color:var(--mut); margin-right:4px; } #log .basis { color:var(--mut); display:block; padding-left:1.5em; }
