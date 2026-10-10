@@ -111,3 +111,31 @@ def test_gw_eve_includes_minion_when_it_is_a_culprit():
     assert 'C18' in mm._gw_eve(s)
     s['script']['incidents'] = [{'day': 4, 'id': 'CORRUPT', 'culprit': 'C01'}]
     assert 'C18' not in mm._gw_eve(s)
+
+
+def test_wasted_intrigue_only_when_protagonists_cannot_remove_it():
+    """病院の事件の筋（病院に暗躍2）を満たした病院への暗躍は、取り除ける者（病院の神格・友好5）がいなければ無駄、いれば無駄ではない。"""
+    import random
+    from selfplay.search_mm import SearchMastermind
+    mm = SearchMastermind(random.Random(0), days=5, loops=3)
+    ch = lambda a, **k: dict({'area': a, 'alive': True, 'par': 0, 'gw': 0, 'int': 0, 'guard': 0}, **k)  # noqa: E731
+    s = {'loop': 1, 'day': 1, 'leader': 'A', 'script': {'rules': ['Y_SEAL', 'X_CIRCLE', 'X_LOVE'], 'roles': {}, 'days': 5,
+                                                         'incidents': [{'day': 3, 'id': 'HOSPITAL', 'culprit': 'C09'}]},
+         'chars': {'C09': ch('HOS'), 'C01': ch('SCH')}, 'boards': {'HOS': 3, 'SHR': 0, 'CIT': 0, 'SCH': 0},
+         'used': {p: [] for p in 'MABC'}, 'ability_used_loop': [], 'ability_used_today': [], 'incident_log': []}
+    assert 'B:HOS' in mm._wasted_int(s)
+    s['chars']['C13'] = ch('HOS', gw=5)  # 神格[5]: 自身のいるボードから暗躍を1つ取り除く
+    assert 'B:HOS' not in mm._wasted_int(s)
+
+
+def test_wasted_intrigue_caps_bluff_targets():
+    """負け筋に出てこない置き先も、ボード2・人物4に届いていれば上乗せは無駄（ブラフでも必要以上に積まない）。"""
+    import random
+    from selfplay.search_mm import SearchMastermind
+    mm = SearchMastermind(random.Random(0), days=5, loops=3)
+    ch = lambda a, **k: dict({'area': a, 'alive': True, 'par': 0, 'gw': 0, 'int': 0, 'guard': 0}, **k)  # noqa: E731
+    s = {'loop': 1, 'day': 1, 'leader': 'A', 'script': {'rules': ['Y_MURDER', 'X_CIRCLE', 'X_LOVE'], 'roles': {}, 'days': 5, 'incidents': []},
+         'chars': {'C01': ch('SCH', int=4), 'C02': ch('SCH', int=3)}, 'boards': {'HOS': 0, 'SHR': 2, 'CIT': 1, 'SCH': 0},
+         'used': {p: [] for p in 'MABC'}, 'ability_used_loop': [], 'ability_used_today': [], 'incident_log': []}
+    w = mm._wasted_int(s)
+    assert {'B:SHR', 'C01'} <= w and not {'B:CIT', 'C02'} & w

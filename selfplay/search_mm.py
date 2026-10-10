@@ -98,7 +98,7 @@ def surplus(state):
 
 class SearchMastermind(RouteMastermind):
     def __init__(self, rng, triples=16, cards=8, replies=16, lam=0.1, hold=0.25, days=8, loops=3, lam_choices=None,
-                 explore=0.0, move_log=False, stop_replies=False, opp=0, urgency=1.0, force=1.0, stuck=0.3, v3=True, bluff=0.0, conceal=0.0, fit=True, bait=0.0, look=0, gamma=0.5, consp=0.0, stand=0.0, early=2.0, margin=0.0, hide=0.0, chain_ab=1.0, gate=None, enable=0.0, plan=0.0, plan_rank=0, recall=0.0, tempo=None, known=1.0, guide=None, worst=0.5, joseki=False, gwx_eve=0.0, hide_culprit=0.0, persist=0.0, joseki_top=6, cut_mm=0.0, lookday=False, calc=False, gamble=0.0, double=False, align=False, dg=0.0):
+                 explore=0.0, move_log=False, stop_replies=False, opp=0, urgency=1.0, force=1.0, stuck=0.3, v3=True, bluff=0.0, conceal=0.0, fit=True, bait=0.0, look=0, gamma=0.5, consp=0.0, stand=0.0, early=2.0, margin=0.0, hide=0.0, chain_ab=1.0, gate=None, enable=0.0, plan=0.0, plan_rank=0, recall=0.0, tempo=None, known=1.0, guide=None, worst=0.5, joseki=False, gwx_eve=0.0, hide_culprit=0.0, persist=0.0, joseki_top=6, cut_mm=0.0, lookday=False, calc=False, gamble=0.0, double=False, align=False, dg=0.0, surplus=1.0):
         super().__init__(rng)
         # force: 止め手の枠を超える脅威（暗躍禁止は1日1枚、不安-1・移動禁止は各主人公1ループ1回）に加点。
         # stuck: このループで止められ続けている (対象, 種類) にまた置く手を減点（ユーザーの観点: 選択を迫りパワープレイを作る）
@@ -188,6 +188,7 @@ class SearchMastermind(RouteMastermind):
         self.align = align  # 位置の筋を揃える移動（キラーをキーパーソンの所へ等）を候補に必ず入れる（d24: calcD が4日目の移動斜めを逃した）
         self.dg = dg  # calcD と calcG の合成: 賭けが閾値に届かない日も、賭けの手を候補に入れ、評価に dg×確率を足す
         self._gbonus = {}
+        self.surplus = surplus  # 負け筋に要る数を満たし、主人公が取り除けない暗躍への上乗せの罰（バグの試合: 病院の暗躍 3 → 4）
         self.double = double  # 二重の脅威（同じ日に2か所を押す手）を候補に必ず入れる（d07: 暗躍禁止は1日1か所しか効かない）
         self.gamble, self.intx_seen, self.int_reached = gamble, {}, set()  # 取れないループでも、今日の賭けでこの確率以上なら賭ける（0 で使わない）
         if self.guide.get('lock_hide') and not self.hide:  # 勝ちが確定したら押さずに隠す（searchhide と同じ）
@@ -898,6 +899,33 @@ class SearchMastermind(RouteMastermind):
                     out.append(x)
         return out if len(out) == 3 or not skip else SearchMastermind._calc_merge(s, [(o['target'], o['card']) for o in out], scored)
 
+    def _wasted_int(self, s):
+        """暗躍を足しても意味の無い置き先: 負け筋に要る暗躍の数（筋ごとの最大）をもう満たし、主人公の友好能力でも取り除けないもの。
+        負け筋に出てこない置き先（ブラフ）も、主人公から見てどの組み合わせでも要りうる最大（ボード2＝封印されしモノ・爆弾・病院の事件、
+        人物4＝キラーの自身に暗躍4）に届いていれば、それ以上は脅威に見えないので意味が無い（ユーザー「ブラフでも必要以上に積まない」）。
+        取り除けるなら上乗せは備えになるので含めない。"""
+        from engine.route_calc import _pc_abilities
+        need = {}
+        for r_ in enumerate_routes(s):
+            for c in r_['conds']:
+                d = c['detail']
+                if c['kind'] == 'counter' and d[1] == 'int':
+                    need[d[0]] = max(need.get(d[0], 0), d[2])
+                elif c['kind'] == 'board':
+                    need['B:' + d[0]] = max(need.get('B:' + d[0], 0), d[1])
+        cur = lambda t: s['boards'][t[2:]] if t.startswith('B:') else s['chars'][t]['int']  # noqa: E731
+        for a in s['boards']:  # ブラフの上限
+            need.setdefault('B:' + a, 2)
+        for c, v in s['chars'].items():
+            if v.get('alive') and v.get('present', True):
+                need.setdefault(c, 4)
+        full = [t for t, n in need.items() if (t.startswith('B:') or t in s['chars']) and cur(t) >= n]
+        if not full:
+            return set()
+        targets = [(t, 'int') for t in full]
+        removable = {targets[i][0] for _, idx in _pc_abilities(s, targets) for i in idx}
+        return set(full) - removable
+
     def _align_moves(self, s, hand, xr, k=8):
         """位置を揃える候補 [(置き先の組, 手)]: 位置の条件の不足が1で、ほかの条件（カウンター）は満たされている筋を、今日の移動1枚で成立させる。
         残り2枚は近い負け筋の対象に押す札（無ければ無作為）。"""
@@ -1006,6 +1034,7 @@ class SearchMastermind(RouteMastermind):
                 forced.setdefault(ts, []).append(mm)
         for key_, mm in self._gbonus.items():  # 賭けの手（dg）
             forced.setdefault(tuple(x['target'] for x in mm), []).append(mm)
+        wasted = self._wasted_int(s) if self.surplus else set()
         locked = bool(self.hide_culprit) and self._locked(s)
         culprits_today = {i['culprit'] for i in s['script']['incidents'] if i['day'] >= s['day']} if locked else set()
         tss = self._triples(s) + [list(k) for k in forced]
@@ -1050,6 +1079,8 @@ class SearchMastermind(RouteMastermind):
                     v -= self.hide_culprit * sum(1 for x in mm if x['card'] in ('PAR-', 'PARX') and x['target'] in culprits_today)
                 if self._gp:
                     v += self.dg * self._gp.get(tuple((x['target'], x['card']) for x in mm), 0)
+                if wasted:
+                    v -= self.surplus * sum(1 for x in mm if x['card'] in ('INT1', 'INT2') and x['target'] in wasted)
                 if self.stuck:
                     v -= self._stuck_cost(s, mm)
                 if self.conceal:
