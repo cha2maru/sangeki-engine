@@ -40,7 +40,7 @@ onmessage = async e => {
   }
   if (m.type === 'new') {
     await booted;
-    py.globals.set('ARGS', py.toPy({ script: m.script || '', mm: m.mm, seed: m.seed, blind: !!m.blind, code: m.code || '', replay: m.replay ? JSON.stringify(m.replay) : '' }));
+    py.globals.set('ARGS', py.toPy({ script: m.script || '', mm: m.mm, seed: m.seed, blind: !!m.blind, code: m.code || '', replay: m.replay ? JSON.stringify(m.replay) : '', resume: !!m.resume }));
     try {
       await py.runPythonAsync('web_gm.start(**ARGS)');
     } catch (err) { postMessage({ type: 'error', msg: String(err) }); }

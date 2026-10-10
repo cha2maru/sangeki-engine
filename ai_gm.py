@@ -74,7 +74,8 @@ class Table:
         self.mm_targets_hist = []
         # リプレイの URL 用の記録（record.json）: 主人公の受け付けた操作 h と、脚本家の判断の結果 m。再生すれば同じ試合になる
         # （エンジンのルール処理は乱数を使わない）。crc: 公開ログの文の照合値（再生が食い違えば、エンジンの版が違う）
-        self.record = {'v': 1, 'h': [], 'm': [], 'n': 0, 'crc': 0}
+        # v2: 判断ごとに、その時点の公開ログの行数 n を付ける（途中の場面から再開するときの切り口。m は [n, 値]、h は {'n': …}）
+        self.record = {'v': 2, 'h': [], 'm': [], 'n': 0, 'crc': 0}
         self.replay = None  # 再生中なら記録（record の形）。wait は記録から返す
         self.rejected = []  # 受け付けなかった操作（公開ログには書かない。リプレイで見返せるように rejected.json に残す。ユーザー指摘 2026-10-10）
 
@@ -141,6 +142,7 @@ class Table:
                               'territory': AREA_JA.get(sc.get('territory')) if sc.get('territory') else None,
                               'special': sc.get('special') or ''}
         pub['loop'] = min(pub['loop'], self.script['loops'])  # 最後の戦いではエンジンのループ番号が1つ進んでいる
+        pub['live'] = self.replay is None  # 記録から作り直している間は False（途中から再開する盤面が、作り直しの終わりを待つ）
         pub.update({'mode': 'ai', 'reply': self.reply, 'reveal': self.reveal,  # 対AIモード（盤面は手動モード用の欄＝脚本家に伝える・ハッシュ・異議を出さない）
                     'game': self.game, 'phaseId': self.phase_id, 'phaseName': self.phase_name, 'waiting': self.waiting,
                     'loops': self.script['loops'], 'days': self.script['days'],
@@ -171,11 +173,16 @@ class Table:
     def take(self, types):
         """主人公の操作を1つ受け取る（wait）。リプレイの記録に残し、再生中は記録から返す。"""
         if self.replay is not None:
-            if not self.replay['h']:
+            if self.replay['h']:
+                rec = dict(self.replay['h'].pop(0))
+                self.record['h'].append(dict(rec, n=self.n))
+                return rec
+            if not self.replay.get('resume'):
                 raise ReplayEnd()
-            return dict(self.replay['h'].pop(0))
+            self.replay = None  # 再開: ここから先は盤面からの操作を待つ
+            self.show(bump=True)
         rec = self.wait(types)
-        self.record['h'].append({k: v for k, v in rec.items() if k not in ('seq', 'at', 'game', 'phaseId', 'label')})
+        self.record['h'].append({**{k: v for k, v in rec.items() if k not in ('seq', 'at', 'game', 'phaseId', 'label')}, 'n': self.n})
         self._write('record.json', self.record)
         return rec
 
@@ -213,18 +220,27 @@ def ability_label(cid, idx):
 
 class RecordingMM:
     """自動の脚本家の判断の結果を記録する（リプレイの URL 用。思考は記録しない）。"""
-    def __init__(self, mm, record):
-        self.__dict__['_mm'], self.__dict__['_rec'] = mm, record
+    def __init__(self, mm, record, table, queue=None):
+        # queue: 再開のとき、記録した判断（[n, 値]）。残っている間は考えずに返し、尽きたら本物の脚本家が考える
+        self.__dict__.update(_mm=mm, _rec=record, _t=table, _q=list(queue or []))
 
     def __getattr__(self, n):
         v = getattr(self._mm, n)
         if n in Combo.MM and callable(v):
             def f(*a, **k):
-                r = v(*a, **k)
-                self._rec['m'].append(json.loads(json.dumps(r)))
+                r = (_mval(self._q.pop(0)) if self._q else v(*a, **k))
+                self._rec['m'].append([self._t.n, json.loads(json.dumps(r))])
                 return r
             return f
         return v
+
+
+def _mval(x):
+    """記録の脚本家の判断の値（v1 は値だけ、v2 は [n, 値]）。"""
+    return x[1] if _V2[0] else x
+
+
+_V2 = [True]  # 再生する記録が v2 か（ReplayMM・RecordingMM が _mval で使う）
 
 
 class ReplayMM:
@@ -241,7 +257,7 @@ class ReplayMM:
         def f(*a, **k):
             if not self._q:
                 raise ReplayEnd()
-            return self._q.pop(0)
+            return _mval(self._q.pop(0))
         return f
 
 
@@ -663,6 +679,7 @@ def main():
     ap.add_argument('--code', default='', help='シナリオエディタのコード（s1.…）の脚本で遊ぶ（--script の代わり）')
     ap.add_argument('--decode', action='store_true', help='標準入力のコードを読んで、シナリオの JSON を出して終わる（シナリオエディタ）')
     ap.add_argument('--replay', default='', help='リプレイの記録（record.json の形）のファイルを再生する（URL の #p=）')
+    ap.add_argument('--resume', action='store_true', help='--replay の記録の終わりから、普通の対戦として続ける（途中から再開する URL）')
     ap.add_argument('--check', action='store_true', help='標準入力のシナリオ（JSON）を検証し、{errors, warnings} を JSON で出して終わる（シナリオエディタ）')
     a = ap.parse_args()
     if a.decode:
@@ -696,8 +713,9 @@ def run(a, table_cls=None):
     table_cls = table_cls or Table
     rp = getattr(a, 'replay', None)  # リプレイの記録（URL の #p=）: 記録の脚本・脚本家で、記録した判断を流し込んで再生する
     if rp:
-        if rp.get('v') != 1:
+        if rp.get('v') not in (1, 2):
             raise ValueError('リプレイの記録の形が違う')
+        _V2[0] = rp.get('v') == 2
         a.script, a.code, a.mm, a.blind = rp.get('s') or '', rp.get('c') or '', rp.get('mm') or 'calcG', False
     if a.blind:
         a.script, n = pick_blind(random.Random(f'blind:{a.seed}:{time.time()}'))
@@ -716,7 +734,7 @@ def run(a, table_cls=None):
     t = table_cls(a.dir, script)
     t.record.update({'s': '' if a.script == 'user' else a.script, 'c': getattr(a, 'code', '') or '', 'mm': a.mm})
     if rp:
-        t.replay = {'h': list(rp.get('h', []))}
+        t.replay = {'h': [{k: v for k, v in x.items() if k != 'n'} for x in rp.get('h', [])], 'resume': bool(getattr(a, 'resume', False))}
     rng = random.Random(a.seed)
     pc = HumanProtagonist(t, rng)
     if a.mm == 'claude' and not rp:  # Claude が脚本家（問いは private/ に書くので盤面からは見えない）
@@ -725,11 +743,13 @@ def run(a, table_cls=None):
                                 make('search', rng, script))
     else:
         mm = make('search' if a.mm == 'claude' else a.mm, rng, script)
-    if rp:  # 再生: 考えずに記録した判断を返す（持っている判断の種類は、同じ型の脚本家と同じ）
-        mm = ReplayMM(rp, [n for n in Combo.MM + ('observe',) if hasattr(mm, n)])
+    # 再生: 記録の判断を順に返し、記録し直す（作り直した試合からまた共有できるように）。尽きたら、ただの再生なら止まり（ReplayEnd）、
+    # 再開（resume）なら本物の脚本家が考える。持っている判断の種類は、同じ型の脚本家と同じ
+    if rp and not getattr(a, 'resume', False):
+        mm = ReplayMM({'m': []}, [n for n in Combo.MM + ('observe',) if hasattr(mm, n)])
     else:
         mm.progress = _progress(t)
-        mm = RecordingMM(mm, t.record)
+    mm = RecordingMM(mm, t.record, t, queue=rp.get('m') if rp else None)
     # 脚本家が考えている間は、盤面に「考え中」を出す（何を考えているかと開始時刻。calcG は1手に数十秒かかる）
     for meth, what in THINK.items():
         f = getattr(mm, meth, None)

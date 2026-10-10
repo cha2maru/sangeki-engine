@@ -140,7 +140,12 @@ table.sh input { width:100%; box-sizing:border-box; }
 #board .area { position: relative; }
 #board .area .turf { position: absolute; right: 6px; bottom: 6px; width: 44px; height: 44px; border-radius: 50%; pointer-events: none; }
 /* ---- 人が遊ぶための表示（設定パネルと URL の ?ux=off で切れる）---- */
-#helpbtn { margin-left:auto; padding:0 8px; } #uxbtn { padding:0 8px; } #band a { margin-left:0; }
+#band .tools { margin-left:auto; display:flex; gap:4px; flex-shrink:0; } #helpbtn, #uxbtn, #filebtn { padding:0 8px; } #band button { white-space:nowrap; flex-shrink:0; }
+#filepanel { position:fixed; z-index:26; top:calc(var(--bandh, 52px) + 4px); right:12px; background:#222; border:1px solid var(--acc); border-radius:4px;
+  padding:8px; display:none; box-shadow:0 4px 16px #000; min-width:240px; }
+#filepanel.on { display:flex; flex-direction:column; gap:6px; } #filepanel button, #filepanel a { width:100%; text-align:left; white-space:nowrap; box-sizing:border-box; }
+#filepanel a { display:block; color:var(--fg); text-decoration:none; border:1px solid #555; border-radius:3px; padding:2px 8px; background:#333; }
+#filepanel .h { color:var(--acc); font-weight:700; margin:4px 2px 0; } #band a { margin-left:0; }
 #uxpanel { position:fixed; z-index:26; top:calc(var(--bandh, 52px) + 4px); right:12px; background:#222; border:1px solid var(--acc); border-radius:4px;
   padding:8px 12px; display:none; box-shadow:0 4px 16px #000; min-width:240px; }
 #uxpanel.on { display:block; } #uxpanel label { display:flex; justify-content:space-between; gap:12px; margin:5px 0; }
@@ -316,14 +321,14 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
     <li><b>札の取り消し</b>（送る前だけ）: 「送信待ち」の欄の <b>×</b> で1枚ずつ、<b>『取り消す』</b>で全部。同じ主人公でもう一度置けば置き直し。手札を選んだ状態は <b>Esc</b> かもう一度クリックで解除。『確定して送る』の後は取り消せません。</li>
     <li>友好能力は「友好能力」の欄の『宣言』で1件ずつ。終わったら『能力の宣言を終える』。</li>
     <li>フェイズごとに<b>場面カード</b>で起きたことを確かめられます（『盤面を見る』『解決前／解決後』）。</li>
-    <li>試合の記録は ⚙ の『リプレイを書き出す』か、終了時の『リプレイを保存』で保存できます。保存したファイルは下の『リプレイを見る…』で見返せます。</li>
+    <li>試合の記録はディスクの『リプレイを書き出す』か、終了時の『リプレイを保存』で保存できます。保存したファイルは下の『リプレイを見る…』で見返せます。</li>
     <li>最後の戦いでは、キャラクターを右クリックして役職を1人ずつ指摘します。</li>
-    <li>帯の右端の <b>？</b> でこの案内（クレジットを含む）をいつでも開けます。<b>⚙</b> で表示の設定（場面カード・演出の速さ・画像なしの表示）と、新しいゲーム。</li>
+    <li>帯の右端の <b>？</b> でこの案内（クレジットを含む）、<b>ディスク</b>で新しいゲーム・シナリオを作る・リプレイの書き出しと読み込み・URL での共有、<b>⚙</b> で表示の設定（場面カード・演出の速さ・画像なしの表示）。</li>
   </ol>
   <h3>連絡先</h3>
   <div>作者: cha2maru（X: <a href="https://x.com/withoutcane" target="_blank" rel="noopener">@withoutcane</a> ／ GitHub: <a href="https://github.com/cha2maru/sangeki-engine" target="_blank" rel="noopener">cha2maru/sangeki-engine</a>）</div>
   <div class="mut">不具合や裁定の誤りは GitHub の Issue か X へ。</div>
-  <div class="btns"><a href="editor.html" class="mut" style="align-self:center" title="非公開シートを作って、この対戦で試す">シナリオを作る</a><button id="wl-replay" style="margin-right:auto" onclick="$('rp-file').click()" title="書き出したリプレイ（JSON）を開いて見返す">リプレイを見る…</button><button id="wl-close" style="display:none">閉じる</button><button id="wl-cont" style="display:none">続きから遊ぶ</button><button class="go" id="wl-start">ゲームを始める</button></div>
+  <div class="btns"><a href="editor.html" target="_blank" rel="noopener" class="mut" style="align-self:center" title="非公開シートを作って、この対戦で試す（新しいタブ）">シナリオを作る ↗</a><button id="wl-replay" style="margin-right:auto" onclick="$('rp-file').click()" title="書き出したリプレイ（JSON）を開いて見返す">リプレイを見る…</button><button id="wl-close" style="display:none">閉じる</button><button id="wl-cont" style="display:none">続きから遊ぶ</button><button class="go" id="wl-start">ゲームを始める</button></div>
 </div></div>
 <div id="reveal"><div class="box" id="rv-body"></div></div>
 <div id="start"><form id="startf">
@@ -343,7 +348,7 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
 <div id="rpbar"><span class="t">リプレイ</span><span id="rp-title" class="mut"></span>
   <button id="rp-first" title="最初へ">⏮</button><button id="rp-prev" title="1つ戻る">◀</button><button id="rp-play" class="go" title="再生／停止">▶ 再生</button>
   <button id="rp-next" title="1つ進む">▶|</button><button id="rp-last" title="最後へ">⏭</button>
-  <input type="range" id="rp-seek" min="0" value="0"><span class="pos" id="rp-pos"></span><button id="rp-reveal" style="display:none">非公開シート</button><button id="rp-share" onclick="RP.shareURL()">URL をコピー</button><button onclick="RP.shareURL(true)" title="盤面の記録をそのまま入れる（約1万文字）。バグの報告向け">長い URL</button><button id="rp-exit">リプレイを終える</button></div>
+  <input type="range" id="rp-seek" min="0" value="0"><span class="pos" id="rp-pos"></span><button id="rp-reveal" style="display:none">非公開シート</button><button id="rp-share" onclick="RP.shareURL()">URL をコピー</button><button id="rp-here" onclick="RP.resumeHere()" title="この場面から、普通の対戦として続きを遊ぶ">ここから遊ぶ</button><button onclick="RP.resumeURL(true)" title="この場面から続きを遊べる URL">再開の URL</button><button id="rp-exit">リプレイを終える</button></div>
 <input type="file" id="rp-file" accept=".json,application/json" style="display:none">
 <div id="uxpanel"><b style="color:var(--acc)">表示の設定</b> <span class="mut" id="ux-q"></span>
   <label>場面カード <input type="checkbox" data-ux="scene"></label>
@@ -352,8 +357,18 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
   <label>考え中の表示 <input type="checkbox" data-ux="think"></label>
   <label>画像 <select data-ux="img"><option value="auto">自動</option><option value="on">あり</option><option value="off">なし（文字）</option></select></label>
   <div class="mut">URL に ?ux=off で演出を全部切る（試験用）、?ux=fast で速く、?img=off で文字の表示。</div>
-  <div id="ux-new" style="display:none;margin-top:8px"><button class="go" id="newgame">新しいゲーム…</button></div>
-  <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><button id="rp-export">リプレイを書き出す</button><button id="rp-url">リプレイの URL をコピー</button><button id="rp-url-full" title="盤面の記録をそのまま入れる（約1万文字）。バグの報告向け">長い URL（記録ごと）</button><button id="rp-import">リプレイを読み込む…</button></div></div>
+</div>
+<div id="filepanel">
+  <div class="h">ゲーム</div>
+  <button class="go" id="newgame" style="display:none">新しいゲーム…</button>
+  <a href="editor.html" target="_blank" rel="noopener">シナリオを作る ↗（新しいタブ）</a>
+  <div class="h">リプレイ</div>
+  <button id="rp-export">リプレイを書き出す（JSON）</button>
+  <button id="rp-import">リプレイを読み込む…</button>
+  <div class="h">共有</div>
+  <button id="rp-url">リプレイの URL をコピー</button>
+  <button id="rp-resume-url" title="いまの場面から続きを遊べる URL（判断の記録から作り直して、そこから普通の対戦になる）">この場面から再開する URL をコピー</button>
+</div>
 
 <script>
 const IMG = '/img/';
@@ -406,8 +421,8 @@ function render() {
   if ($('welcome').classList.contains('on') && $('wl-close').style.display) $('wl-cont').style.display = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '' : 'none';
   $('band').innerHTML = S.loop ? `<span>ループ <b>${S.loop}</b>/${S.loops}</span><span>日 <b>${S.day ?? '-'}</b>/${S.days}</span>
     <span class="ph">${esc(S.phaseName)}</span><span>リーダー <b>${esc(S.leader)}</b></span>
-    <span class="wait ${myTurn() ? 'mine' : ''}">${esc(w.text || '入力待ちなし')}</span><button id="helpbtn" title="遊び方・クレジット">？</button><button id="uxbtn" title="表示の設定">⚙</button>`
-    : '状態を読み込み中… <button id="helpbtn" title="遊び方・クレジット">？</button><button id="uxbtn" title="表示の設定">⚙</button>';
+    <span class="wait ${myTurn() ? 'mine' : ''}">${esc(w.text || '入力待ちなし')}</span><span class="tools"><button id="helpbtn" title="遊び方・クレジット">？</button><button id="filebtn" title="ゲーム・リプレイ・共有（新しいゲーム、シナリオを作る、書き出し・読み込み、URL）" aria-label="ゲーム・リプレイ・共有"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-2px"><path fill="currentColor" d="M4 3h13l4 4v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm2 2v5h10V5H6zm6 8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></button><button id="uxbtn" title="表示の設定">⚙</button></span>`
+    : '状態を読み込み中… <span class="tools"><button id="helpbtn" title="遊び方・クレジット">？</button><button id="filebtn" title="ゲーム・リプレイ・共有（新しいゲーム、シナリオを作る、書き出し・読み込み、URL）" aria-label="ゲーム・リプレイ・共有"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-2px"><path fill="currentColor" d="M4 3h13l4 4v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm2 2v5h10V5H6zm6 8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></button><button id="uxbtn" title="表示の設定">⚙</button></span>';
   if (S.reveal) $('band').insertAdjacentHTML('beforeend', '<button onclick="openReveal()">非公開シート</button>');
   if ((S.phaseName || '').startsWith('ゲーム終了') && canStart) $('band').insertAdjacentHTML('beforeend', '<button class="go" onclick="openStart()">新しいゲーム</button>');
   if (S.reveal && revealShown !== S.game && !viewing) { revealShown = S.game; setTimeout(openReveal, 400); }
@@ -881,6 +896,9 @@ async function poll() {
     if (l !== lastLog) { LOG = l.split('\n').filter(Boolean).map(x => JSON.parse(x)); lastLog = l; renderLog(); sceneOnLog(); }
   } catch {}
   if (RP.building && (S.waiting || {}).kind === 'replay_done') RP.finishBuild();
+  if (RP.resuming && ((S.live && ['cards', 'ability', 'final'].includes((S.waiting || {}).kind)) || (S.phaseName || '').startsWith('ゲーム終了') || /^エラー/.test((S.waiting || {}).text || ''))) {
+    RP.resuming = false; $('rpbuild').classList.remove('on');
+  }
   if (RP.building && /^エラー/.test((S.waiting || {}).text || '')) {  // 再生の途中で止まった（壊れた記録など）
     RP.building = false; $('rpbuild').classList.remove('on'); alert('リプレイを再生できなかった: ' + S.waiting.text);
   }
@@ -918,9 +936,16 @@ $('uxpanel').addEventListener('change', e => { const el = e.target, k = el.datas
   UX[k] = el.type === 'checkbox' ? el.checked : el.type === 'number' ? +el.value : el.value;
   try { localStorage.setItem('ux', JSON.stringify(UX)); } catch {}
   applyUX(); render(); });
-document.addEventListener('click', e => { if (e.target.id === 'uxbtn') { e.stopPropagation(); openUX(); }
+document.addEventListener('click', e => {
+  const fb = e.target.closest('#filebtn');
+  if (e.target.id === 'uxbtn') { e.stopPropagation(); $('filepanel').classList.remove('on'); openUX(); }
+  else if (fb) { e.stopPropagation(); $('uxpanel').classList.remove('on'); $('filepanel').classList.toggle('on'); }
   else if (e.target.id === 'helpbtn') openHelp();
-  else if (!e.target.closest('#uxpanel')) $('uxpanel').classList.remove('on'); });
+  else {
+    if (!e.target.closest('#uxpanel')) $('uxpanel').classList.remove('on');
+    if (!e.target.closest('#filepanel') || e.target.closest('button, a')) $('filepanel').classList.remove('on');  // 項目を選んだら閉じる
+  }
+});
 
 // 自分の番（帯を緑に、タブの題名に★）と、考え中（脚本家の番・送信の後）
 const myTurn = () => { const w = S.waiting || {}; return !viewing && !awaiting && (['cards', 'ability', 'final'].includes(w.kind) || (w.options || []).length > 0); };
@@ -1051,7 +1076,7 @@ function openReveal() {
     <h3>ルール</h3>${r.ruleY.map(x => `<span class="chip y">Y ${esc(x)}</span>`).join('')}${r.ruleX.map(x => `<span class="chip x">X ${esc(x)}</span>`).join('')}
     <h3>役職</h3><table><tr><th>キャラクター</th><th>役職</th>${r.final ? '<th>最後の戦いの指摘</th>' : ''}</tr>${roleRows}</table>
     <h3>事件と犯人</h3><table><tr><th>日</th><th>事件</th><th>犯人</th></tr>${r.incidents.map(i => `<tr><td>${i.day}日</td><td>${esc(i.name)}</td><td>${esc(i.culprit)}</td></tr>`).join('')}</table>
-    <div class="btns"><button onclick="RP.exportFile()">リプレイを保存</button><button onclick="RP.shareURL()">リプレイの URL をコピー</button><button onclick="RP.shareURL(true)" title="盤面の記録をそのまま入れる（約1万文字）。バグの報告向け">長い URL</button><button onclick="document.getElementById('reveal').classList.remove('on')">閉じる</button>${canStart ? '<button class="go" onclick="document.getElementById(\'reveal\').classList.remove(\'on\'); openStart()">新しいゲーム</button>' : ''}</div>`;
+    <div class="btns"><button onclick="RP.exportFile()">リプレイを保存</button><button onclick="RP.shareURL()">リプレイの URL をコピー</button><button onclick="document.getElementById('reveal').classList.remove('on')">閉じる</button>${canStart ? '<button class="go" onclick="document.getElementById(\'reveal\').classList.remove(\'on\'); openStart()">新しいゲーム</button>' : ''}</div>`;
   $('reveal').classList.add('on');
 }
 // ---- リプレイ: 試合の記録（公開ログ・場面ごとの盤面・終了時の盤面と非公開シート）を JSON に書き出し、読み込んで見返す ----
@@ -1118,6 +1143,9 @@ const RP = {
     if (u) fetch(u).then(r => r.json()).then(d => this.load(d)).catch(e => alert('リプレイを読み込めなかった: ' + e.message));
     if (location.hash.startsWith('#r=')) this.unpack(location.hash.slice(3)).then(d => this.load(d)).catch(e => alert('リプレイの URL を読めなかった: ' + e.message));
     // 短い URL は ?p=（X などで # の後ろがハッシュタグと取り違えられないように、2026-10-10）。以前の #p= も開ける
+    const rq = new URLSearchParams(location.search).get('resume');  // 途中から再開する URL
+    if (rq) this.z(this.b64dec(rq), false).then(b => this.startResume(JSON.parse(new TextDecoder().decode(b))))
+      .catch(e => { $('rpbuild').classList.remove('on'); alert('再開の URL を読めなかった: ' + e.message); });
     const pq = new URLSearchParams(location.search).get('p');
     if (pq || location.hash.startsWith('#p=')) this.build(pq || location.hash.slice(3));
   },
@@ -1131,6 +1159,37 @@ const RP = {
       const r = await fetch('/new', { method: 'POST', body: JSON.stringify({ replay: rec }) });
       if (!r.ok) throw new Error(await r.text());
     } catch (e) { this.building = false; $('rpbuild').classList.remove('on'); alert('リプレイの URL を読めなかった: ' + e.message); }
+  },
+  // ---- 途中から再開: 記録を「その場面の公開ログの行数」の手前で切り、作り直してから普通の対戦として続ける ----
+  async recordAt(step) {  // step: リプレイの場面（なし＝いまの試合の今の場面）
+    const rec = step ? (this.data && this.data.record) : JSON.parse(await (await fetch('/record')).text() || '{}');
+    if (!rec || !rec.v) throw new Error('この試合には判断の記録がありません（以前に書き出したリプレイなど）');
+    if (!step) return rec;
+    if (rec.v < 2) throw new Error('この記録は場面の位置を持たない古い形です（場面からの再開はできません）');
+    const cut = step.log_n;
+    return { ...rec, h: rec.h.filter(x => x.n < cut), m: rec.m.filter(x => x[0] < cut) };
+  },
+  async resumeURL(fromStep) {
+    try {
+      const rec = await this.recordAt(fromStep && this.on ? this.steps[this.i] : null);
+      const url = location.href.split('#')[0].split('?')[0] + '?resume=' + this.b64enc(await this.z(new TextEncoder().encode(JSON.stringify(rec)), true));
+      await copyText(url, `この場面から再開する URL（${url.length.toLocaleString()} 文字）をコピーしました。開くとこの場面までを作り直して、続きを遊べます。`);
+    } catch (e) { alert('URL を作れなかった: ' + e.message); }
+  },
+  async resumeHere() {
+    try {
+      const rec = await this.recordAt(this.steps[this.i]);
+      if (!confirm('この場面から続きを遊びますか？（リプレイを終えて、ここまでを作り直してから対戦になります）')) return;
+      this.exit();
+      await this.startResume(rec);
+    } catch (e) { alert('再開できなかった: ' + e.message); }
+  },
+  async startResume(rec) {
+    $('rpbuild').querySelector('.box').firstChild.textContent = '途中の場面を作り直しています…';
+    $('rpbuild').classList.add('on'); this.resuming = true;
+    const r = await fetch('/new', { method: 'POST', body: JSON.stringify({ replay: rec, resume: true }) });
+    if (!r.ok) { this.resuming = false; $('rpbuild').classList.remove('on'); throw new Error(await r.text()); }
+    S = {}; LOG = []; pending = []; sent = []; lastState = lastLog = lastDed = ''; awaiting = Date.now(); render(); renderLog();
   },
   async finishBuild() {
     this.building = false;
@@ -1175,7 +1234,7 @@ const RP = {
       const rec = RP.on ? (RP.data.record || null) : JSON.parse(await (await fetch('/record')).text() || '{}');
       const url = !full && rec && rec.v ? base + '?p=' + this.b64enc(await this.z(new TextEncoder().encode(JSON.stringify(rec)), true))
         : base + '#r=' + await this.pack(d);
-      const note = url.includes('?p=') ? '開くときにエンジンで試合を作り直します（エンジンの版が変わると再現できないことがあります。バグの報告には「長い URL」を）。'
+      const note = url.includes('?p=') ? '開くときにエンジンで試合を作り直します（エンジンの版が変わると再現できないことがあります）。'
         : '盤面の記録をそのまま入れています。';
       await copyText(url, `リプレイの URL（${url.length.toLocaleString()} 文字）をコピーしました。${note}` + (d.complete ? '最後まで進んだ試合なので、脚本の中身（非公開シート）も入っています。' : '試合の途中までで、脚本の中身は入っていません。'));
     } catch (e) { alert('URL を作れなかった: ' + e.message); }
@@ -1185,10 +1244,10 @@ const RP = {
 async function copyText(s, msg) {
   try { await navigator.clipboard.writeText(s); alert(msg); } catch { prompt(msg.split('。')[0].replace('コピーしました', '') + '（選んでコピーしてください）', s); }
 }
-$('rp-export').onclick = e => { e.stopPropagation(); RP.exportFile(); };
-$('rp-url').onclick = e => { e.stopPropagation(); RP.shareURL(); };
-$('rp-url-full').onclick = e => { e.stopPropagation(); RP.shareURL(true); };
-$('rp-import').onclick = e => { e.stopPropagation(); $('rp-file').click(); };
+$('rp-export').onclick = e => { e.stopPropagation(); $('filepanel').classList.remove('on'); RP.exportFile(); };
+$('rp-url').onclick = e => { e.stopPropagation(); $('filepanel').classList.remove('on'); RP.shareURL(); };
+$('rp-resume-url').onclick = e => { e.stopPropagation(); $('filepanel').classList.remove('on'); RP.resumeURL(); };
+$('rp-import').onclick = e => { e.stopPropagation(); $('filepanel').classList.remove('on'); $('rp-file').click(); };
 $('rp-file').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { RP.load(JSON.parse(await f.text())); } catch (err) { alert('読み込めなかった: ' + err.message); } e.target.value = ''; };
 $('rp-first').onclick = () => RP.go(0); $('rp-prev').onclick = () => RP.go(RP.i - 1); $('rp-next').onclick = () => RP.go(RP.i + 1);
 $('rp-last').onclick = () => RP.go(RP.steps.length - 1); $('rp-play').onclick = () => RP.play(); $('rp-exit').onclick = () => RP.exit();
@@ -1199,7 +1258,7 @@ const MMLABEL = { search: 'search（速い・ふつう）', searchL: 'searchL（
 let canStart = false;
 fetch('/scripts').then(r => r.ok ? r.json() : null).then(d => {
   if (!d) return;
-  canStart = true; $('ux-new').style.display = 'block';
+  canStart = true; $('newgame').style.display = '';
   const groups = {};
   for (const s of d.scripts) (groups[s.group] = groups[s.group] || []).push(s);
   $('st-script').innerHTML = Object.entries(groups).map(([g, ss]) => `<optgroup label="${esc(g)}">` + ss.map(s =>
@@ -1214,7 +1273,7 @@ fetch('/scripts').then(r => r.ok ? r.json() : null).then(d => {
 }).catch(() => {});
 // 初めの案内（タイトル・免責事項・遊び方）。開始画面のあるとき（SANGEKI_AI=1）に、ページを開くたびに出す。?ux=off では出さない
 function openWelcome() {
-  if (RP.on || /^#[rp]=/.test(location.hash) || new URLSearchParams(location.search).get('p')) return;  // リプレイを開いたとき（?replay=・#r=・#p=）は案内を出さない
+  if (RP.on || /^#[rp]=/.test(location.hash) || ['p', 'resume'].some(k => new URLSearchParams(location.search).get(k))) return;  // リプレイを開いたとき（?replay=・#r=・#p=）は案内を出さない
   if (new URLSearchParams(location.search).get('ux') === 'off') { if (!S.loop) openStart(); return; }
   $('wl-cont').style.display = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '' : 'none';
   $('wl-close').style.display = 'none'; $('wl-start').style.display = '';
@@ -1227,7 +1286,7 @@ function openHelp() {
   $('wl-cont').style.display = 'none'; $('wl-close').style.display = ''; $('wl-start').style.display = canStart ? '' : 'none';
   $('uxpanel').classList.remove('on'); $('welcome').classList.add('on');
 }
-function openStart() { if (canStart) { $('start').classList.add('on'); $('uxpanel').classList.remove('on'); } }
+function openStart() { if (canStart) { $('start').classList.add('on'); $('uxpanel').classList.remove('on'); $('filepanel').classList.remove('on'); } }
 $('st-rand').onclick = () => { $('st-seed').value = Math.floor(Math.random() * 10000); };
 // 伏せて遊ぶときは「脚本を選ぶ」を出さない（題名が見えないように）
 const syncPick = () => { $('st-pick').style.display = $('st-blind').checked ? 'none' : ''; };
@@ -1235,7 +1294,7 @@ $('st-blind').onchange = syncPick;
 $('st-cancel').onclick = () => $('start').classList.remove('on');
 // ?code=…（シナリオエディタの「このシナリオで遊ぶ」）: 新しいゲームの欄にコードを入れておく
 { const c = new URLSearchParams(location.search).get('code'); if (c) $('st-code').value = c; }
-$('newgame').onclick = e => { e.stopPropagation(); openStart(); };
+$('newgame').onclick = e => { e.stopPropagation(); $('filepanel').classList.remove('on'); openStart(); };
 $('startf').onsubmit = async e => {
   e.preventDefault();
   if (S.loop && !(S.phaseName || '').startsWith('ゲーム終了') && !confirm('いまの試合を終えて、新しいゲームを始めますか？')) return;

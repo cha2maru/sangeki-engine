@@ -27,14 +27,14 @@ function listScripts() {
   if (!scriptList) scriptList = JSON.parse(execFileSync(PY, [path.join(HERE, 'ai_gm.py'), '--list'], { cwd: HERE }).toString());
   return scriptList;
 }
-function startGame({ script, mm, seed, blind, code, replay }) {
+function startGame({ script, mm, seed, blind, code, replay, resume }) {
   if (replay) {  // リプレイの記録を再生する（URL の #p=）。中身の検証は ai_gm.py がする
     if (typeof replay !== 'object' || JSON.stringify(replay).length > 200000) throw new Error('リプレイの記録が不正');
     const f = path.join(GAME, 'replay_in.json');
     fs.writeFileSync(f, JSON.stringify(replay));
     if (child && child.exitCode === null) child.kill('SIGTERM');
     const out = fs.openSync(path.join(GAME, 'ai_gm.log'), 'w');
-    child = spawn(PY, [path.join(HERE, 'ai_gm.py'), '--replay', f, '--dir', GAME], { cwd: HERE, stdio: ['ignore', out, out] });
+    child = spawn(PY, [path.join(HERE, 'ai_gm.py'), '--replay', f, ...(resume ? ['--resume'] : []), '--dir', GAME], { cwd: HERE, stdio: ['ignore', out, out] });
     return;
   }
   if (!MMS.includes(mm)) throw new Error('脚本家の型が不正');

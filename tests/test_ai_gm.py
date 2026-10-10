@@ -150,3 +150,32 @@ def test_record_replays_to_the_same_game(tmp_path):
     assert log(d1) == log(d2) and json.load(open(d2 + '/state.json'))['waiting']['ok'] is True
     rej = lambda d: json.load(open(d + '/rejected.json'))  # noqa: E731
     assert len(rej(d1)) == 1 and rej(d1) == rej(d2) and rej(d1)[0]['what'].startswith('札:')
+
+
+def test_resume_from_the_middle(tmp_path):
+    """途中から再開する URL: 記録を公開ログの n 行目の手前で切って再開すると、そこまでは同じ試合で、その先は普通に続く（盤面からの操作を待つ）。"""
+    import json
+    import random
+    from types import SimpleNamespace
+    import ai_gm
+    from engine.project import CARD_UI
+
+    class SimTable(ai_gm.Table):
+        rng = random.Random(5)
+
+        def wait(self, types):
+            if 'cards' in types:
+                alive = [c for c, v in self.s['chars'].items() if v['alive'] and v.get('present', True) and c != 'C20']
+                return {'type': 'cards', 'phaseId': self.phase_id, 'placements': [
+                    {'actor': a, 'target': ai_gm.name(t), 'card': CARD_UI[k]} for a, t, k in zip('ABC', self.rng.sample(alive, 3), ('GW1', 'PAR+', 'MV_H'))]}
+            return {'type': 'option', 'phaseId': self.phase_id, 'option': 'end'}
+    d1, d2 = str(tmp_path / 'a'), str(tmp_path / 'b')
+    ai_gm.run(SimpleNamespace(script='s01_seal', mm='route', seed=3, blind=False, dir=d1, code=''), SimTable)
+    rec = json.load(open(d1 + '/record.json'))
+    cut = rec['h'][4]['n']  # 5回目の操作の時点
+    part = dict(rec, h=[x for x in rec['h'] if x['n'] < cut], m=[x for x in rec['m'] if x[0] < cut])
+    SimTable.rng = random.Random(99)
+    ai_gm.run(SimpleNamespace(script='', mm='', seed=1, blind=False, dir=d2, code='', replay=part, resume=True), SimTable)
+    log = lambda d: [json.loads(x)['text'] for x in open(d + '/log.jsonl')]  # noqa: E731
+    assert log(d1)[:cut] == log(d2)[:cut] and 'ゲーム終了' in json.load(open(d2 + '/state.json'))['phaseName']
+    assert len(json.load(open(d2 + '/record.json'))['h']) > len(part['h'])  # 再開した後の操作も記録に続く
