@@ -69,6 +69,7 @@ class Table:
         self.game = int(time.time())  # 試合の識別子（盤面が前の試合の送信済みを出さないため）
         self.s, self.placed, self.phase_name = None, [], '準備'
         self.waiting = {'kind': 'none', 'text': '脚本家の番', 'options': []}
+        self.reply = ''  # 「脚本家の返答」の欄（反則の置き方などの知らせ。公開ログには書かない＝振り返りに出さない）
         self.inc_result = {}
         self.last_phase = None
         self.ability_options = None
@@ -127,7 +128,7 @@ class Table:
                               'territory': AREA_JA.get(sc.get('territory')) if sc.get('territory') else None,
                               'appear': appear, 'special': sc.get('special') or ''}
         pub['loop'] = min(pub['loop'], self.script['loops'])  # 最後の戦いではエンジンのループ番号が1つ進んでいる
-        pub.update({'mode': 'ai',  # 対AIモード（盤面は手動モード用の欄＝脚本家に伝える・ハッシュ・異議を出さない）
+        pub.update({'mode': 'ai', 'reply': self.reply,  # 対AIモード（盤面は手動モード用の欄＝脚本家に伝える・ハッシュ・異議を出さない）
                     'game': self.game, 'phaseId': self.phase_id, 'phaseName': self.phase_name, 'waiting': self.waiting,
                     'loops': self.script['loops'], 'days': self.script['days'],
                     # 盤面は「キャラクター名#番号」で使用済みを判定する（エンジンは「C07#0」）
@@ -272,18 +273,20 @@ class HumanProtagonist:
         self.t.phase(s['loop'], s['day'], 'pc_cards', f'リーダー {order[0]}')
         while True:
             self.t.show(s, f'L{s["loop"]} {s["day"]}日目 主人公行動フェイズ',
-                        {'kind': 'cards', 'text': f'行動カードを3枚（{"→".join(order)}）置いて『確定』。脚本家の伏せ札は '
+                        {'kind': 'cards', 'text': (f'{self.t.reply} ／ ' if self.t.reply else '') + f'行動カードを3枚（{"→".join(order)}）置いて『確定』。脚本家の伏せ札は '
                          + '・'.join(name(x) for x in mm_targets or []), 'options': []}, placed=mm)
             rec = self.t.wait(('cards',))
+            # 受け付けなかった置き方はログに書かない（振り返りには成功した配置だけを出す。行動解決で「主人公の札: …」の行になる）
             try:
                 pc = placements_from_inbox(rec)
             except KeyError as e:
-                self.t.log(f'札を読めなかった（{e}）。置き直してください')
+                self.t.reply = f'札を読めなかった（{e}）。置き直してください'
                 continue
             err = self._check(s, pc)
             if err:
-                self.t.log(f'札の置き方が合法でない: {err}。置き直してください')
+                self.t.reply = f'札の置き方が合法でない: {err}。置き直してください'
                 continue
+            self.t.reply = ''
             return sorted(pc, key=lambda x: order.index(x['by']))
 
     @staticmethod
@@ -311,15 +314,17 @@ class HumanProtagonist:
         while True:
             self.t.ability_options = self._options(s)  # 前の能力の解決で盤面が変わるので毎回作り直す
             self.t.show(s, f'L{s["loop"]} {s["day"]}日目 主人公能力フェイズ',
-                        {'kind': 'ability', 'text': 'リーダーから友好能力を宣言（右クリック）。1件ずつその場で解決する。宣言し終えたら『' + END_ABILITY + '』',
+                        {'kind': 'ability', 'text': (f'{self.t.reply} ／ ' if self.t.reply else '') + 'リーダーから友好能力を宣言（右クリック）。1件ずつその場で解決する。宣言し終えたら『' + END_ABILITY + '』',
                          'options': [END_ABILITY]})
             rec = self.t.wait(('ability', 'option'))
             if rec['type'] == 'option':
                 return None
             dec = self._match(s, rec)
-            if dec is None:
-                self.t.log(f'{rec.get("char")} の能力 {rec.get("label", "")} は、いまは使えない（友好・場所・対象・回数を確認）')
+            if dec is None:  # 受け付けなかった宣言はログに書かない（「脚本家の返答」に出す）
+                self.t.reply = f'{rec.get("char")} の能力 {rec.get("label", "")} は、いまは使えない（友好・場所・対象・回数を確認）'
+                self.t.show(bump=False)
                 continue
+            self.t.reply = ''
             self.t.log(f'宣言を受け付けた: {rec.get("char")} {rec.get("label", "")}')
             return dec
 
