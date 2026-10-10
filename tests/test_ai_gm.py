@@ -117,3 +117,28 @@ def test_incident_info_counts_bits_of_a_split():
     cands = {'MURDER@3': {'C01', 'C02', 'C10', 'C23'}}
     assert abs(incident_info(after, ['MURDER@3'], cands) - 1.0) < 1e-9
     assert incident_info(after, ['MURDER@3'], {'MURDER@3': {'C10', 'C23'}}) == 0.0
+
+
+def test_record_replays_to_the_same_game(tmp_path):
+    """リプレイの短い URL（#p=）: 主人公の操作と脚本家の判断の記録（record.json）から再生すると、同じ公開ログ・盤面になる。"""
+    import json
+    import random
+    from types import SimpleNamespace
+    import ai_gm
+    from engine.project import CARD_UI
+
+    class SimTable(ai_gm.Table):  # 人の代わり（無作為の3人に友好+1・不安+1・移動←→、能力・指摘はしない）
+        rng = random.Random(5)
+
+        def wait(self, types):
+            if 'cards' in types:
+                alive = [c for c, v in self.s['chars'].items() if v['alive'] and v.get('present', True) and c != 'C20']
+                return {'type': 'cards', 'phaseId': self.phase_id, 'placements': [
+                    {'actor': a, 'target': ai_gm.name(t), 'card': CARD_UI[k]} for a, t, k in zip('ABC', self.rng.sample(alive, 3), ('GW1', 'PAR+', 'MV_H'))]}
+            return {'type': 'option', 'phaseId': self.phase_id, 'option': 'end'}
+    d1, d2 = str(tmp_path / 'a'), str(tmp_path / 'b')
+    ai_gm.run(SimpleNamespace(script='s01_seal', mm='route', seed=3, blind=False, dir=d1, code=''), SimTable)
+    rec = json.load(open(d1 + '/record.json'))
+    ai_gm.run(SimpleNamespace(script='', mm='', seed=None, blind=False, dir=d2, code='', replay=rec))
+    log = lambda d: [json.loads(x)['text'] for x in open(d + '/log.jsonl')]  # noqa: E731
+    assert log(d1) == log(d2) and json.load(open(d2 + '/state.json'))['waiting']['ok'] is True

@@ -242,6 +242,8 @@ body.mode-ai .manual-only { display:none; }
 #reveal .ok { color:#50c878; font-weight:700; } #reveal .ng { color:var(--warn); font-weight:700; } #reveal .btns { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
 .rulename { cursor:help; text-decoration:underline dotted #777; text-underline-offset:3px; }
 /* リプレイ */
+#rpbuild { position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.8); }
+#rpbuild.on { display:flex; } #rpbuild .box { background:var(--panel); border:2px solid var(--acc); border-radius:8px; padding:18px 24px; font-size:16px; text-align:center; }
 #rpbar { position:fixed; z-index:24; left:50%; bottom:10px; transform:translateX(-50%); display:none; align-items:center; gap:6px; flex-wrap:wrap;
   background:rgba(0,0,0,.92); border:2px solid #6fc3ff; border-radius:8px; padding:6px 10px; max-width:96vw; box-shadow:0 4px 18px #000; }
 body.replay #rpbar { display:flex; } #rpbar .t { color:#6fc3ff; font-weight:700; margin-right:4px; } #rpbar input[type=range] { width:min(320px, 40vw); }
@@ -336,10 +338,11 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
   <label for="st-seed">乱数の種</label><div class="row"><input type="number" id="st-seed" min="0"><button type="button" id="st-rand">ランダム</button></div>
   <div class="btns"><button type="button" id="st-cancel">やめる</button><button class="go" type="submit">開始</button></div>
 </form></div>
+<div id="rpbuild"><div class="box">リプレイを再生しています…<br><span class="mut">ブラウザ版は初回だけ Python の準備に数十秒かかります</span></div></div>
 <div id="rpbar"><span class="t">リプレイ</span><span id="rp-title" class="mut"></span>
   <button id="rp-first" title="最初へ">⏮</button><button id="rp-prev" title="1つ戻る">◀</button><button id="rp-play" class="go" title="再生／停止">▶ 再生</button>
   <button id="rp-next" title="1つ進む">▶|</button><button id="rp-last" title="最後へ">⏭</button>
-  <input type="range" id="rp-seek" min="0" value="0"><span class="pos" id="rp-pos"></span><button id="rp-reveal" style="display:none">非公開シート</button><button id="rp-share" onclick="RP.shareURL()">URL をコピー</button><button id="rp-exit">リプレイを終える</button></div>
+  <input type="range" id="rp-seek" min="0" value="0"><span class="pos" id="rp-pos"></span><button id="rp-reveal" style="display:none">非公開シート</button><button id="rp-share" onclick="RP.shareURL()">URL をコピー</button><button onclick="RP.shareURL(true)" title="盤面の記録をそのまま入れる（約1万文字）。バグの報告向け">長い URL</button><button id="rp-exit">リプレイを終える</button></div>
 <input type="file" id="rp-file" accept=".json,application/json" style="display:none">
 <div id="uxpanel"><b style="color:var(--acc)">表示の設定</b> <span class="mut" id="ux-q"></span>
   <label>場面カード <input type="checkbox" data-ux="scene"></label>
@@ -349,7 +352,7 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
   <label>画像 <select data-ux="img"><option value="auto">自動</option><option value="on">あり</option><option value="off">なし（文字）</option></select></label>
   <div class="mut">URL に ?ux=off で演出を全部切る（試験用）、?ux=fast で速く、?img=off で文字の表示。</div>
   <div id="ux-new" style="display:none;margin-top:8px"><button class="go" id="newgame">新しいゲーム…</button></div>
-  <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><button id="rp-export">リプレイを書き出す</button><button id="rp-url">リプレイの URL をコピー</button><button id="rp-import">リプレイを読み込む…</button></div></div>
+  <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><button id="rp-export">リプレイを書き出す</button><button id="rp-url">リプレイの URL をコピー</button><button id="rp-url-full" title="盤面の記録をそのまま入れる（約1万文字）。バグの報告向け">長い URL（記録ごと）</button><button id="rp-import">リプレイを読み込む…</button></div></div>
 
 <script>
 const IMG = '/img/';
@@ -876,6 +879,10 @@ async function poll() {
     const l = await (await fetch('/log')).text();
     if (l !== lastLog) { LOG = l.split('\n').filter(Boolean).map(x => JSON.parse(x)); lastLog = l; renderLog(); sceneOnLog(); }
   } catch {}
+  if (RP.building && (S.waiting || {}).kind === 'replay_done') RP.finishBuild();
+  if (RP.building && /^エラー/.test((S.waiting || {}).text || '')) {  // 再生の途中で止まった（壊れた記録など）
+    RP.building = false; $('rpbuild').classList.remove('on'); alert('リプレイを再生できなかった: ' + S.waiting.text);
+  }
 }
 // 札にマウスを乗せると大きく表示する
 const zoom = Object.assign(document.createElement('img'), { className: 'cardzoom' }); zoom.style.display = 'none'; document.body.appendChild(zoom);
@@ -1043,7 +1050,7 @@ function openReveal() {
     <h3>ルール</h3>${r.ruleY.map(x => `<span class="chip y">Y ${esc(x)}</span>`).join('')}${r.ruleX.map(x => `<span class="chip x">X ${esc(x)}</span>`).join('')}
     <h3>役職</h3><table><tr><th>キャラクター</th><th>役職</th>${r.final ? '<th>最後の戦いの指摘</th>' : ''}</tr>${roleRows}</table>
     <h3>事件と犯人</h3><table><tr><th>日</th><th>事件</th><th>犯人</th></tr>${r.incidents.map(i => `<tr><td>${i.day}日</td><td>${esc(i.name)}</td><td>${esc(i.culprit)}</td></tr>`).join('')}</table>
-    <div class="btns"><button onclick="RP.exportFile()">リプレイを保存</button><button onclick="RP.shareURL()">リプレイの URL をコピー</button><button onclick="document.getElementById('reveal').classList.remove('on')">閉じる</button>${canStart ? '<button class="go" onclick="document.getElementById(\'reveal\').classList.remove(\'on\'); openStart()">新しいゲーム</button>' : ''}</div>`;
+    <div class="btns"><button onclick="RP.exportFile()">リプレイを保存</button><button onclick="RP.shareURL()">リプレイの URL をコピー</button><button onclick="RP.shareURL(true)" title="盤面の記録をそのまま入れる（約1万文字）。バグの報告向け">長い URL</button><button onclick="document.getElementById('reveal').classList.remove('on')">閉じる</button>${canStart ? '<button class="go" onclick="document.getElementById(\'reveal\').classList.remove(\'on\'); openStart()">新しいゲーム</button>' : ''}</div>`;
   $('reveal').classList.add('on');
 }
 // ---- リプレイ: 試合の記録（公開ログ・場面ごとの盤面・終了時の盤面と非公開シート）を JSON に書き出し、読み込んで見返す ----
@@ -1054,7 +1061,8 @@ const RP = {
     const txt = async u => (await fetch(u)).text();
     const lines = s => s.split('\n').filter(Boolean).map(x => JSON.parse(x));
     const st = JSON.parse(await txt('/state') || '{}');
-    return { format: 'sangeki-replay', version: 1, exportedAt: new Date().toISOString(), complete: !!st.reveal,
+    let record = null; try { record = JSON.parse(await txt('/record') || 'null'); } catch {}
+    return { format: 'sangeki-replay', version: 1, exportedAt: new Date().toISOString(), complete: !!st.reveal, record: record && record.v ? record : undefined,
              title: st.reveal ? st.reveal.title : null, log: lines(await txt('/log')), snapshots: lines(await txt('/snapshots')), final: st };
   },
   async exportFile() {
@@ -1104,7 +1112,29 @@ const RP = {
     const u = new URLSearchParams(location.search).get('replay');
     if (u) fetch(u).then(r => r.json()).then(d => this.load(d)).catch(e => alert('リプレイを読み込めなかった: ' + e.message));
     if (location.hash.startsWith('#r=')) this.unpack(location.hash.slice(3)).then(d => this.load(d)).catch(e => alert('リプレイの URL を読めなかった: ' + e.message));
+    if (location.hash.startsWith('#p=')) this.build(location.hash.slice(3));
   },
+  // ---- 短い URL（#p=）: 両陣営の判断（record.json）だけを入れ、開くときにエンジンで再生して盤面の記録を作り直す（約1000文字）。
+  // 自動の脚本家は考えずに記録した判断を返すので、Python の準備のあとは数秒で終わる。照合値が合わなければ（エンジンの版の違い）知らせる
+  async build(code) {
+    try {
+      const rec = JSON.parse(new TextDecoder().decode(await this.z(this.b64dec(code), false)));
+      this.building = true;
+      $('rpbuild').classList.add('on');
+      const r = await fetch('/new', { method: 'POST', body: JSON.stringify({ replay: rec }) });
+      if (!r.ok) throw new Error(await r.text());
+    } catch (e) { this.building = false; $('rpbuild').classList.remove('on'); alert('リプレイの URL を読めなかった: ' + e.message); }
+  },
+  async finishBuild() {
+    this.building = false;
+    const ok = (S.waiting || {}).ok;
+    const d = await this.collect();
+    $('rpbuild').classList.remove('on');
+    this.load(d);
+    if (!ok) alert('再生した試合が、記録と一致しませんでした（作ったときとエンジンの版が違う可能性があります）。途中から違う手順になっているかもしれません。');
+  },
+  b64enc(b) { let bin = ''; for (const c of b) bin += String.fromCharCode(c); return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); },
+  b64dec(s) { return Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)); },
   // ---- URL での共有: 盤面の記録を前の場面からの差分にし、deflate-raw ＋ base64url で URL の # の後ろに入れる（サーバーに送られない）。
   // 1試合で約1万文字（JSON のままだと 300KB）。形: {f:'r1', t:題名, c:最後までか, l:[[n,ループ,日,文],…], s:[[prev_n,log_n,差分],…], z:終了時の差分}
   async z(bytes, enc) {
@@ -1129,12 +1159,18 @@ const RP = {
     return { format: 'sangeki-replay', version: 1, complete: o.c, title: o.t, log: o.l.map(([n, loop, day, text]) => ({ n, loop, day, text })),
              snapshots, final: { ...prev, ...o.z } };
   },
-  async shareURL() {
+  async shareURL(full) {  // full: 盤面の記録ごと入れる長い URL（その時に見えたことをそのまま残す。バグの報告向け）
     try {
       const d = RP.on ? RP.data : await this.collect();
       if (!d || !d.snapshots.length) return alert('共有する記録がありません（試合が始まっていない）');
-      const url = location.href.split('#')[0].split('?')[0] + '#r=' + await this.pack(d);
-      await copyText(url, `リプレイの URL（${url.length.toLocaleString()} 文字）をコピーしました。` + (d.complete ? '最後まで進んだ試合なので、脚本の中身（非公開シート）も入っています。' : '試合の途中までで、脚本の中身は入っていません。'));
+      const base = location.href.split('#')[0].split('?')[0];
+      // この試合の判断の記録があれば短い URL（#p=）。リプレイのファイルを開いて見ているときなどは、盤面の記録ごと入れる（#r=、長い）
+      const rec = RP.on ? (RP.data.record || null) : JSON.parse(await (await fetch('/record')).text() || '{}');
+      const url = !full && rec && rec.v ? base + '#p=' + this.b64enc(await this.z(new TextEncoder().encode(JSON.stringify(rec)), true))
+        : base + '#r=' + await this.pack(d);
+      const note = url.includes('#p=') ? '開くときにエンジンで試合を作り直します（エンジンの版が変わると再現できないことがあります。バグの報告には「長い URL」を）。'
+        : '盤面の記録をそのまま入れています。';
+      await copyText(url, `リプレイの URL（${url.length.toLocaleString()} 文字）をコピーしました。${note}` + (d.complete ? '最後まで進んだ試合なので、脚本の中身（非公開シート）も入っています。' : '試合の途中までで、脚本の中身は入っていません。'));
     } catch (e) { alert('URL を作れなかった: ' + e.message); }
   },
 };
@@ -1144,6 +1180,7 @@ async function copyText(s, msg) {
 }
 $('rp-export').onclick = e => { e.stopPropagation(); RP.exportFile(); };
 $('rp-url').onclick = e => { e.stopPropagation(); RP.shareURL(); };
+$('rp-url-full').onclick = e => { e.stopPropagation(); RP.shareURL(true); };
 $('rp-import').onclick = e => { e.stopPropagation(); $('rp-file').click(); };
 $('rp-file').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { RP.load(JSON.parse(await f.text())); } catch (err) { alert('読み込めなかった: ' + err.message); } e.target.value = ''; };
 $('rp-first').onclick = () => RP.go(0); $('rp-prev').onclick = () => RP.go(RP.i - 1); $('rp-next').onclick = () => RP.go(RP.i + 1);
@@ -1170,7 +1207,7 @@ fetch('/scripts').then(r => r.ok ? r.json() : null).then(d => {
 }).catch(() => {});
 // 初めの案内（タイトル・免責事項・遊び方）。開始画面のあるとき（SANGEKI_AI=1）に、ページを開くたびに出す。?ux=off では出さない
 function openWelcome() {
-  if (RP.on || location.hash.startsWith('#r=')) return;  // リプレイを開いたとき（?replay=・#r=）は案内を出さない
+  if (RP.on || /^#[rp]=/.test(location.hash)) return;  // リプレイを開いたとき（?replay=・#r=・#p=）は案内を出さない
   if (new URLSearchParams(location.search).get('ux') === 'off') { if (!S.loop) openStart(); return; }
   $('wl-cont').style.display = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '' : 'none';
   $('wl-close').style.display = 'none'; $('wl-start').style.display = '';

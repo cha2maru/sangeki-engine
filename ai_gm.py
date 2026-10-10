@@ -72,6 +72,10 @@ class Table:
         self.last_phase = None
         self.ability_options = None
         self.mm_targets_hist = []
+        # リプレイの URL 用の記録（record.json）: 主人公の受け付けた操作 h と、脚本家の判断の結果 m。再生すれば同じ試合になる
+        # （エンジンのルール処理は乱数を使わない）。crc: 公開ログの文の照合値（再生が食い違えば、エンジンの版が違う）
+        self.record = {'v': 1, 'h': [], 'm': [], 'n': 0, 'crc': 0}
+        self.replay = None  # 再生中なら記録（record の形）。wait は記録から返す
 
     # ファイルの読み書きはここにまとめる（ブラウザ版 web/web_gm.py はこれを差し替えて、ファイルの代わりに盤面へ直接送る）
     def _reset_files(self):
@@ -100,7 +104,10 @@ class Table:
         os.replace(tmp, os.path.join(self.d, f))
 
     def log(self, text):
+        import zlib
         self.n += 1
+        self.record['n'], self.record['crc'] = self.n, zlib.crc32(text.encode('utf-8'), self.record['crc'])
+        self._write('record.json', self.record)
         s = self.s or {}
         loop = min(s['loop'], self.script['loops']) if s.get('loop') else None  # 最後の戦いではエンジンのループ番号が1つ進んでいる
         self._append('log.jsonl', {'n': self.n, 'loop': loop, 'day': s.get('day'), 'text': text})
@@ -151,6 +158,17 @@ class Table:
         c, _, i = str(x).partition('#')
         return f'{name(c)}#{i}'
 
+    def take(self, types):
+        """主人公の操作を1つ受け取る（wait）。リプレイの記録に残し、再生中は記録から返す。"""
+        if self.replay is not None:
+            if not self.replay['h']:
+                raise ReplayEnd()
+            return dict(self.replay['h'].pop(0))
+        rec = self.wait(types)
+        self.record['h'].append({k: v for k, v in rec.items() if k not in ('seq', 'at', 'game', 'phaseId', 'label')})
+        self._write('record.json', self.record)
+        return rec
+
     def wait(self, types):
         """いまの phaseId に対する、types のどれかの操作を1つ待って返す。"""
         path = os.path.join(self.d, 'inbox.jsonl')
@@ -164,6 +182,53 @@ class Table:
                 if rec.get('type') == 'message':
                     self.log(f'（伝言を受け取った: {rec.get("text")}）')
             time.sleep(0.5)
+
+
+PUBCHARS = json.load(open(os.path.join(HERE, 'engine', 'data', 'characters_public.json'), encoding='utf-8'))
+
+
+class ReplayEnd(Exception):
+    """リプレイの記録を使い切った（共有したときの試合の位置まで再生した）。"""
+
+
+def ability_label(cid, idx):
+    """友好能力の表示名（盤面のメニューと同じ「[友好]★ 文面」。公開のキャラクター情報から）。"""
+    a = next((x for x in PUBCHARS.get(cid, {}).get('abilities', []) if x['idx'] == idx), None)
+    return f"[{a['need']}]{'★' if a['once'] else ''} {a['text']}" if a else f'{cid}#{idx}'
+
+
+class RecordingMM:
+    """自動の脚本家の判断の結果を記録する（リプレイの URL 用。思考は記録しない）。"""
+    def __init__(self, mm, record):
+        self.__dict__['_mm'], self.__dict__['_rec'] = mm, record
+
+    def __getattr__(self, n):
+        v = getattr(self._mm, n)
+        if n in Combo.MM and callable(v):
+            def f(*a, **k):
+                r = v(*a, **k)
+                self._rec['m'].append(json.loads(json.dumps(r)))
+                return r
+            return f
+        return v
+
+
+class ReplayMM:
+    """記録した脚本家の判断の結果を順に返す（考えない）。持っていた判断の種類（has）も元の脚本家と同じにする。"""
+    def __init__(self, record, has):
+        self._q, self._has, self.rng = list(record['m']), set(has), random.Random(0)
+
+    def __getattr__(self, n):
+        if n.startswith('_') or n not in self._has:
+            raise AttributeError(n)
+        if n == 'observe':
+            return lambda *a, **k: None
+
+        def f(*a, **k):
+            if not self._q:
+                raise ReplayEnd()
+            return self._q.pop(0)
+        return f
 
 
 def describe(e):
@@ -278,7 +343,7 @@ class HumanProtagonist:
             self.t.show(s, f'L{s["loop"]} {s["day"]}日目 主人公行動フェイズ',
                         {'kind': 'cards', 'text': (f'{self.t.reply} ／ ' if self.t.reply else '') + f'行動カードを3枚（{"→".join(order)}）置いて『確定』。脚本家の伏せ札は '
                          + '・'.join(name(x) for x in mm_targets or []), 'options': []}, placed=mm)
-            rec = self.t.wait(('cards',))
+            rec = self.t.take(('cards',))
             # 受け付けなかった置き方はログに書かない（振り返りには成功した配置だけを出す。行動解決で「主人公の札: …」の行になる）
             try:
                 pc = placements_from_inbox(rec)
@@ -319,7 +384,7 @@ class HumanProtagonist:
             self.t.show(s, f'L{s["loop"]} {s["day"]}日目 主人公能力フェイズ',
                         {'kind': 'ability', 'text': (f'{self.t.reply} ／ ' if self.t.reply else '') + 'リーダーから友好能力を宣言（右クリック）。1件ずつその場で解決する。宣言し終えたら『' + END_ABILITY + '』',
                          'options': [END_ABILITY]})
-            rec = self.t.wait(('ability', 'option'))
+            rec = self.t.take(('ability', 'option'))
             if rec['type'] == 'option':
                 return None
             dec = self._match(s, rec)
@@ -328,7 +393,7 @@ class HumanProtagonist:
                 self.t.show(bump=False)
                 continue
             self.t.reply = ''
-            self.t.log(f'宣言を受け付けた: {rec.get("char")} {rec.get("label", "")}')
+            self.t.log(f'宣言を受け付けた: {rec.get("char")} {ability_label(dec[0], dec[1])}')
             return dec
 
     @staticmethod
@@ -388,7 +453,7 @@ class HumanProtagonist:
             self.t.show(s, '最後の戦い', {'kind': 'final', 'text': '右クリックで役職を1人ずつ指摘（宣言順に判定。外れた時点で脚本家の勝ち）。'
                                          f'残り {len(left)} 人。全員を指摘したら『{END_FINAL}』', 'options': [END_FINAL]}, bump=first)
             first = False
-            rec = self.t.wait(('final', 'option'))
+            rec = self.t.take(('final', 'option'))
             if rec['type'] == 'option':
                 self.guesses = order + [{'char': c, 'role': 'PERSON'} for c in left]  # 終了後の非公開シートで答え合わせに使う
                 return self.guesses
@@ -580,6 +645,7 @@ def main():
     ap.add_argument('--list', action='store_true', help='開始画面の脚本の一覧（題名・ループ数・日数だけ。役職・犯人は出さない）を JSON で出して終わる')
     ap.add_argument('--code', default='', help='シナリオエディタのコード（s1.…）の脚本で遊ぶ（--script の代わり）')
     ap.add_argument('--decode', action='store_true', help='標準入力のコードを読んで、シナリオの JSON を出して終わる（シナリオエディタ）')
+    ap.add_argument('--replay', default='', help='リプレイの記録（record.json の形）のファイルを再生する（URL の #p=）')
     ap.add_argument('--check', action='store_true', help='標準入力のシナリオ（JSON）を検証し、{errors, warnings} を JSON で出して終わる（シナリオエディタ）')
     a = ap.parse_args()
     if a.decode:
@@ -604,12 +670,18 @@ def main():
         from engine.scripts import glob_scripts
         print(json.dumps({'scripts': list_scripts(), 'blind': len(glob_scripts('generated/*.json'))}, ensure_ascii=False))
         return
+    a.replay = json.load(open(a.replay, encoding='utf-8')) if a.replay else None
     run(a)
 
 
 def run(a, table_cls=None):
     """1試合を進める。a: --script・--blind・--mm・--seed・--dir の値。table_cls: 盤面とのやりとり（既定はファイル＝server.mjs）。"""
     table_cls = table_cls or Table
+    rp = getattr(a, 'replay', None)  # リプレイの記録（URL の #p=）: 記録の脚本・脚本家で、記録した判断を流し込んで再生する
+    if rp:
+        if rp.get('v') != 1:
+            raise ValueError('リプレイの記録の形が違う')
+        a.script, a.code, a.mm, a.blind = rp.get('s') or '', rp.get('c') or '', rp.get('mm') or 'calcG', False
     if a.blind:
         a.script, n = pick_blind(random.Random(f'blind:{a.seed}:{time.time()}'))
         os.makedirs(os.path.join(a.dir, 'private'), exist_ok=True)
@@ -625,20 +697,27 @@ def run(a, table_cls=None):
     else:
         script = by_id(a.script)
     t = table_cls(a.dir, script)
+    t.record.update({'s': '' if a.script == 'user' else a.script, 'c': getattr(a, 'code', '') or '', 'mm': a.mm})
+    if rp:
+        t.replay = {'h': list(rp.get('h', []))}
     rng = random.Random(a.seed)
     pc = HumanProtagonist(t, rng)
-    if a.mm == 'claude':  # Claude が脚本家（問いは private/ に書くので盤面からは見えない）
+    if a.mm == 'claude' and not rp:  # Claude が脚本家（問いは private/ に書くので盤面からは見えない）
         from selfplay.play_cli import BlockingMastermind
         mm = BlockingMastermind(os.path.join(a.dir, 'private', 'mm_question.txt'), os.path.join(a.dir, 'private', 'mm_decisions.jsonl'),
                                 make('search', rng, script))
     else:
-        mm = make(a.mm, rng, script)
+        mm = make('search' if a.mm == 'claude' else a.mm, rng, script)
+    if rp:  # 再生: 考えずに記録した判断を返す（持っている判断の種類は、同じ型の脚本家と同じ）
+        mm = ReplayMM(rp, [n for n in Combo.MM + ('observe',) if hasattr(mm, n)])
+    else:
+        mm.progress = _progress(t)
+        mm = RecordingMM(mm, t.record)
     # 脚本家が考えている間は、盤面に「考え中」を出す（何を考えているかと開始時刻。calcG は1手に数十秒かかる）
     for meth, what in THINK.items():
         f = getattr(mm, meth, None)
         if callable(f):
             setattr(mm, meth, _thinking(t, what, f))
-    mm.progress = _progress(t)
     player = Combo(mm, pc)
     nar = Narrator(t)
     # 題名は内容の手がかりになるので、開始時は ID だけ出す（題名はゲーム終了時の非公開シートの公開で出す）
@@ -655,7 +734,12 @@ def run(a, table_cls=None):
         if rec.get('phase') == 'final_battle':
             t.log('最後の戦い: ' + ('主人公の勝ち' if rec['result']['winner'] == 'protagonists' else
                                  f'{rec["result"].get("stopped_at", 0) + 1} 人目の指摘で外れた。脚本家の勝ち'))
-    r = play_game(script, player, log0, observers=(nar,))
+    try:
+        r = play_game(script, player, log0, observers=(nar,))
+    except ReplayEnd:  # 共有したときの位置まで再生した（試合の途中）
+        t.show(phase_name='リプレイ（試合の途中まで）', waiting={'kind': 'replay_done', 'text': '再生を終えた',
+                                                         'ok': (t.n, t.record['crc']) == (rp['n'], rp['crc']), 'options': []})
+        return
     winner = '主人公' if r.get('winner') == 'protagonists' else '脚本家'
     how = '最後の戦い' if r.get('loop') == 'final' else f'ループ{r.get("loop")}を守りきった'
     t.log(f'ゲーム終了: {winner}の勝ち（{how}）')
@@ -684,6 +768,10 @@ def run(a, table_cls=None):
     if a.blind:  # 試合の後に、遊んだルールの組を記録する（次の目隠しの選択で同じ組を避ける）
         with open(HISTORY, 'a', encoding='utf-8') as fp:
             fp.write(json.dumps({'id': a.script.split('/')[-1], 'rules': script['rules'], 'mm': a.mm, 'winner': r.get('winner')}, ensure_ascii=False) + '\n')
+    if rp:  # 最後まで再生した。記録の照合値と同じなら、同じ試合を再現できた
+        t.show(phase_name=f'ゲーム終了 ― {winner}の勝ち', waiting={'kind': 'replay_done', 'text': '再生を終えた',
+                                                             'ok': (t.n, t.record['crc']) == (rp['n'], rp['crc']), 'options': []})
+        return
     t.show(phase_name=f'ゲーム終了 ― {winner}の勝ち', waiting={'kind': 'none', 'text': 'ゲーム終了。非公開シートを公開ログに出した', 'options': []})
 
 

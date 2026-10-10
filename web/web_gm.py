@@ -27,8 +27,9 @@ class WebTable(ai_gm.Table):
                 return rec
 
 
-def start(script, mm, seed, blind, code=''):
-    ai_gm.run(SimpleNamespace(script=script, mm=mm, seed=int(seed), blind=bool(blind), dir='/tmp/game', code=code or ''), WebTable)
+def start(script, mm, seed, blind, code='', replay=''):
+    ai_gm.run(SimpleNamespace(script=script, mm=mm, seed=int(seed or 0), blind=bool(blind), dir='/tmp/game', code=code or '',
+                              replay=json.loads(replay) if replay else None), WebTable)
 
 
 def check_json(s):

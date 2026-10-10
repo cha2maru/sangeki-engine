@@ -27,7 +27,16 @@ function listScripts() {
   if (!scriptList) scriptList = JSON.parse(execFileSync(PY, [path.join(HERE, 'ai_gm.py'), '--list'], { cwd: HERE }).toString());
   return scriptList;
 }
-function startGame({ script, mm, seed, blind, code }) {
+function startGame({ script, mm, seed, blind, code, replay }) {
+  if (replay) {  // リプレイの記録を再生する（URL の #p=）。中身の検証は ai_gm.py がする
+    if (typeof replay !== 'object' || JSON.stringify(replay).length > 200000) throw new Error('リプレイの記録が不正');
+    const f = path.join(GAME, 'replay_in.json');
+    fs.writeFileSync(f, JSON.stringify(replay));
+    if (child && child.exitCode === null) child.kill('SIGTERM');
+    const out = fs.openSync(path.join(GAME, 'ai_gm.log'), 'w');
+    child = spawn(PY, [path.join(HERE, 'ai_gm.py'), '--replay', f, '--dir', GAME], { cwd: HERE, stdio: ['ignore', out, out] });
+    return;
+  }
   if (!MMS.includes(mm)) throw new Error('脚本家の型が不正');
   // code: シナリオエディタのコード（s1.＋base64url）。中身の検証は ai_gm.py がする
   if (code && !/^s1\.[A-Za-z0-9_-]{1,20000}$/.test(code)) throw new Error('シナリオのコードが不正');
@@ -78,6 +87,7 @@ http.createServer(async (req, res) => {
       if (p === '/log') return sendFile(res, path.join(GAME, 'log.jsonl'), '');
       if (p === '/notes') return sendFile(res, path.join(GAME, 'notes.json'), '{}');
       if (p === '/deduce') return sendFile(res, path.join(GAME, 'deduce.json'), '{}');
+      if (p === '/record') return sendFile(res, path.join(GAME, 'record.json'), '{}');  // リプレイの URL（#p=）の元
       if (p === '/snapshots') return sendFile(res, path.join(GAME, 'snapshots.jsonl'), '');
       if (p === '/scripts') return AI ? send(res, 200, JSON.stringify({ ...listScripts(), mms: MMS }), TYPES['.json']) : send(res, 404, 'not found');
       // 公開のキャラクター情報（不安臨界・初期エリア・禁止エリア・友好能力の文面）。engine/data/build_public_chars.py が作る
