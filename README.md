@@ -40,6 +40,7 @@
 - [構成](#構成)
 - [できないこと・既知の制限](#できないこと既知の制限)
 - [原作と出典](#原作と出典)
+- [連絡先](#連絡先)
 - [ライセンス](#ライセンス)
 - [English summary](#english-summary)
 
@@ -259,6 +260,10 @@ PYTHONPATH=../sangeki-engine python -m selfplay.tune positions/*.json --side mm 
 - **盤面の画像**: 惨劇コモンズ5th（リポジトリには含みません。`setup_images.sh` が公式の配布ページから取得します）
   惨劇コモンズ作成: **BakaFire**、**NEKOG(紺ノ玲)** ／ [CC BY-SA 2.1 JP](http://creativecommons.org/licenses/by-sa/2.1/jp/) ／
   http://bakafire.main.jp/rooper/sr_dl_04_sozai.htm
+
+## 連絡先
+
+作者: cha2maru（X: [@withoutcane](https://x.com/withoutcane)）。不具合や裁定の誤りは GitHub の Issue か X へ。
 
 ## ライセンス
 
