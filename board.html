@@ -292,8 +292,8 @@ body.mode-ai .manual-only { display:none; }
   <h2>新しいゲーム</h2>
   <div class="row"><input type="checkbox" id="st-blind" checked><label for="st-blind" style="margin:0">脚本を伏せて遊ぶ（おすすめ）</label></div>
   <div class="note" id="st-blind-note">自動生成の脚本から、遊んだことのない組を選びます。</div>
-  <label for="st-script">脚本を選ぶ</label><select id="st-script" disabled></select>
-  <div class="note">脚本のタイトルから脚本の内容が分かる可能性があります。</div>
+  <div id="st-pick" style="display:none"><label for="st-script">脚本を選ぶ</label><select id="st-script"></select>
+  <div class="note">脚本のタイトルから脚本の内容が分かる可能性があります。</div></div>
   <label for="st-mm">脚本家</label><select id="st-mm"></select>
   <label for="st-seed">乱数の種</label><div class="row"><input type="number" id="st-seed" min="0"><button type="button" id="st-rand">ランダム</button></div>
   <div class="btns"><button type="button" id="st-cancel">やめる</button><button class="go" type="submit">開始</button></div>
@@ -914,7 +914,7 @@ fetch('/scripts').then(r => r.ok ? r.json() : null).then(d => {
   $('st-mm').innerHTML = d.mms.map((m, i) => `<option value="${m}" ${i === 0 ? 'selected' : ''}>${esc(MMLABEL[m] || m)}</option>`).join('');  // 既定は最強
   $('st-seed').value = Math.floor(Math.random() * 10000);
   if (!d.blind) {  // 伏せて選べる脚本（自動生成。sangeki-scripts）が無い: 一覧から選ぶ
-    $('st-blind').checked = false; $('st-blind').disabled = true; $('st-script').disabled = false;
+    $('st-blind').checked = false; $('st-blind').disabled = true; syncPick();
     $('st-blind-note').textContent = '伏せて選べる脚本（自動生成）がありません（sangeki-scripts を隣に置くと使えます）。';
   }
   openWelcome();
@@ -929,7 +929,9 @@ $('wl-start').onclick = () => { $('welcome').classList.remove('on'); openStart()
 $('wl-cont').onclick = () => $('welcome').classList.remove('on');
 function openStart() { if (canStart) { $('start').classList.add('on'); $('uxpanel').classList.remove('on'); } }
 $('st-rand').onclick = () => { $('st-seed').value = Math.floor(Math.random() * 10000); };
-$('st-blind').onchange = () => { $('st-script').disabled = $('st-blind').checked; };
+// 伏せて遊ぶときは「脚本を選ぶ」を出さない（題名が見えないように）
+const syncPick = () => { $('st-pick').style.display = $('st-blind').checked ? 'none' : ''; };
+$('st-blind').onchange = syncPick;
 $('st-cancel').onclick = () => $('start').classList.remove('on');
 $('newgame').onclick = e => { e.stopPropagation(); openStart(); };
 $('startf').onsubmit = async e => {
