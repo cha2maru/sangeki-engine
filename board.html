@@ -67,7 +67,11 @@ summary { cursor:pointer; color:var(--acc); }
 .ch img.st { display:block; height:clamp(40px,19.5cqi,104px); margin:0 auto; }
 .area.crowd .ch { width:clamp(40px,15.5cqi,90px); } .area.crowd .ch img.st { height:clamp(32px,13.5cqi,80px); }
 .area.crowd2 .ch { width:clamp(34px,12cqi,72px); } .area.crowd2 .ch img.st { height:clamp(28px,10.5cqi,64px); }
-.area.crowd .ch .lim, .area.crowd2 .ch .lim { top:2px; }
+.area.crowd3 .ch { width:clamp(28px,9.5cqi,58px); padding:1px; } .area.crowd3 .ch img.st { height:clamp(22px,8.5cqi,50px); }
+.area.crowd3 .ch .nm { font-size:clamp(8px,2cqi,11px); } .area.crowd3 .ch .lim { padding:0 2px; font-size:9px; } .area.crowd3 .ch .lim b { font-size:clamp(9px,2.6cqi,13px); }
+.area.crowd3 .chars { align-content:flex-start; overflow-y:auto; overflow-x:hidden; }
+.area.crowd3 .b { font-size:clamp(7px,1.9cqi,10px); padding:0 3px; } .area.crowd3 .ch .cnt { gap:1px; }  /* 下に寄せたままだと、はみ出した上の段にスクロールで届かない */
+.area.crowd .ch .lim, .area.crowd2 .ch .lim, .area.crowd3 .ch .lim { top:2px; }
 .ch .lim { position:absolute; right:3px; top:clamp(18px,9.5cqi,52px); background:rgba(0,0,0,.85); border:1px solid var(--par); border-radius:4px; padding:0 4px; font-size:13px; color:#ddd; line-height:1.3; text-align:center; }
 .ch .lim b { display:block; font-size:clamp(11px,4cqi,22px); color:#fff; line-height:1.1; }
 .ch .nm { text-align:center; font-size:clamp(9px,2.6cqi,14px); font-weight:700; white-space:nowrap; overflow:hidden; }
@@ -186,7 +190,7 @@ body.noimg .area[data-area="病院"] { background:#1d3a47; } body.noimg .area[da
 body.noimg .area[data-area="都市"] { background:#33334a; } body.noimg .area[data-area="学校"] { background:#234a31; }
 body.noimg .ch img.st { display:none; }
 /* 画像なし: 駒は名前の札。名前を削らず、不安臨界は名前の横に小さく */
-body.noimg .ch, body.noimg .area.crowd .ch, body.noimg .area.crowd2 .ch { width:auto; min-width:44px; padding:3px 5px; }
+body.noimg .ch, body.noimg .area.crowd .ch, body.noimg .area.crowd2 .ch, body.noimg .area.crowd3 .ch { width:auto; min-width:44px; padding:3px 5px; }
 body.noimg .ch .nm { font-size:clamp(11px,3.4cqi,15px); overflow:visible; display:inline; }
 body.noimg .ch .lim { position:static; display:inline-block; margin-left:4px; padding:0 3px; font-size:10px; vertical-align:middle; }
 body.noimg .ch .lim b { display:inline; font-size:11px; margin-left:1px; }
@@ -202,7 +206,7 @@ body.noimg .area { aspect-ratio:auto; min-height:120px; display:flex; flex-wrap:
 body.noimg .alabel { position:static; transform:none; font-size:16px; color:rgba(255,255,255,.75); }
 body.noimg .slots, body.noimg .acards { position:static; }
 body.noimg .acards:empty { display:none; }
-body.noimg .chars { position:static; width:100%; }
+body.noimg .chars { position:static; width:100%; max-height:40vh; overflow-y:auto; }  /* 大勢が1か所に集まっても盤面全体は伸ばさない */
 body.noimg .acards span.card { width:auto; min-width:26px; height:20px; aspect-ratio:auto; font-size:11px; padding:0 4px; border-radius:3px; }
 span.card { display:inline-flex; align-items:center; justify-content:center; text-align:center; font-weight:800; font-size:12px; line-height:1.1; color:#fff;
   background:#2a4f7a; box-sizing:border-box; padding:1px; overflow:hidden; }
@@ -436,7 +440,7 @@ function render() {
     const areaM = (S.cards || []).some(c => c.owner === 'M' && c.target === 'board:' + name);
     // 人数が多いエリアは駒を小さくする（折り返した駒が暗躍の欄やボードの札を覆い、ボードを狙えなくなっていた）
     const n = (S.characters || []).filter(c => c.area === name).length;
-    const crowd = n > 6 ? 'crowd2' : n > 4 ? 'crowd' : '';
+    const crowd = n > 10 ? 'crowd3' : n > 6 ? 'crowd2' : n > 4 ? 'crowd' : '';  // 人数に応じて駒を小さく（11人以上は最小で、収まらなければエリアの中だけスクロール）
     // 大物のテリトリー（公開情報。ゲームの準備に縄張りトークンを置く＝大物の特性）。文字だけだと見つからなかった（ユーザー指摘）
     const turf = (S.publicSheet || {}).territory !== name ? '' : noimg() ? '<span class="turf" title="縄張りトークン（大物のテリトリー）">縄張り</span>'
       : `<img class="turf" src="${IMG}tokens/turf.png" title="縄張りトークン（大物のテリトリー）" alt="縄張り">`;
