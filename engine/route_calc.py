@@ -38,6 +38,10 @@ def _route_spec(r, state, days, positional=True):
             else:
                 return None
         elif k == 'counter' and c['detail'][1] in ('par', 'int'):
+            ch = state['chars'].get(c['detail'][0])
+            if ch is None or not ch.get('present', True):
+                # ponytail: 登場前（転校生など）には札を置けない（d23 で反則の置き方になった）。登場後に押せる分は数えない＝下限のまま
+                return None
             need.append((c['detail'][0], c['detail'][1], c['detail'][2]))
         elif k == 'board':
             need.append(('B:' + c['detail'][0], 'int', c['detail'][1]))

@@ -77,3 +77,13 @@ def test_bluff_card_on_illusion_board():
     assert out['B:SHR'] == 'GWX' and out['B:CIT'] == 'PAR-'
     s['chars']['C20']['alive'] = False
     assert dict(SearchMastermind._bluff_cards(s, [('B:SHR', 'BLUFF')]))['B:SHR'] == 'PAR-'
+
+
+def test_absent_character_not_targeted():
+    """登場前のキャラクター（d23 の転校生、3日目から）のカウンターを要る筋は数えない（札を置けない）。"""
+    from engine.route_calc import _route_spec
+    s = {'day': 1, 'chars': {'C24': {'present': False, 'alive': True}}}
+    r = {'id': 'X', 'conds': [{'kind': 'counter', 'detail': ['C24', 'int', 2]}]}
+    assert _route_spec(r, s, 6) is None
+    s['chars']['C24']['present'] = True
+    assert _route_spec(r, s, 6) is not None

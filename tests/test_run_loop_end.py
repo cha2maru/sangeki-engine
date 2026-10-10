@@ -72,3 +72,16 @@ def test_observer_uses_loop_end_phase_and_tt_reason():
         o.observe(s, 'loop_end', ev)
         seen.append((want, want in got if want else not got))
     assert all(ok for _, ok in seen), seen
+
+
+def test_dead_factor_gaining_key_ability_does_not_end_loop():
+    """キーパーソン【強制: 死亡時】。先に死んだファクターが、後で都市の暗躍2以上でキーパーソンの能力を得ても、
+    別の人物の死亡でループは終わらない（d16）。ファクターがその場で死ねば終わる。"""
+    st = {'script': {'roles': {'C03': 'FACTOR'}, 'rules': []}, 'boards': {'CIT': 2, 'SCH': 0, 'HOS': 0, 'SHR': 0},
+          'chars': {'C03': {'alive': False, 'par': 0}, 'C20': {'alive': False, 'par': 0}}}
+    ph.check_key_death(st, [{'kind': 'death', 'char': 'C20'}])  # 終わらない
+    try:
+        ph.check_key_death(st, [{'kind': 'death', 'char': 'C03'}])
+        assert False, 'ファクターの死亡でループが終わるはず'
+    except ph.LoopEnd:
+        pass

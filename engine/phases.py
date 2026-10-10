@@ -149,7 +149,11 @@ def servant_follow(state, before, events, follow=None):
 
 
 def check_key_death(state, events):
-    for cid, v in state['chars'].items():
+    # キーパーソン【強制: このキャラクターの死亡時】（早見表 役職表）: いま死亡した者（events の death）だけを見る。
+    # 先に死んでいたファクターが、後で都市の暗躍2以上でキーパーソンの能力を得ても、死亡時は過ぎているので終わらない（d16 で誤ってループが終わっていた）
+    died = {e['char'] for e in events if isinstance(e, dict) and e.get('kind') == 'death'}
+    for cid in died:
+        v = state['chars'][cid]
         if not v['alive'] and has_ability(state, cid, 'KEY'):
             events.append({'kind': 'loop_end', 'reason': 'キーパーソン死亡', 'loss': True})
             raise LoopEnd('キーパーソン死亡', events=events)
