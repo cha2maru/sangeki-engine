@@ -834,7 +834,12 @@ class SearchMastermind(RouteMastermind):
 
     @staticmethod
     def _bluff_cards(s, mv):
-        """賭けの手の BLUFF を効果の無い札に置き換える（ボードには不安−1・友好禁止、人物には友好禁止・移動）。"""
+        """賭けの手の BLUFF を効果の無い札に置き換える（ボードには不安−1・友好禁止、人物には友好禁止・移動）。
+        幻想のいるエリアのボードは、札が幻想にも効く（カードの特性、engine/resolve.py）ので、不安−1 は幻想の不安を下げて主人公を助け、
+        移動は幻想を動かす。そこでは友好禁止・不安禁止（どちらも脚本家に損の無い効果）を先に使う。
+        ponytail: 移動の解決で幻想が入ってくるエリアは見ていない（移動前のエリアだけ）"""
+        il = s['chars'].get('C20')
+        il_board = 'B:' + il['area'] if il and il['alive'] and il.get('present', True) and il.get('area') else None
         hand = [c for c in CARDS['mastermind_hand'] if not (c in ONCE['M'] and c in s['used']['M'])]
         for _, c in mv:
             if c != 'BLUFF':
@@ -842,7 +847,8 @@ class SearchMastermind(RouteMastermind):
         out = []
         for t, c in mv:
             if c == 'BLUFF':
-                pref = ('PAR-', 'GWX') if t.startswith('B:') else ('GWX', 'MV_V', 'MV_H', 'MV_D')
+                pref = ('GWX', 'PARX', 'MV_V', 'MV_H', 'MV_D', 'PAR-') if t == il_board else \
+                    ('PAR-', 'GWX') if t.startswith('B:') else ('GWX', 'MV_V', 'MV_H', 'MV_D')
                 c = next((x for x in pref if x in hand), None)
                 if c is None:
                     continue

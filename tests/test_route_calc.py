@@ -67,3 +67,13 @@ def test_block_rates_points_at_the_int2_threat():
     r = solve_hidden(t, [1, 0], need, 1, 1, FREE, True, fixed_T=['B:CIT', 'C99'])  # 伏せ札は都市と関係の無い人物
     assert r[(frozenset(), 'B:CIT')][0] == 0.0     # 都市に暗躍禁止なら取られない
     assert r[(frozenset(), None)][0] == 1.0        # 止めなければ暗躍+1 で都市2
+
+
+def test_bluff_card_on_illusion_board():
+    """幻想のいるエリアのボードのブラフに不安−1 を使わない（幻想の不安が下がり主人公を助ける）。いないボードは従来どおり不安−1。"""
+    from selfplay.search_mm import SearchMastermind
+    s = {'used': {'M': []}, 'chars': {'C20': {'alive': True, 'area': 'SHR'}}}
+    out = dict(SearchMastermind._bluff_cards(s, [('B:SHR', 'BLUFF'), ('B:CIT', 'BLUFF'), ('C01', 'INT1')]))
+    assert out['B:SHR'] == 'GWX' and out['B:CIT'] == 'PAR-'
+    s['chars']['C20']['alive'] = False
+    assert dict(SearchMastermind._bluff_cards(s, [('B:SHR', 'BLUFF')]))['B:SHR'] == 'PAR-'
