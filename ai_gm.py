@@ -19,6 +19,7 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from engine import abilities as ab  # noqa: E402
+from engine import phases as ph  # noqa: E402
 from engine.adapter import NAME2C, placements_from_inbox  # noqa: E402
 from engine.project import AREA_JA, CARD_UI, INC_JA, project  # noqa: E402
 from engine.resolve import CARDS, CHARS, ONCE  # noqa: E402
@@ -69,6 +70,7 @@ class Table:
         self.game = int(time.time())  # 試合の識別子（盤面が前の試合の送信済みを出さないため）
         self.s, self.placed, self.phase_name = None, [], '準備'
         self.waiting = {'kind': 'none', 'text': '脚本家の番', 'options': []}
+        self.reveal = None  # ゲーム終了後の非公開シート（盤面のダイアログ）
         self.reply = ''  # 「脚本家の返答」の欄（反則の置き方などの知らせ。公開ログには書かない＝振り返りに出さない）
         self.inc_result = {}
         self.last_phase = None
@@ -128,7 +130,7 @@ class Table:
                               'territory': AREA_JA.get(sc.get('territory')) if sc.get('territory') else None,
                               'appear': appear, 'special': sc.get('special') or ''}
         pub['loop'] = min(pub['loop'], self.script['loops'])  # 最後の戦いではエンジンのループ番号が1つ進んでいる
-        pub.update({'mode': 'ai', 'reply': self.reply,  # 対AIモード（盤面は手動モード用の欄＝脚本家に伝える・ハッシュ・異議を出さない）
+        pub.update({'mode': 'ai', 'reply': self.reply, 'reveal': self.reveal,  # 対AIモード（盤面は手動モード用の欄＝脚本家に伝える・ハッシュ・異議を出さない）
                     'game': self.game, 'phaseId': self.phase_id, 'phaseName': self.phase_name, 'waiting': self.waiting,
                     'loops': self.script['loops'], 'days': self.script['days'],
                     # 盤面は「キャラクター名#番号」で使用済みを判定する（エンジンは「C07#0」）
@@ -383,7 +385,8 @@ class HumanProtagonist:
             first = False
             rec = self.t.wait(('final', 'option'))
             if rec['type'] == 'option':
-                return order + [{'char': c, 'role': 'PERSON'} for c in left]
+                self.guesses = order + [{'char': c, 'role': 'PERSON'} for c in left]  # 終了後の非公開シートで答え合わせに使う
+                return self.guesses
             c, r = NAME2C.get(rec['char']), JA2ROLE.get(rec['role'])
             if c in s['chars'] and r:
                 order = [g for g in order if g['char'] != c] + [{'char': c, 'role': r}]
@@ -616,6 +619,25 @@ def main():
     t.log(f'非公開シート: 脚本「{script.get("title") or a.script}」（{a.script}） ／ ルール ' + '・'.join(RULE_JA.get(x, x) for x in script['rules']) + ' ／ 配役 '
           + '・'.join(f'{name(c)}={ROLE_JA.get(v, v)}' for c, v in script['roles'].items()) + ' ／ 犯人 '
           + '・'.join(f'{i["day"]}日 {INC_JA.get(i["id"], i["id"])}={name(i["culprit"])}' for i in script['incidents']))
+    # 非公開シート（盤面のダイアログ）: 勝敗・脚本・ルール・全員の役職（パーソンも）・事件と犯人。最後の戦いがあれば指摘との答え合わせ
+    guesses = getattr(pc, 'guesses', None) or []
+    gi = {g['char']: (i, g['role']) for i, g in enumerate(guesses)}
+    stop = r.get('final_stopped_at')
+    chars = [c for c in script.get('characters') or script['init']]
+    t.reveal = {
+        'winner': winner, 'how': how, 'title': script.get('title') or a.script, 'id': a.script,
+        'loops': script['loops'], 'days': script['days'], 'set': SET_JA.get(script.get('set', 'BTX'), script.get('set')),
+        'ruleY': [RULE_JA.get(x, x) for x in script['rules'] if x.startswith('Y_')],
+        'ruleX': [RULE_JA.get(x, x) for x in script['rules'] if x.startswith('X_')],
+        # 役職はゲーム中の扱い（アルバイトは特性でパーソン、アルバイト？はアルバイトの配役）＝エンジンの base_role
+        'roles': [{'char': name(c), 'role': ROLE_JA.get(ph.base_role({'script': script}, c), ph.base_role({'script': script}, c)),
+                   **({'guess': ROLE_JA.get(gi[c][1], gi[c][1]), 'order': gi[c][0] + 1,
+                       'judged': stop is None or gi[c][0] <= stop, 'ok': stop is None or gi[c][0] < stop} if c in gi else {})}
+                  for c in chars],
+        'incidents': [{'day': i['day'], 'name': INC_JA.get(i['id'], i['id']), 'culprit': name(i['culprit'])} for i in script['incidents']],
+        'special': script.get('special') or '',
+        'final': bool(guesses), 'stopped_at': (stop + 1) if stop is not None else None,
+    }
     if a.blind:  # 試合の後に、遊んだルールの組を記録する（次の目隠しの選択で同じ組を避ける）
         with open(HISTORY, 'a', encoding='utf-8') as fp:
             fp.write(json.dumps({'id': a.script.split('/')[-1], 'rules': script['rules'], 'mm': a.mm, 'winner': r.get('winner')}, ensure_ascii=False) + '\n')

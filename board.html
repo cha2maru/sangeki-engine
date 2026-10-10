@@ -229,6 +229,17 @@ body.mode-ai .manual-only { display:none; }
 #chartip .h { font-size:17px; font-weight:800; color:var(--acc); margin-bottom:4px; } #chartip .h2 { font-weight:700; color:var(--acc); margin:8px 0 2px; }
 #chartip table { border-collapse:collapse; width:100%; } #chartip th { text-align:left; color:var(--mut); font-weight:400; white-space:nowrap; padding:1px 10px 1px 0; vertical-align:top; }
 #chartip ul { margin:0 0 0 1.2em; padding:0; } #chartip li { margin:3px 0; }
+/* ゲーム終了の非公開シート */
+#reveal { position:fixed; inset:0; z-index:27; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.72); }
+#reveal.on { display:flex; }
+#reveal .box { background:var(--panel); border:2px solid var(--acc); border-radius:8px; padding:16px 20px; width:min(680px, 94vw); max-height:90vh; overflow:auto; box-shadow:0 8px 30px #000; }
+#reveal .res { font-size:26px; font-weight:800; } #reveal .res.pc { color:#50c878; } #reveal .res.mm { color:var(--warn); }
+#reveal .how { color:var(--mut); margin-bottom:10px; } #reveal h3 { margin:14px 0 6px; color:var(--acc); font-size:14px; }
+#reveal .sc { font-size:16px; font-weight:700; } #reveal .chip { display:inline-block; padding:2px 10px; margin:2px 4px 2px 0; border-radius:12px; background:#333; font-weight:700; }
+#reveal .chip.y { background:#6b2a2a; } #reveal .chip.x { background:#2a3f6b; }
+#reveal table { width:100%; border-collapse:collapse; } #reveal th, #reveal td { border-bottom:1px solid var(--line); padding:4px 6px; text-align:left; }
+#reveal th { color:var(--mut); font-weight:400; font-size:12px; } #reveal tr.role td:nth-child(2) { color:var(--acc); font-weight:700; }
+#reveal .ok { color:#50c878; font-weight:700; } #reveal .ng { color:var(--warn); font-weight:700; } #reveal .btns { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
 </style>
 
 <div id="band"></div>
@@ -302,6 +313,7 @@ body.mode-ai .manual-only { display:none; }
   <div class="mut">不具合や裁定の誤りは GitHub の Issue か X へ。</div>
   <div class="btns"><button id="wl-cont" style="display:none">続きから遊ぶ</button><button class="go" id="wl-start">ゲームを始める</button></div>
 </div></div>
+<div id="reveal"><div class="box" id="rv-body"></div></div>
 <div id="start"><form id="startf">
   <h2>新しいゲーム</h2>
   <div class="row"><input type="checkbox" id="st-blind" checked><label for="st-blind" style="margin:0">脚本を伏せて遊ぶ（おすすめ）</label></div>
@@ -373,7 +385,9 @@ function render() {
     <span class="ph">${esc(S.phaseName)}</span><span>リーダー <b>${esc(S.leader)}</b></span>
     <span class="wait ${myTurn() ? 'mine' : ''}">${esc(w.text || '入力待ちなし')}</span><button id="uxbtn" title="表示の設定">⚙</button>`
     : '状態を読み込み中… <button id="uxbtn" title="表示の設定">⚙</button>';
+  if (S.reveal) $('band').insertAdjacentHTML('beforeend', '<button onclick="openReveal()">非公開シート</button>');
   if ((S.phaseName || '').startsWith('ゲーム終了') && canStart) $('band').insertAdjacentHTML('beforeend', '<button class="go" onclick="openStart()">新しいゲーム</button>');
+  if (S.reveal && revealShown !== S.game && !viewing) { revealShown = S.game; setTimeout(openReveal, 400); }
   renderThink();
   $('board').innerHTML = AREAS.map(([name, img, side]) => {
     const b = (S.boards || {})[name] || {};
@@ -970,6 +984,25 @@ $('sc-ba').onclick = async e => {
     $('sc-ba').querySelectorAll('[data-ba]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   } catch { alert('盤面の履歴を読めなかった'); }
 };
+// ---- ゲーム終了の非公開シート（勝敗・脚本・ルール・全員の役職と最後の戦いの答え合わせ・事件と犯人）----
+let revealShown = null;
+function openReveal() {
+  const r = S.reveal; if (!r) return;
+  const roleRows = r.roles.map(x => {
+    const judge = x.guess == null ? '' : !x.judged ? '<span class="mut">（判定前に終了）</span>' : x.ok ? '<span class="ok">○</span>' : '<span class="ng">×</span>';
+    return `<tr class="${x.role !== 'パーソン' ? 'role' : ''}"><td>${esc(x.char)}</td><td>${esc(x.role)}</td>`
+      + (r.final ? `<td>${x.guess == null ? '' : `${x.order}. ${esc(x.guess)} ${judge}`}</td>` : '') + '</tr>';
+  }).join('');
+  $('rv-body').innerHTML = `<div class="res ${r.winner === '主人公' ? 'pc' : 'mm'}">${esc(r.winner)}の勝ち</div>
+    <div class="how">${!r.final ? esc(r.how) : r.stopped_at ? `最後の戦いで決着 ― ${r.stopped_at} 人目の指摘で外れた` : '最後の戦いで決着 ― 全員を当てた'}</div>
+    <h3>脚本</h3><div class="sc">「${esc(r.title)}」 <span class="mut">${esc(r.id)} ・ ${esc(r.set)} ・ ${r.loops}ループ × ${r.days}日</span></div>
+    ${r.special ? `<div class="mut">特別ルール: ${esc(r.special)}</div>` : ''}
+    <h3>ルール</h3>${r.ruleY.map(x => `<span class="chip y">Y ${esc(x)}</span>`).join('')}${r.ruleX.map(x => `<span class="chip x">X ${esc(x)}</span>`).join('')}
+    <h3>役職</h3><table><tr><th>キャラクター</th><th>役職</th>${r.final ? '<th>最後の戦いの指摘</th>' : ''}</tr>${roleRows}</table>
+    <h3>事件と犯人</h3><table><tr><th>日</th><th>事件</th><th>犯人</th></tr>${r.incidents.map(i => `<tr><td>${i.day}日</td><td>${esc(i.name)}</td><td>${esc(i.culprit)}</td></tr>`).join('')}</table>
+    <div class="btns"><button onclick="document.getElementById('reveal').classList.remove('on')">閉じる</button>${canStart ? '<button class="go" onclick="document.getElementById(\'reveal\').classList.remove(\'on\'); openStart()">新しいゲーム</button>' : ''}</div>`;
+  $('reveal').classList.add('on');
+}
 // ---- 開始画面（脚本・脚本家・乱数の種を選んで進行役を起動し直す。サーバーが SANGEKI_AI=1 のときだけ）----
 const MMLABEL = { search: 'search（速い・ふつう）', searchL: 'searchL（強い）', calcG: 'calcG（最強・1手に数十秒）', route: 'route（最速・弱い）' };
 let canStart = false;
