@@ -58,6 +58,22 @@ python ai_gm.py --script s03_bomb --mm calcG --seed 1
 - サーバーは自分の PC の中だけで動きます（既定で `127.0.0.1`）。他の端末から開くときは `HOST=0.0.0.0` を付けます（信頼できるネットワークでだけ）
 - 進行役のオプション: `--script`（脚本）、`--mm`（自動の脚本家）、`--seed`（乱数の種）、`--blind`（脚本を伏せて選ぶ。sangeki-scripts が必要）
 
+### ブラウザだけで動かす版（Pyodide、試作）
+
+Python（エンジンと自動の脚本家）をブラウザの中で動かす版です。サーバーは静的なファイルを配るだけで済みます（GitHub Pages などに置ける）。
+盤面はサーバー版と同じ `board.html` を使い、サーバーへの要求をブラウザの中で答える小さなスクリプト（`web/shim.js`）を差し込みます。
+
+```bash
+bash web/build.sh                      # web/dist に組み立てる（画像は assets/ があれば写す。--no-img で写さない）
+cd web/dist && python3 -m http.server 8784
+# → http://localhost:8784/
+```
+
+- Python は [Pyodide](https://pyodide.org/)（v314.0.7、CDN から読み込む。初回は約30MB）。人の操作を待つところに JSPI を使うので、**Chrome・Edge の最近の版**で動きます（Firefox・Safari は未対応の見込み）
+- 計算は各自の PC で行います。calcG の1日目の伏せ札は、手元の計測で約25秒でした
+- CDN に届かない環境では `PYODIDE_DIR=<npm の pyodide パッケージ> bash web/build.sh --local-pyodide` で同梱し、`?pyodide=local` を付けて開きます
+- 盤面の状態・ログはブラウザのメモリの中だけにあります（再読み込みすると試合は消えます）。推理シートの書き込みはブラウザに保存されます
+
 ## 2. 画面の見方
 
 ```

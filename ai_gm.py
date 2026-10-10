@@ -61,11 +61,7 @@ class Table:
 
     def __init__(self, d, script):
         self.d, self.script = d, script
-        os.makedirs(d, exist_ok=True)
-        for f in ('log.jsonl', 'inbox.jsonl', 'snapshots.jsonl'):
-            open(os.path.join(d, f), 'w').close()
-        if os.path.exists(os.path.join(d, 'deduce.json')):  # 前の試合の推理を推理シートに残さない
-            os.remove(os.path.join(d, 'deduce.json'))
+        self._reset_files()
         self.n, self.phase_id, self.read = 0, 0, 0
         self.game = int(time.time())  # 試合の識別子（盤面が前の試合の送信済みを出さないため）
         self.s, self.placed, self.phase_name = None, [], '準備'
@@ -76,6 +72,18 @@ class Table:
         self.last_phase = None
         self.ability_options = None
         self.mm_targets_hist = []
+
+    # ファイルの読み書きはここにまとめる（ブラウザ版 web/web_gm.py はこれを差し替えて、ファイルの代わりに盤面へ直接送る）
+    def _reset_files(self):
+        os.makedirs(self.d, exist_ok=True)
+        for f in ('log.jsonl', 'inbox.jsonl', 'snapshots.jsonl'):
+            open(os.path.join(self.d, f), 'w').close()
+        if os.path.exists(os.path.join(self.d, 'deduce.json')):  # 前の試合の推理を推理シートに残さない
+            os.remove(os.path.join(self.d, 'deduce.json'))
+
+    def _append(self, f, obj):
+        with open(os.path.join(self.d, f), 'a', encoding='utf-8') as fp:
+            fp.write(json.dumps(obj, ensure_ascii=False) + '\n')
 
     def phase(self, loop, day, key, extra=''):
         """フェイズの区切りをログに出す（フェイズの進行は常に公開する）。"""
@@ -94,9 +102,8 @@ class Table:
     def log(self, text):
         self.n += 1
         s = self.s or {}
-        with open(os.path.join(self.d, 'log.jsonl'), 'a', encoding='utf-8') as fp:
-            loop = min(s['loop'], self.script['loops']) if s.get('loop') else None  # 最後の戦いではエンジンのループ番号が1つ進んでいる
-            fp.write(json.dumps({'n': self.n, 'loop': loop, 'day': s.get('day'), 'text': text}, ensure_ascii=False) + '\n')
+        loop = min(s['loop'], self.script['loops']) if s.get('loop') else None  # 最後の戦いではエンジンのループ番号が1つ進んでいる
+        self._append('log.jsonl', {'n': self.n, 'loop': loop, 'day': s.get('day'), 'text': text})
 
     def show(self, s=None, phase_name=None, waiting=None, placed=None, bump=True):
         """bump=False: 同じ段階の中での表示の更新（phaseId を変えないので、送信済みの操作が古い扱いにならない）。"""
@@ -141,8 +148,7 @@ class Table:
         self._write('state.json', pub)
         # 盤面の履歴（ログ #n の処理が反映された直後の盤面）。盤面の「過去の盤面」「解決前／解決後」が読む（手動モードの gm.py と同じ形）
         if self.n > getattr(self, '_snap_n', 0):
-            with open(os.path.join(self.d, 'snapshots.jsonl'), 'a', encoding='utf-8') as fp:
-                fp.write(json.dumps({'prev_n': getattr(self, '_snap_n', 0), 'log_n': self.n, 'state': pub}, ensure_ascii=False) + '\n')
+            self._append('snapshots.jsonl', {'prev_n': getattr(self, '_snap_n', 0), 'log_n': self.n, 'state': pub})
             self._snap_n = self.n
 
     @staticmethod
@@ -576,13 +582,19 @@ def main():
         from engine.scripts import glob_scripts
         print(json.dumps({'scripts': list_scripts(), 'blind': len(glob_scripts('generated/*.json'))}, ensure_ascii=False))
         return
+    run(a)
+
+
+def run(a, table_cls=None):
+    """1試合を進める。a: --script・--blind・--mm・--seed・--dir の値。table_cls: 盤面とのやりとり（既定はファイル＝server.mjs）。"""
+    table_cls = table_cls or Table
     if a.blind:
         a.script, n = pick_blind(random.Random(f'blind:{a.seed}:{time.time()}'))
         os.makedirs(os.path.join(a.dir, 'private'), exist_ok=True)
         json.dump({'script': a.script}, open(os.path.join(a.dir, 'private', 'pick.json'), 'w'))  # Claude は試合中に読まない
         print(f'目隠しで脚本を選んだ（候補 {n} 本）')
     script = by_id(a.script)
-    t = Table(a.dir, script)
+    t = table_cls(a.dir, script)
     rng = random.Random(a.seed)
     pc = HumanProtagonist(t, rng)
     if a.mm == 'claude':  # Claude が脚本家（問いは private/ に書くので盤面からは見えない）

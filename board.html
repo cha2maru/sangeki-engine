@@ -240,6 +240,7 @@ body.mode-ai .manual-only { display:none; }
 #reveal table { width:100%; border-collapse:collapse; } #reveal th, #reveal td { border-bottom:1px solid var(--line); padding:4px 6px; text-align:left; }
 #reveal th { color:var(--mut); font-weight:400; font-size:12px; } #reveal tr.role td:nth-child(2) { color:var(--acc); font-weight:700; }
 #reveal .ok { color:#50c878; font-weight:700; } #reveal .ng { color:var(--warn); font-weight:700; } #reveal .btns { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+.rulename { cursor:help; text-decoration:underline dotted #777; text-underline-offset:3px; }
 </style>
 
 <div id="band"></div>
@@ -500,7 +501,7 @@ function renderSheet() {
   const rr = Object.entries(RULESDATA);
   $('sh-rules').innerHTML = '<tr><th>ルール</th><th>加わる役職</th><th>印</th><th class="eng">エンジン</th></tr>' + rr.map(([id, r]) => {
     const e = has ? d.rules[r.name] : null, ei = has && d.intent ? d.intent.rules[r.name] || 0 : null;
-    return `<tr><td>${r.type} ${esc(r.name)}</td><td>${esc(Object.entries(r.roles || {}).map(([k, n]) => (ROLENAMES[k] || k) + (n > 1 ? '×' + n : '')).join('・') || 'なし')}</td>
+    return `<tr><td class="rulename" data-rule="${id}" tabindex="0">${r.type} ${esc(r.name)}</td><td>${esc(Object.entries(r.roles || {}).map(([k, n]) => (ROLENAMES[k] || k) + (n > 1 ? '×' + n : '')).join('・') || 'なし')}</td>
       <td>${noteSel('g.rule.' + id, ['不明', '候補', '消えた', '確定'])}</td>
       <td class="eng">${e == null ? '' : `<span class="${cls(e)}">${e >= 0.999 ? '確定' : e <= 0 ? '消えた' : pct(e)}</span><span class="bar" style="width:${Math.round(e * 40)}px"></span>`}${ei == null || e <= 0 || e >= 0.999 ? '' : `<div class="mut" title="脚本家の伏せ札の対象から狙いを読んだ見込み">狙い込み ${pct(ei)}</div>`}</td></tr>`;
   }).join('');
@@ -617,6 +618,21 @@ document.addEventListener('mousemove', e => { if (ctip.style.display !== 'block'
   ctip.style.top = Math.max(4, e.clientY + 18 + h > innerHeight ? e.clientY - h - 12 : e.clientY + 18) + 'px'; });
 document.addEventListener('mouseout', e => { const ch = e.target.closest('#board .ch'); if (ch && !ch.contains(e.relatedTarget)) { ctip.style.display = 'none'; ctipFor = null; } });
 document.addEventListener('contextmenu', () => { ctip.style.display = 'none'; }, true);
+// ルールの追加ルール（推理の欄のルールの名前にマウスを乗せる・フォーカスする）。文面は早見表（rules.json の text）
+function ruleTipHTML(id) {
+  const r = RULESDATA[id]; if (!r) return '';
+  const roles = Object.entries(r.roles || {}).map(([k, n]) => (ROLENAMES[k] || k) + (n > 1 ? '×' + n : '')).join('・') || 'なし';
+  return `<div class="h">ルール${esc(r.type)} ${esc(r.name)}</div><table><tr><th>加わる役職</th><td>${esc(roles)}</td></tr></table>`
+    + `<div class="h2">追加ルール</div>` + (r.text ? r.text.split('\n').map(x => `<div>${esc(x)}</div>`).join('') : '<div class="mut">なし（役職を加えるだけ）</div>');
+}
+function showRuleTip(el, x, y) { ctip.innerHTML = ruleTipHTML(el.dataset.rule); ctipFor = 'rule:' + el.dataset.rule; ctip.style.display = 'block';
+  const r = el.getBoundingClientRect(), w = ctip.offsetWidth, h = ctip.offsetHeight;
+  ctip.style.left = Math.max(4, Math.min(x ?? r.left, innerWidth - w - 8)) + 'px';
+  ctip.style.top = Math.max(4, (y ?? r.bottom) + 8 + h > innerHeight ? r.top - h - 8 : (y ?? r.bottom) + 8) + 'px'; }
+document.addEventListener('mouseover', e => { const el = e.target.closest('[data-rule]'); if (el) showRuleTip(el, e.clientX + 12, e.clientY + 8); });
+document.addEventListener('focusin', e => { const el = e.target.closest('[data-rule]'); if (el) showRuleTip(el); });
+document.addEventListener('mouseout', e => { const el = e.target.closest('[data-rule]'); if (el && !el.contains(e.relatedTarget)) { ctip.style.display = 'none'; ctipFor = null; } });
+document.addEventListener('focusout', e => { if (e.target.closest('[data-rule]')) { ctip.style.display = 'none'; ctipFor = null; } });
 let logFollow = true;
 // 今日の出来事: 公開ログのうち、いちばん新しい日の分をフェイズごとにまとめて操作欄に出す（ログだけだと見づらい。ユーザー要望）
 function renderToday() {

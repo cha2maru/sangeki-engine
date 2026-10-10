@@ -1,5 +1,5 @@
 {
- "_source": "早見表 originals/summary.pdf（wiki/concepts/role-abilities.md・rule-role-matrix.md で照合済み）",
+ "_source": "早見表 originals/summary.pdf（wiki/concepts/role-abilities.md・rule-role-matrix.md で照合済み）。追加ルールの文面（text、空＝追加ルール無し）は早見表 summary.pdf の「追加ルール」欄（wiki/concepts/rule-role-matrix.md「追加ルールの文面」、200dpi で照合済み）",
  "rules": {
   "Y_MURDER": {
    "name": "殺人計画",
@@ -8,7 +8,8 @@
     "KEY": 1,
     "KILLER": 1,
     "KUROMAKU": 1
-   }
+   },
+   "text": ""
   },
   "Y_SEAL": {
    "name": "封印されしモノ",
@@ -16,14 +17,16 @@
    "roles": {
     "KUROMAKU": 1,
     "CULTIST": 1
-   }
+   },
+   "text": "【敗北条件：ループ終了時】神社に[暗躍C]が2つ以上ある。"
   },
   "Y_CONTRACT": {
    "name": "僕と契約しようよ！",
    "type": "Y",
    "roles": {
     "KEY": 1
-   }
+   },
+   "text": "【強制：脚本作成時】必ず少女がキーパーソンとなる。\n【敗北条件：ループ終了時】キーパーソンに[暗躍C]が2つ以上ある。"
   },
   "Y_FUTURE": {
    "name": "未来改変プラン",
@@ -31,14 +34,16 @@
    "roles": {
     "CULTIST": 1,
     "TT": 1
-   }
+   },
+   "text": "【敗北条件：ループ終了時】このループ中に蝶の羽ばたきが発生している。"
   },
   "Y_BOMB": {
    "name": "巨大時限爆弾Xの存在",
    "type": "Y",
    "roles": {
     "WITCH": 1
-   }
+   },
+   "text": "【敗北条件：ループ終了時】ウィッチの初期エリアに[暗躍C]が2つ以上ある。"
   },
   "X_CIRCLE": {
    "name": "友情サークル",
@@ -46,7 +51,8 @@
    "roles": {
     "FRIEND": 2,
     "MISLEADER": 1
-   }
+   },
+   "text": ""
   },
   "X_LOVE": {
    "name": "恋愛風景",
@@ -54,7 +60,8 @@
    "roles": {
     "LOVERS": 1,
     "MAIN_LOVERS": 1
-   }
+   },
+   "text": ""
   },
   "X_KILLER": {
    "name": "潜む殺人鬼",
@@ -62,14 +69,16 @@
    "roles": {
     "FRIEND": 1,
     "SK": 1
-   }
+   },
+   "text": ""
   },
   "X_RUMOR": {
    "name": "不穏な噂",
    "type": "X",
    "roles": {
     "MISLEADER": 1
-   }
+   },
+   "text": "【任意能力：脚本家能力フェイズ】任意のボード1つに[暗躍C]を1つ置く。（1ループ1回制限）"
   },
   "X_VIRUS": {
    "name": "妄想拡大ウイルス",
@@ -77,20 +86,23 @@
    "roles": {
     "MISLEADER": 1
    },
-   "effect": "強制:常時 パーソンは不安3以上の間シリアルキラー"
+   "effect": "強制:常時 パーソンは不安3以上の間シリアルキラー",
+   "text": "【強制：常時】パーソンは[不安C]が3つ以上置かれている限り、役職がシリアルキラーに変更される。"
   },
   "X_THREAD": {
    "name": "因果の糸",
    "type": "X",
    "roles": {},
-   "effect": "強制:ループ開始時 前ループ終了時に友好が置かれていた全キャラに不安2"
+   "effect": "強制:ループ開始時 前ループ終了時に友好が置かれていた全キャラに不安2",
+   "text": "【強制：ループ開始時】ひとつ前のループ終了時に[友好C]の置かれていた全キャラクターに[不安C]を2つ置く。"
   },
   "X_FACTOR": {
    "name": "不定因子χ",
    "type": "X",
    "roles": {
     "FACTOR": 1
-   }
+   },
+   "text": ""
   }
  }
 }

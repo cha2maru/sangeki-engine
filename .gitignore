@@ -3,3 +3,4 @@ assets/
 game/
 game_ai/
 selfplay/runs/
+web/dist/
