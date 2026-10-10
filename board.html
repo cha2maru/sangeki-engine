@@ -140,7 +140,7 @@ table.sh input { width:100%; box-sizing:border-box; }
 #board .area { position: relative; }
 #board .area .turf { position: absolute; right: 6px; bottom: 6px; width: 44px; height: 44px; border-radius: 50%; pointer-events: none; }
 /* ---- 人が遊ぶための表示（設定パネルと URL の ?ux=off で切れる）---- */
-#uxbtn { margin-left:auto; padding:0 8px; } #band a { margin-left:0; }
+#helpbtn { margin-left:auto; padding:0 8px; } #uxbtn { padding:0 8px; } #band a { margin-left:0; }
 #uxpanel { position:fixed; z-index:26; top:calc(var(--bandh, 52px) + 4px); right:12px; background:#222; border:1px solid var(--acc); border-radius:4px;
   padding:8px 12px; display:none; box-shadow:0 4px 16px #000; min-width:240px; }
 #uxpanel.on { display:block; } #uxpanel label { display:flex; justify-content:space-between; gap:12px; margin:5px 0; }
@@ -313,12 +313,12 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
     <li>友好能力は「友好能力」の欄の『宣言』で1件ずつ。終わったら『能力の宣言を終える』。</li>
     <li>フェイズごとに<b>場面カード</b>で起きたことを確かめられます（『盤面を見る』『解決前／解決後』）。</li>
     <li>最後の戦いでは、キャラクターを右クリックして役職を1人ずつ指摘します。</li>
-    <li>帯の右端の <b>⚙</b> で表示の設定（場面カード・演出の速さ・画像なしの表示）と、新しいゲーム。</li>
+    <li>帯の右端の <b>？</b> でこの案内（クレジットを含む）をいつでも開けます。<b>⚙</b> で表示の設定（場面カード・演出の速さ・画像なしの表示）と、新しいゲーム。</li>
   </ol>
   <h3>連絡先</h3>
   <div>作者: cha2maru（X: <a href="https://x.com/withoutcane" target="_blank" rel="noopener">@withoutcane</a> ／ GitHub: <a href="https://github.com/cha2maru/sangeki-engine" target="_blank" rel="noopener">cha2maru/sangeki-engine</a>）</div>
   <div class="mut">不具合や裁定の誤りは GitHub の Issue か X へ。</div>
-  <div class="btns"><button id="wl-cont" style="display:none">続きから遊ぶ</button><button class="go" id="wl-start">ゲームを始める</button></div>
+  <div class="btns"><button id="wl-close" style="display:none">閉じる</button><button id="wl-cont" style="display:none">続きから遊ぶ</button><button class="go" id="wl-start">ゲームを始める</button></div>
 </div></div>
 <div id="reveal"><div class="box" id="rv-body"></div></div>
 <div id="start"><form id="startf">
@@ -393,11 +393,11 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;
 function render() {
   const w = S.waiting || {};
   document.body.classList.toggle('mode-ai', S.mode === 'ai' || canStart);  // 開始画面のあるサーバー＝対AIモード（試合の前も）
-  if ($('welcome').classList.contains('on')) $('wl-cont').style.display = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '' : 'none';
+  if ($('welcome').classList.contains('on') && $('wl-close').style.display) $('wl-cont').style.display = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '' : 'none';
   $('band').innerHTML = S.loop ? `<span>ループ <b>${S.loop}</b>/${S.loops}</span><span>日 <b>${S.day ?? '-'}</b>/${S.days}</span>
     <span class="ph">${esc(S.phaseName)}</span><span>リーダー <b>${esc(S.leader)}</b></span>
-    <span class="wait ${myTurn() ? 'mine' : ''}">${esc(w.text || '入力待ちなし')}</span><button id="uxbtn" title="表示の設定">⚙</button>`
-    : '状態を読み込み中… <button id="uxbtn" title="表示の設定">⚙</button>';
+    <span class="wait ${myTurn() ? 'mine' : ''}">${esc(w.text || '入力待ちなし')}</span><button id="helpbtn" title="遊び方・クレジット">？</button><button id="uxbtn" title="表示の設定">⚙</button>`
+    : '状態を読み込み中… <button id="helpbtn" title="遊び方・クレジット">？</button><button id="uxbtn" title="表示の設定">⚙</button>';
   if (S.reveal) $('band').insertAdjacentHTML('beforeend', '<button onclick="openReveal()">非公開シート</button>');
   if ((S.phaseName || '').startsWith('ゲーム終了') && canStart) $('band').insertAdjacentHTML('beforeend', '<button class="go" onclick="openStart()">新しいゲーム</button>');
   if (S.reveal && revealShown !== S.game && !viewing) { revealShown = S.game; setTimeout(openReveal, 400); }
@@ -898,6 +898,7 @@ $('uxpanel').addEventListener('change', e => { const el = e.target, k = el.datas
   try { localStorage.setItem('ux', JSON.stringify(UX)); } catch {}
   applyUX(); render(); });
 document.addEventListener('click', e => { if (e.target.id === 'uxbtn') { e.stopPropagation(); openUX(); }
+  else if (e.target.id === 'helpbtn') openHelp();
   else if (!e.target.closest('#uxpanel')) $('uxpanel').classList.remove('on'); });
 
 // 自分の番（帯を緑に、タブの題名に★）と、考え中（脚本家の番・送信の後）
@@ -1121,10 +1122,16 @@ function openWelcome() {
   if (RP.on) return;  // リプレイを開いたとき（?replay=）は案内を出さない
   if (new URLSearchParams(location.search).get('ux') === 'off') { if (!S.loop) openStart(); return; }
   $('wl-cont').style.display = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '' : 'none';
+  $('wl-close').style.display = 'none'; $('wl-start').style.display = '';
   $('welcome').classList.add('on');
 }
 $('wl-start').onclick = () => { $('welcome').classList.remove('on'); openStart(); };
-$('wl-cont').onclick = () => $('welcome').classList.remove('on');
+$('wl-cont').onclick = $('wl-close').onclick = () => $('welcome').classList.remove('on');
+// 帯の「？」: 初めの案内をいつでも開き直す（クレジットもここ）。閉じるボタンを出し、開始画面の無い手動モードでは「ゲームを始める」を隠す
+function openHelp() {
+  $('wl-cont').style.display = 'none'; $('wl-close').style.display = ''; $('wl-start').style.display = canStart ? '' : 'none';
+  $('uxpanel').classList.remove('on'); $('welcome').classList.add('on');
+}
 function openStart() { if (canStart) { $('start').classList.add('on'); $('uxpanel').classList.remove('on'); } }
 $('st-rand').onclick = () => { $('st-seed').value = Math.floor(Math.random() * 10000); };
 // 伏せて遊ぶときは「脚本を選ぶ」を出さない（題名が見えないように）
