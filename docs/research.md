@@ -89,6 +89,8 @@ python -m selfplay.league --games 10 --seed 1 --pairs calcG:tuned-pc_r2 searchL:
 | `declared_ok` | 最後の戦いで何人目まで正しく指摘できたか |
 | `missed_confirmed` | 確定していたのに外した数（主人公の不具合の目印） |
 | `truth_lost` | 推理が真相を消してしまった数。**0 でなければ推理の不具合** |
+| `pc_truth_lost`・`mm_truth_lost` | 主人公自身の推理・脚本家が持つ公開情報の推理が、真の脚本を消してしまった試合の数。**0 でなければ推理かエンジンの不具合**。試合の記録の `pc_truth_lost_by` に、消した最初の観測が残ります |
+| `pc_empty` | 主人公自身の推理の仮説が全部消えた（矛盾した）試合の数。消した観測は `pc_empty_by`。起きると標準エラーに `[推理の健全性]` の行が出ます |
 | `by_loop` | ループごとの `confirmed` と、役職の不確かさ（エントロピー） |
 | `sec_per_game` | 1試合の秒数 |
 

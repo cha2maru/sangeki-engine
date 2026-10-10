@@ -422,8 +422,16 @@ class Narrator:
         for key, cs in cands.items():
             iid, _, day = key.partition('@')
             culprits[f'{day}日 {INC_JA.get(iid, iid)}'] = [name(c) for c in sorted(cs)]
-        self.t._write('deduce.json', {'loop': s['loop'], 'day': s['day'], 'hypotheses': int(ded.n_hyp()),
-                                      'roles': roles, 'rules': rules, 'culprits': culprits, 'intent': self._intent(s, ded)})
+        out = {'loop': s['loop'], 'day': s['day'], 'hypotheses': int(ded.n_hyp()),
+               'roles': roles, 'rules': rules, 'culprits': culprits}
+        if ded.empty_by:  # 推理の矛盾（仮説が全部消えた）。進行役の端末と推理のデータに出す（エンジンか推理の不具合）
+            out['empty_by'] = [ded.empty_by[0], str(ded.empty_by[1])[:200]]
+            if not getattr(self, '_warned_empty', False):
+                self._warned_empty = True
+                print(f'[推理の矛盾] 公開情報の推理の仮説が全部消えた（観測 {ded.empty_by[0]}）。エンジンか推理の不具合', file=sys.stderr, flush=True)
+        else:
+            out['intent'] = self._intent(s, ded)
+        self.t._write('deduce.json', out)
 
     def _intent(self, s, ded, n=300, k=0.6):
         """狙い込みの見込み: 仮説を n 個引き、これまでの伏せ札の対象（全ループ）が、その仮説の近い勝ち筋に関わる数で

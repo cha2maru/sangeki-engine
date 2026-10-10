@@ -7,6 +7,7 @@ RouteMastermind: 勝ち筋（engine/routes.py）までの距離が縮む手を�
 import copy
 
 from engine import phases as ph
+from engine.abilities import UNREFUSABLE
 from engine.resolve import CARDS, card_targets, CHARS, ONCE, IllegalPlacement, copy_state, resolve_actions
 from engine.routes import enumerate_routes
 
@@ -304,7 +305,8 @@ class PublicObserver:
         self._ensure(s)
         for e in events:
             k = e.get('kind')
-            if k == 'ability':  # 主人公能力フェイズで拒否されなかった（絶対友好無視ではない）
+            if k == 'ability' and (e['char'], e.get('ability')) not in UNREFUSABLE:  # 主人公能力フェイズで拒否されなかった（絶対友好無視ではない）
+                # 拒否されない能力（ナース・妹など、カードの文面）は手がかりにならない（数えると真の脚本を消していた: d30 のカルティストのナース）
                 self.ded.observe('not_refused', char=e['char'])
             if k == 'ability' and 'reveal_role' in e:
                 (c, r), = e['reveal_role'].items()
@@ -361,6 +363,9 @@ class PublicObserver:
             elif k == 'death' and phase in ('turn_end', 'loop_end') and ':' in e.get('cause', '') and e['cause'].split(':')[0] in ('SK', 'KILLER'):
                 # 公開されるのは「ターン終了フェイズに、そのエリアで死亡した」ことだけ（原因の役職は見ない）
                 v = e['char']
+                sub = next((x['for'] for x in events if x.get('kind') == 'substitute' and x.get('char') == v), None)
+                if sub:  # 従者の身代わり: 狙われたのはお嬢様・大物の方（従者を被害者として読むと真の脚本を消していた: d24）
+                    v = sub[0]
                 area = s['chars'][v]['area']
                 others = [c for c, x in s['chars'].items() if c != v and x['area'] == area and (x['alive'] or c in [y['char'] for y in events if y.get('kind') == 'death'])]
                 self.ded.observe('turn_end_death', victim=v, others=others, victim_int=s['chars'][v]['int'],
@@ -423,7 +428,9 @@ class PublicObserver:
     def _observe_no_sk(self, s, events):
         """シリアルキラーの能力は【強制】。ターン終了時に2人きりのエリアで、どちらも死なず護衛も減らなければ、どちらもシリアルキラーではない。
         判定の時点の顔ぶれ = いま生存している者 + このフェイズで死んだ者（キラーの任意能力はシリアルキラーの後に解決される）。"""
-        involved = {e['char'] for e in events if e.get('kind') in ('death', 'guarded')}
+        # タイムトラベラーは死亡しない（no_death）。シリアルキラーの能力は働いているので、関わった者に数える
+        # （数えないと「どちらもシリアルキラーでない」と誤って読み、真の脚本を消していた: d12 で推理が空になった）
+        involved = {e['char'] for e in events if e.get('kind') in ('death', 'guarded', 'no_death')}
         died = {e['char'] for e in events if e.get('kind') == 'death'}
         by_area = {}
         for c, v in s['chars'].items():

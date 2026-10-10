@@ -170,6 +170,9 @@ HAS = {r: _combo_has(r) for r in RULES}
 class Deduction:
     """仮説は numpy の行列で持つ: R[仮説, キャラクター] = 役職の番号、C[仮説] = ルールの組の番号。
     観測はそれぞれ仮説ごとの真偽の配列（マスク）に直して絞る。試しの観測（trial）は絞らずに結果だけ返す。"""
+    # 試験・対戦表用: 真の脚本 {'rules', 'roles'} を置くと、以後に作る推理はそれが消された観測を記録する（truth_lost_by）
+    WATCH = None
+
     def __init__(self, chars, cap=30_000_000):
         self.chars = list(chars)
         self.ix = {c: i for i, c in enumerate(self.chars)}
@@ -177,6 +180,11 @@ class Deduction:
         self.obs = []
         self._R = self._C = None
         self._seen_obs = 0
+        # 仮説が全部消えた最初の観測（推理の矛盾。ふつうは起きない＝推理かエンジンの不具合）と、真の脚本を消した最初の観測
+        self.empty_by = None
+        self.truth_lost_by = None
+        self._watch = Deduction.WATCH
+        self._truth = None
         # カードの特性による配役の制約（公開情報）。A.I.【特性】パーソンにできない、妹【特性】友好無視を持つ役職にできない。
         # 脚本の検査（scripts.check）と生成（generate）は守っていたが、推理が残していた（対AIモードの点検で発見）
         if 'C22' in self.ix:
@@ -184,7 +192,9 @@ class Deduction:
         if 'C31' in self.ix:
             self.obs.append(('not_role', {'char': 'C31', 'roles': tuple(sorted(REFUSERS))}))
         # 僕と契約しようよ！【強制：脚本作成時】必ず少女がキーパーソンとなる（早見表、wiki/concepts/rule-role-matrix.md）
-        self.obs.append(('contract_girl', {'nongirls': [c for c in self.chars if '少女' not in CHARS[c].get('tags', [])]}))
+        # コピーキャットは役職をルールの枠でなく特性で得る（他の1人と同じ役職）ので除く。脚本の検査（scripts.check: 少女のキーパーソンが
+        # 1人いればよい）と合わせる（除かないと、コピーキャットがキーパーソンの脚本 d05 で真の脚本を最初から消していた）
+        self.obs.append(('contract_girl', {'nongirls': [c for c in self.chars if '少女' not in CHARS[c].get('tags', []) and c != 'C28']}))
 
     def observe(self, kind, **kw):
         self.obs.append((kind, kw))
@@ -316,13 +326,36 @@ class Deduction:
             self._R, self._C = _base_for(self.chars, self.cap)
             self._lw = None  # 仮説ごとの対数の重み（soft_target）。None なら全て0
             self._seen_obs = 0
+            if self._watch is not None:
+                self._truth = self._truth_mask(self._R, self._C, self._watch)
+                if not self._truth.any():
+                    self.truth_lost_by = ('（仮説の空間に真の脚本が無い）', {})
         for kind, kw in self.obs[self._seen_obs:]:
             keep = self._mask(self._R, self._C, kind, kw)
             self._R, self._C = self._R[keep], self._C[keep]
             if self._lw is not None:
                 self._lw = self._lw[keep]
+            if self._truth is not None:
+                had = self._truth.any()
+                self._truth = self._truth[keep]
+                if had and not self._truth.any() and self.truth_lost_by is None:
+                    self.truth_lost_by = (kind, kw)
+            if not len(self._C) and self.empty_by is None:
+                self.empty_by = (kind, kw)
+                import sys
+                print(f'[推理の矛盾] 仮説が全部消えた: 観測 {kind} {kw}', file=sys.stderr)
         self._seen_obs = len(self.obs)
         return self._R, self._C
+
+    def _truth_mask(self, R, C, script):
+        """真の脚本（ルールの組＋配役）に当たる仮説の印。アルバイトはパーソン、アルバイト？はアルバイトの配役（truth_metrics と同じ）。"""
+        def true_role(c):
+            if c == 'C32':
+                return 'PERSON'
+            return script['roles'].get('C32' if c == 'C33' else c, 'PERSON')
+        true = np.array([RC[true_role(c)] for c in self.chars], dtype=R.dtype)
+        ci = [i for i, cb in enumerate(COMBOS) if set(cb) == set(script['rules'])]
+        return (R == true).all(axis=1) & np.isin(C, ci)
 
     def soft_target(self, char, gamma):
         """脚本家がこのキャラクターに伏せ札を置いた。役職のある者ほど狙われやすい、という弱い読みで重みを掛ける（仮説は消さない）。
@@ -335,19 +368,23 @@ class Deduction:
         self._lw += gamma * (R[:, self.ix[char]] != 0)
         self._lw -= self._lw.max()
 
-    INT_ROLES = ('KEY', 'FRIEND', 'KILLER', 'MAIN_LOVERS')  # 自分の暗躍が負け筋になる役職（契約・遠隔殺人の標的・キラー・メインラバーズ）
+    INT_ROLES = ('KEY', 'FRIEND', 'KILLER', 'MAIN_LOVERS')
+    # 自分の不安が負け筋になる役職（メインラバーズ: 暗躍1・不安3 で主人公の死）。事件の犯人も不安で動くが、犯人は仮説の外なので数えない
+    PAR_ROLES = ('MAIN_LOVERS',)  # 自分の暗躍が負け筋になる役職（契約・遠隔殺人の標的・キラー・メインラバーズ）
 
     def card_evidence(self, target, card, init, lr):
-        """公開された脚本家の暗躍の札（行動解決で6枚公開）から、その札が負け筋を進める仮説を lr 倍に重くする（仮説は消さない）。
+        """公開された脚本家の暗躍・不安+1 の札（行動解決で6枚公開。学者の特性で脚本家が選んだカウンターも同じ扱い）から、その札が負け筋を進める仮説を lr 倍に重くする（仮説は消さない）。
         人物への暗躍: その人物の役職が INT_ROLES。ボードへの暗躍: 封印されしモノ（神社）・巨大時限爆弾X（ウィッチの初期エリア）・
         不定因子χ（都市、ファクターがキーパーソンの能力）。脚本家の意図の読み（Claude の主人公「暗躍+2 を使った所が要」）。
         ponytail: 不安+1 は事件の犯人（仮説の外）に効くので使わない。おとりの札も同じ重みで数える（lr を小さめに）。"""
-        if card not in ('INT1', 'INT2'):
+        if card not in ('INT1', 'INT2', 'PAR+'):
             return
         R, C = self._sync()
         if not len(C):
             return
         if target.startswith('B:'):
+            if card == 'PAR+':
+                return
             a = target[2:]
             rules = lambda r: np.array([r in cb for cb in COMBOS])[C]  # noqa: E731
             m = np.zeros(len(C), bool)
@@ -359,7 +396,7 @@ class Deduction:
             if ws:
                 m |= rules('Y_BOMB') & np.logical_or.reduce([self._is(R, c, 'WITCH') for c in ws])
         elif target in self.ix:
-            m = self._is(R, target, *self.INT_ROLES)
+            m = self._is(R, target, *(self.PAR_ROLES if card == 'PAR+' else self.INT_ROLES))
         else:
             return
         if self._lw is None:

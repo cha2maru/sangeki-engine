@@ -80,6 +80,13 @@ def _make(kind, rng, script=None):
         rest = kind[4:]
         if rest == 'QC':
             p.prio, p.card_lr = 0.02, 3.0
+        elif rest == 'KC':  # lockKC: 知っている筋だけ守る（0.3・0.4）＋脚本家が置いたカウンターで推理を更新（card_lr 3）
+            p.split, p.split_known, p.card_lr = 0.3, 0.4, 3.0
+        elif rest.startswith('K'):  # lockK0.3 / lockK0.3_0.4: lockS＋知っている筋だけ（役職が推理で 0.7（_の後の値）以上・犯人が1人に絞れた筋）
+            a, _, b = rest[1:].partition('_')
+            p.split, p.split_known = float(a or 0.3), (float(b) if b else True)
+        elif rest.startswith('S'):  # lockS0.3: 途中で終わる筋だけ守り、届く世界が 0.3 未満なら情報（ユーザーの案）
+            p.split = float(rest[1:] or 0.3)
         elif rest in ('G', 'GC'):  # lockG・lockGC: 優先順に門（従来の手が勝ち目を 0.05 超えて落とすときだけ乗り換え）
             p.prio, p.prio_gate = 0.02, 0.05
             if rest == 'GC':
@@ -354,9 +361,22 @@ def one_game(script, mm, pc, seed, g):
 
         def on_day(s, player, loop, day, box):
             pc_plan(s, player, loop, day, script)
-    r = play_game(script, Combo(mmp, pcp), log, observers=[obs], on_day=on_day)
+    from engine.deduce import Deduction
+    Deduction.WATCH = {'rules': script['rules'], 'roles': script['roles']}  # 推理が真の脚本を消したら記録する
+    try:
+        r = play_game(script, Combo(mmp, pcp), log, observers=[obs], on_day=on_day)
+    finally:
+        Deduction.WATCH = None
     out = {'game': g, 'result': r, 'sec': round(time.time() - t0, 1), 'truth': obs.snaps,
            'loops_won': {str(k): v for k, v in loops_won.items()}}
+    # 推理の健全性（主人公自身の推理・脚本家が持つ公開情報の推理）: 仮説が全部消えた／真の脚本を消した最初の観測
+    for side, ded in (('pc', getattr(pcp, 'ded', None)), ('mm', getattr(getattr(mmp, 'pub', None), 'ded', None))):
+        if ded is None:
+            continue
+        for k in ('empty_by', 'truth_lost_by'):
+            if getattr(ded, k, None):
+                out[f'{side}_{k}'] = [ded.__dict__[k][0], json.dumps(ded.__dict__[k][1], ensure_ascii=False, default=str)[:200]]
+                print(f"[推理の健全性] {script.get('id')} 試合{g} {side}: {k} = {out[f'{side}_{k}']}", file=sys.stderr)
     if getattr(mmp, 'loop_log', None):
         out['mm_loop_log'] = mmp.loop_log
     if getattr(mmp, 'move_log', None):
@@ -414,6 +434,10 @@ def summarize(games):
         'mean_true': avg([at(g)['mean_true'] for g in games]),
         'nlog_p_truth': avg([at(g)['nlog_p_truth'] for g in games if at(g)['nlog_p_truth'] is not None]),
         'truth_lost': sum(not at(g)['truth_alive'] for g in games),  # 0 でなければ推理の健全性の破れ
+        # 主人公自身の推理・脚本家の公開情報の推理が、真の脚本を消した／仮説が全部消えた試合の数（0 でなければ不具合。理由は試合の記録に）
+        'pc_truth_lost': sum(bool(g.get('pc_truth_lost_by')) for g in games),
+        'pc_empty': sum(bool(g.get('pc_empty_by')) for g in games),
+        'mm_truth_lost': sum(bool(g.get('mm_truth_lost_by')) for g in games),
         # 2層目
         'declared_ok': avg([g['declared_ok'] for g in fin]),
         'missed_confirmed': sum(bool(g.get('missed_confirmed')) for g in fin),

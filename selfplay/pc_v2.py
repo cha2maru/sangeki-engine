@@ -15,7 +15,18 @@ import copy
 
 from engine.resolve import CARDS, ONCE, IllegalPlacement, copy_state, resolve_actions
 from engine.routes import enumerate_routes
-from selfplay.players import DeductiveBlocker, info_progress, score
+from selfplay.players import DeductiveBlocker, _weight, info_progress, score
+
+
+def score_cut(state, known=None, sc=None):
+    """score と同じ負け筋の近さの和を、ループを途中で終わらせる筋（キーパーソン・主人公の死）だけで（ループ終了時の筋は数えない）。
+    known(r, sc) があれば、主人公が知っている筋だけ。"""
+    from selfplay.search_mm import is_loop_end
+    try:
+        rs = enumerate_routes(state)
+    except Exception:
+        return 0.0
+    return sum(_weight(state, r) / (1 + r['total']) for r in rs if not is_loop_end(r) and (known is None or known(r, sc)))
 
 _AFTER = {}
 
@@ -152,7 +163,7 @@ def incident_info(after, day_incs, cands):
 
 
 class ReadingBlocker(DeductiveBlocker):
-    def __init__(self, rng, hyps=40, beta=0.7, hold=0.15, null_cost=0.1, model_mm=True, tt_weight=1.0, soft_gamma=0.0, pairs=True, memory=0.0, info_sched=False, loops=3, info_last=None, intent=0.0, urgency=0.3, reach=True, crit=False, info_adapt=9.0, reach_mv=False, safe=0.0, chain=False, zero=0.0, obs=0.0, clear=False, defense=0.0, itarget=False, probe=0.0, reveal=True, nulled=0.3, defplan=False, lookday=False, recall_mm=0.0, reach_info=0.0, board_waste=0.0, probe_broad=False, cut_w=0.0, lock_block=0.0, lock_probe=0.0, lock_danger=0.0, danger_lr=4.0, card_lr=0.0, prio=0.0, lost_th=0.05, prio_info=1.0, prio_gate=0.0, **kw):
+    def __init__(self, rng, hyps=40, beta=0.7, hold=0.15, null_cost=0.1, model_mm=True, tt_weight=1.0, soft_gamma=0.0, pairs=True, memory=0.0, info_sched=False, loops=3, info_last=None, intent=0.0, urgency=0.3, reach=True, crit=False, info_adapt=9.0, reach_mv=False, safe=0.0, chain=False, zero=0.0, obs=0.0, clear=False, defense=0.0, itarget=False, probe=0.0, reveal=True, nulled=0.3, defplan=False, lookday=False, recall_mm=0.0, reach_info=0.0, board_waste=0.0, probe_broad=False, cut_w=0.0, lock_block=0.0, lock_probe=0.0, lock_danger=0.0, danger_lr=4.0, card_lr=0.0, prio=0.0, lost_th=0.05, prio_info=1.0, prio_gate=0.0, split=0.0, split_info=2.0, split_known=False, **kw):
         super().__init__(rng, hyps=hyps, **kw)
         # nulled: 脚本家の不安禁止・友好禁止で打ち消された (対象, 禁止) の回数を覚え、同じ対象へ不安±・友好の札を置く手を回数×nulled 減点する（ループをまたいで残す）。
         # 中身を知る Claude が脚本家の d27（seed 51）: 無関係の C07 に毎ループ不安禁止を置かれ、不安−1 を4回打ち消されて学者を守る札が足りなくなった
@@ -186,6 +197,8 @@ class ReadingBlocker(DeductiveBlocker):
         self.card_lr, self._card_seen = card_lr, set()
         # prio: 優先順で選ぶ（このループの勝ち目 → 従来の評価）。値は勝ち目の許容差（0 で使わない）。lost_th 未満なら情報に（prio_info 倍）
         self.prio, self.lost_th, self.prio_info, self.prio_gate = prio, lost_th, prio_info, prio_gate
+        # split: ループを途中で終わらせる筋だけを評価し（score_cut）、その脅威が届く世界の割合が split 未満なら情報に（重み split_info 倍）
+        self.split, self.split_info, self.split_known = split, split_info, split_known
         # obs: 事件の観測の価値。今日の事件が起きるか起きないかで犯人の候補がどれだけ割れるか（ビット）×obs を足す
         # （中身を知らない Claude が d01 で「自殺をわざと起こさせて巫女[5] で役職を見た」。ユーザー「わざと事件を起こすなどもある」）
         self.obs = obs
@@ -441,6 +454,23 @@ class ReadingBlocker(DeductiveBlocker):
         if self.info_last is not None and s['loop'] >= loops:  # 最終ループの情報の重み（既定 0＝守りだけ。readfinal0 の結果）
             iw = self.info_last
         probing = False
+        if self.split:  # ユーザーの案（2026-10-09）: ループを途中で終わらせる筋（キーパーソン・主人公の死）だけを守り、
+            # それが近くに無ければ（ループの最後まで中断されないなら）札を情報に使う。ループ終了時の筋（フレンド・爆弾・契約など）は守らない
+            from selfplay.search_mm import reachable_targets as _rt2
+            days_ = s['script'].get('days') or 8
+            if self.split_known:  # 知っている筋だけ（ユーザー「知ってるループ敗北条件が…その筋だけ守る」）
+                kf = self._known_route_fn(s, th=0.7 if self.split_known is True else float(self.split_known))
+                self._known_fn = kf
+                pc_ = sum(wt for sc, wt in zip(scripts, ws)
+                          if any(kf(r, sc) and r['total'] <= days_ - s['day'] + 1 for r in enumerate_routes(dict(s, script=sc))))
+            else:
+                self._known_fn = None
+                pc_ = sum(wt for sc, wt in zip(scripts, ws) if _rt2(dict(s, script=sc), days_, crit=True, only='cut'))
+            tw_ = sum(ws) or 1.0
+            self.last_split = pc_ / tw_
+            if pc_ / tw_ < self.split:
+                probing = True
+                iw = max(iw, 0.3) * self.split_info
         if self.probe and s['loop'] < loops:
             from engine import phases as _ph
             lk = 0.0
@@ -533,7 +563,7 @@ class ReadingBlocker(DeductiveBlocker):
                 o = (1.0 if probing else self.obs) * incident_info(after, obs_days, obs_c) if obs_days else 0.0
                 o += self.defense * defense_progress(after) if self.defense else 0.0
                 ip = info_progress_targeted(after, ent_of, s.get('ability_used_loop', [])) if self.itarget else info_progress(after, s.get('ability_used_loop', []))
-                vals.append((score(after) + z - iw * ip - o, wt))
+                vals.append(((score_cut(after, getattr(self, '_known_fn', None), sc) if self.split else score(after)) + z - iw * ip - o, wt))
                 wsum += wt
                 if self.prio:
                     safe_w += wt * self._safe(after)
@@ -621,6 +651,41 @@ class ReadingBlocker(DeductiveBlocker):
             return 0.0 if ph.loop_end_loss(copy_state(after)) else 1.0
         return 0.0 if forced_plan(dict(after, day=after['day'] + 1), days)['forced'] else 1.0
 
+    def _known_route_fn(self, s, th=0.7):
+        """主人公が「知っている」途中で終わる負け筋かを判定する関数 known(r, sc) を返す。
+        知っている＝その筋の役職（要の人物の役職と、キーパーソンの犠牲者）が推理で th 以上、事件の筋は犯人が1人に絞れている。"""
+        import re
+        from engine import phases as ph
+        from engine.deduce import incident_candidates
+        from selfplay.search_mm import is_loop_end
+        self._ensure(s)
+        m, tot = self.ded.marginals()
+        cand = incident_candidates(list(s['chars']), self.inc_history, self.culprits)
+        inc_ids = {i['id'] for i in s['script']['incidents']}
+
+        def p(c, role):
+            return (m.get(c, {}).get(role, 0) / tot) if tot else 0.0
+
+        def known(r, sc):
+            if is_loop_end(r):
+                return False
+            via = r.get('via')
+            if r['id'] in inc_ids:
+                day = next((c['detail'][2] for c in r['conds'] if c['kind'] == 'days' and c['detail'][0] == '事件'), None)
+                cs = cand.get(f"{r['id']}@{day}", cand.get(r['id']))
+                if via is None or not cs or set(cs) != {via}:
+                    return False
+            elif via in s['chars']:
+                if p(via, ph.base_role(dict(s, script=sc), via)) < th:
+                    return False
+            g = re.match(r'(C\d\d)', r.get('goal') or '')
+            if g and 'キーパーソン' in r['goal']:
+                v = g.group(1)
+                if max(p(v, 'KEY'), p(v, 'FACTOR')) < th:
+                    return False
+            return True
+        return known
+
     DANGER_ROLES = ('KEY', 'FRIEND')
 
     def _danger_rates(self, s, mm_targets, k=3):
@@ -696,16 +761,23 @@ class ReadingBlocker(DeductiveBlocker):
                     if x['by'] == 'M':
                         h = self.mm_hist.setdefault(x['target'], {})
                         h[x['card']] = h.get(x['card'], 0) + 1
-                        if self.card_lr and getattr(self, 'ded', None) is not None and x['card'] in ('INT1', 'INT2') \
-                                and (s['loop'], x['target']) not in self._card_seen:
-                            self._card_seen.add((s['loop'], x['target']))  # 同じ所への暗躍は1ループ1回だけ数える（毎日のおとりで膨らまない）
-                            self.ded.card_evidence(x['target'], x['card'], s.get('init'),
-                                                   self.card_lr * (1.5 if x['card'] == 'INT2' else 1.0))
+                        if self.card_lr and x['card'] in ('INT1', 'INT2', 'PAR+'):
+                            self._evidence(s, x['target'], x['card'])
+            if e.get('by') == 'SCHOLAR' and self.card_lr and e.get('kind') in ('par', 'int'):  # 学者の特性: 脚本家が選んだカウンター
+                self._evidence(s, 'C19', 'PAR+' if e['kind'] == 'par' else 'INT1')
             if e.get('kind') == 'nullified' and e.get('by') in ('PARX', 'GWX'):
                 k = (e['target'], e['by'])
                 self.nulled[k] = self.nulled.get(k, 0) + 1
                 if e['by'] == 'GWX':
                     self._gwx_loop = getattr(self, '_gwx_loop', set()) | {(s['loop'], e['target'])}
+
+    def _evidence(self, s, target, card):
+        """脚本家が選んで置いたカウンターを推理の手がかりにする（Deduction.card_evidence）。同じ所・同じ種類は1ループ1回だけ（毎日のおとりで膨らまない）。"""
+        kind = 'par' if card == 'PAR+' else 'int'
+        if getattr(self, 'ded', None) is None or (s['loop'], target, kind) in self._card_seen:
+            return
+        self._card_seen.add((s['loop'], target, kind))
+        self.ded.card_evidence(target, card, s.get('init'), self.card_lr * (1.5 if card == 'INT2' else 1.0))
 
     def _fill(self, s, sc, targets, hand, temp=0.3, n=24):
         """伏せ札の中身を1通り引く。脚本家の評価を上げる組ほど選ばれやすい。

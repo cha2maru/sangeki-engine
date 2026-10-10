@@ -72,3 +72,4 @@ def test_contract_key_is_a_girl():
     for j, c in enumerate(chars):
         if '少女' not in CHARS[c]['tags']:
             assert not ((R[:, j] == RC['KEY']) & contract).any(), c
+
