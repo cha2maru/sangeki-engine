@@ -85,6 +85,8 @@ http.createServer(async (req, res) => {
         if (!f.startsWith(dir + path.sep)) return send(res, 403, 'forbidden');
         return sendFile(res, f);
       }
+      // SANGEKI_NOIMG=1: 画像を配信しない（盤面は画像が読めないので自動で文字の表示になる）
+      if (p.startsWith('/img/') && process.env.SANGEKI_NOIMG === '1') return send(res, 404, 'no images');
       if (p.startsWith('/img/')) {
         // originals/tragedy_commons_5th の外には出さない
         const f = path.resolve(IMG, '.' + p.slice(4));
