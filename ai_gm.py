@@ -165,8 +165,9 @@ class Table:
 def describe(e):
     """公開の出来事1つを日本語の1行に。秘匿の項目は使わない。"""
     k = e.get('kind')
-    if k == 'revealed':  # 行動解決で6枚が公開された（脚本家の札は「脚本家の札が公開された」の行で出す。主人公の札は自分で置いたもの）
-        return None
+    if k == 'revealed':  # 行動解決で6枚が公開された。脚本家の札は「脚本家の札が公開された」の行で出すので、ここは主人公の札（振り返り用）
+        pc = [x for x in e.get('cards', []) if x.get('by') != 'M']
+        return ('主人公の札: ' + '、'.join(f'{x["by"]} {name(x["target"])}={CARD_UI.get(x["card"], x["card"])}' for x in pc)) if pc else None
     if k == 'move':
         src = f'{AREA_JA.get(e["from"], e["from"])} → ' if e.get('from') else ''  # 行方不明の移動には移動元が無い
         return f'{name(e["char"])} が {src}{AREA_JA.get(e.get("to"), e.get("to"))} へ移動'
@@ -397,7 +398,8 @@ class Narrator:
             for e in events:
                 if e.get('kind') == 'incident':
                     self.t.inc_result[(s['loop'], e['day'])] = '発生' if e['occurred'] else '不発'
-        for e in events:
+        # 公開された札（主人公の札）を、移動やカウンターの行より先に（脚本家の札の行のすぐ後）
+        for e in sorted(events, key=lambda x: not (isinstance(x, dict) and x.get('kind') == 'revealed')):
             if isinstance(e, dict):
                 try:
                     line = describe(e)
