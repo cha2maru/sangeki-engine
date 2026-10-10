@@ -70,7 +70,7 @@ cd web/dist && python3 -m http.server 8784
 ```
 
 - Python は [Pyodide](https://pyodide.org/)（v314.0.7、CDN から読み込む。初回は約30MB）。人の操作を待つところに JSPI を使うので、**Chrome・Edge の最近の版**で動きます（Firefox・Safari は未対応の見込み）
-- 計算は各自の PC で行います。calcG の1日目の伏せ札は、手元の計測で約25秒でした
+- 自動の脚本家の計算はブラウザを動かしている PC で行うので、速さは PC の性能に左右されます。脚本家の種類によっては手の計算で待たされます（calcG の1日目の伏せ札は、手元の計測で約25秒でした）
 - CDN に届かない環境では `PYODIDE_DIR=<npm の pyodide パッケージ> bash web/build.sh --local-pyodide` で同梱し、`?pyodide=local` を付けて開きます
 - 盤面の状態・ログはブラウザのメモリの中だけにあります（再読み込みすると試合は消えます）。推理シートの書き込みはブラウザに保存されます
 
