@@ -31,5 +31,5 @@ def project(full, placed=None, revealed=False):
         # 公開シートに載る事件予定（名前と日付）だけ。犯人は出さない
         'incidents': [{'day': i['day'], 'name': INC_JA[i['id']]} for i in full['script']['incidents']],
         'cards': [{'owner': p['by'], 'target': _target_ui(p['target']),
-                   'card': CARD_UI[p['card']] if (revealed or p['by'] != 'M') else None} for p in (placed or [])],
+                   'card': CARD_UI[p['card']] if (revealed or p['by'] != 'M' or p.get('open')) else None} for p in (placed or [])],
     }

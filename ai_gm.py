@@ -422,7 +422,9 @@ class Narrator:
                 if line:
                     self.t.log(line)
         self.pub.observe(s, phase, events)
-        self.t.show(s, placed=[] if phase in ('actions', 'turn_end', 'loop_start') else None)
+        # 行動解決の後は、公開された6枚（脚本家の札も表向き）を盤面に残す（その日のターン終了フェイズまで。リプレイでも見える）
+        rev = next((e['cards'] for e in events if isinstance(e, dict) and e.get('kind') == 'revealed'), None)
+        self.t.show(s, placed=[dict(x, open=True) for x in rev] if rev else [] if phase in ('actions', 'turn_end', 'loop_start') else None)
         self.deduce(s)
 
     def deduce(self, s):
