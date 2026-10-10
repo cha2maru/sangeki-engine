@@ -568,7 +568,8 @@ def main():
             setattr(mm, meth, _thinking(t, what, f))
     player = Combo(mm, pc)
     nar = Narrator(t)
-    t.log(f'対AIモード開始。脚本 {script.get("title", a.script)}（ループ {script["loops"]} 回・1ループ {script["days"]} 日・'
+    # 題名は内容の手がかりになるので、開始時は ID だけ出す（題名はゲーム終了時の非公開シートの公開で出す）
+    t.log(f'対AIモード開始。脚本 {a.script}（ループ {script["loops"]} 回・1ループ {script["days"]} 日・'
           f'{script.get("set", "BTX")}）。脚本家は' + ('Claude' if a.mm == 'claude' else f'自動（{a.mm}）'))
 
     def log0(kind, rec):
@@ -584,7 +585,7 @@ def main():
     winner = '主人公' if r.get('winner') == 'protagonists' else '脚本家'
     how = '最後の戦い' if r.get('loop') == 'final' else f'ループ{r.get("loop")}を守りきった'
     t.log(f'ゲーム終了: {winner}の勝ち（{how}）')
-    t.log('非公開シート: ルール ' + '・'.join(RULE_JA.get(x, x) for x in script['rules']) + ' ／ 配役 '
+    t.log(f'非公開シート: 脚本「{script.get("title") or a.script}」（{a.script}） ／ ルール ' + '・'.join(RULE_JA.get(x, x) for x in script['rules']) + ' ／ 配役 '
           + '・'.join(f'{name(c)}={ROLE_JA.get(v, v)}' for c, v in script['roles'].items()) + ' ／ 犯人 '
           + '・'.join(f'{i["day"]}日 {INC_JA.get(i["id"], i["id"])}={name(i["culprit"])}' for i in script['incidents']))
     if a.blind:  # 試合の後に、遊んだルールの組を記録する（次の目隠しの選択で同じ組を避ける）
