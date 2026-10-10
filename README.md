@@ -263,7 +263,7 @@ PYTHONPATH=../sangeki-engine python -m selfplay.tune positions/*.json --side mm 
 
 ## 連絡先
 
-作者: cha2maru（X: [@withoutcane](https://x.com/withoutcane)）。不具合や裁定の誤りは GitHub の Issue か X へ。
+作者: cha2maru（X: [@withoutcane](https://x.com/withoutcane) ／ GitHub: [cha2maru/sangeki-engine](https://github.com/cha2maru/sangeki-engine)）。不具合や裁定の誤りは [GitHub の Issue](https://github.com/cha2maru/sangeki-engine/issues) か X へ。
 
 ## ライセンス
 
