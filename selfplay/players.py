@@ -314,7 +314,10 @@ class PublicObserver:
                 self.revealed[c] = r
             elif k == 'incident':
                 twin = lambda xs: xs + (['C32'] if 'C33' in xs and 'C32' not in xs else [])  # noqa: E731  アルバイト？はアルバイトと同じ犯人
-                rec = {'id': e['id'], 'day': e.get('day'), 'occurred': e['occurred'], 'critical': twin(list(e['critical']))}
+                crit = list(e['critical'])
+                if not e['occurred']:  # 手先[3]（このループ中、自身が犯人の事件を発生させない。使ったことは公開）で止めた者は、起きなくても犯人でないとは言えない
+                    crit = [c for c in crit if c not in s.get('suppressed_culprits', [])]
+                rec = {'id': e['id'], 'day': e.get('day'), 'occurred': e['occurred'], 'critical': twin(crit)}
                 if e['occurred']:
                     where = self._culprit_where(s, e, events)
                     if where is not None:

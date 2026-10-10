@@ -44,3 +44,15 @@ def test_assumption_is_refuted_by_a_hard_observation():
     assert a['status'] == 'refuted' and a['refuted_by'][0] == 'not_role'
     assert d.live_assumptions() == []
     assert d.n_hyp() > 0                                   # 仮定が否定されても、推理そのものは残る
+
+
+def test_minion_suppressed_incident_does_not_clear_culprit():
+    """手先[3] で自身が犯人の事件を止めたループ: 臨界以上の手先がいて事件が起きなくても、手先を犯人の候補から外さない
+    （ユーザー指摘: 邪気の汚染の犯人の候補が0人になった）。"""
+    from engine.deduce import incident_candidates
+    from selfplay.players import PublicObserver
+    o = PublicObserver()
+    s = {'chars': {c: {'alive': True, 'par': 0, 'gw': 0, 'int': 0, 'area': 'SCH'} for c in ('C01', 'C18')}, 'suppressed_culprits': ['C18']}
+    o._ensure(s)
+    o.observe(s, 'incident', [{'kind': 'incident', 'id': 'CORRUPT', 'day': 4, 'occurred': False, 'critical': ['C18']}])
+    assert 'C18' in incident_candidates(['C01', 'C18'], o.inc_history)['CORRUPT@4']
