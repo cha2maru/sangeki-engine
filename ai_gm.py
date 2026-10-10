@@ -516,6 +516,22 @@ def _thinking(t, what, f):
     return g
 
 
+def list_scripts():
+    """開始画面に出す脚本: 同梱（試験用）と設計した脚本。自動生成の脚本は「伏せて選ぶ」で使う。公開情報だけ（ネタバレを出さない）。"""
+    from engine.scripts import glob_scripts, load, script_dirs
+    out = []
+    for group, pat in (('同梱', '*.json'), ('設計', 'designed/*.json')):
+        for f in glob_scripts(pat):
+            sc = load(f)
+            rel = next(os.path.relpath(f, d) for d in script_dirs() if f.startswith(d))
+            sid = rel[:-5].replace(os.sep, '/')
+            if sid.startswith('toukou_') or sid == 'blind_001':  # 投稿シナリオは手で指定（--script）。目隠しの記録は出さない
+                continue
+            out.append({'id': sid, 'title': sc.get('title') or sid, 'loops': sc.get('loops'), 'days': sc.get('days'),
+                        'set': sc.get('set', 'BTX'), 'group': group})
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--script', default='s03_bomb')
@@ -523,7 +539,11 @@ def main():
     ap.add_argument('--mm', default='search', help='自動の脚本家（selfplay.league.make の種類）')
     ap.add_argument('--seed', type=int, default=1)
     ap.add_argument('--dir', default=os.path.join(HERE, 'game_ai'))
+    ap.add_argument('--list', action='store_true', help='開始画面の脚本の一覧（題名・ループ数・日数だけ。役職・犯人は出さない）を JSON で出して終わる')
     a = ap.parse_args()
+    if a.list:
+        print(json.dumps(list_scripts(), ensure_ascii=False))
+        return
     if a.blind:
         a.script, n = pick_blind(random.Random(f'blind:{a.seed}:{time.time()}'))
         os.makedirs(os.path.join(a.dir, 'private'), exist_ok=True)

@@ -185,6 +185,14 @@ span.card.back { background:repeating-linear-gradient(45deg, #4a4a4a 0 4px, #353
 span.card.nul { text-decoration:line-through; }
 .ccards span.card { font-size:clamp(8px,2.4cqi,12px); } .hand span.card { font-size:10px; }
 span.turf { position:absolute; right:6px; bottom:6px; background:#6b5a1a; color:#fff; font-weight:700; font-size:12px; padding:2px 8px; border-radius:10px; }
+/* 開始画面（server.mjs を SANGEKI_AI=1 で起動したとき）*/
+#start { position:fixed; inset:0; z-index:28; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.7); }
+#start.on { display:flex; }
+#start form { background:var(--panel); border:2px solid var(--acc); border-radius:8px; padding:16px 20px; width:min(520px, 94vw); max-height:90vh; overflow:auto; }
+#start h2 { margin:0 0 10px; color:var(--acc); } #start label { display:block; margin:10px 0 4px; font-weight:700; }
+#start select, #start input[type=number] { font:inherit; width:100%; box-sizing:border-box; background:#111; color:var(--fg); border:1px solid #555; padding:4px; }
+#start .row { display:flex; gap:8px; align-items:center; } #start .row button { white-space:nowrap; } #start .btns { display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
+#start .note { color:var(--mut); font-size:12px; margin-top:4px; }
 </style>
 
 <div id="band"></div>
@@ -231,13 +239,23 @@ span.turf { position:absolute; right:6px; bottom:6px; background:#6b5a1a; color:
 <div id="think"><span class="spin"></span><span id="thinktxt">脚本家が考えています</span><span id="thinksec" class="mut"></span></div>
 <div id="scene"><div class="box"><h2 id="sc-t"></h2><div class="sub" id="sc-s"></div><div class="body"><ul id="sc-l"></ul></div>
   <div class="btns"><span class="left" id="sc-n"></span><span id="sc-ba"></span><button id="sc-look">盤面を見る</button><button class="go" id="sc-next">閉じる</button></div></div></div>
+<div id="start"><form id="startf">
+  <h2>新しいゲーム</h2>
+  <label for="st-script">脚本</label><select id="st-script"></select>
+  <div class="row" style="margin-top:6px"><input type="checkbox" id="st-blind"><span>脚本を伏せて選ぶ（自動生成の脚本から、遊んだことのない組を選ぶ）</span></div>
+  <div class="note">題名は内容の手がかりになることがあります。何も知らずに遊ぶなら「伏せて選ぶ」を。</div>
+  <label for="st-mm">脚本家</label><select id="st-mm"></select>
+  <label for="st-seed">乱数の種</label><div class="row"><input type="number" id="st-seed" min="0"><button type="button" id="st-rand">ランダム</button></div>
+  <div class="btns"><button type="button" id="st-cancel">やめる</button><button class="go" type="submit">開始</button></div>
+</form></div>
 <div id="uxpanel"><b style="color:var(--acc)">表示の設定</b> <span class="mut" id="ux-q"></span>
   <label>場面カード <input type="checkbox" data-ux="scene"></label>
   <label>演出の速さ <select data-ux="speed"><option value="slow">ゆっくり</option><option value="normal">ふつう</option><option value="fast">速い</option><option value="none">なし</option></select></label>
   <label>自動で閉じる（秒、0 で閉じない） <input type="number" min="0" max="60" style="width:4em" data-ux="autoclose"></label>
   <label>考え中の表示 <input type="checkbox" data-ux="think"></label>
   <label>画像 <select data-ux="img"><option value="auto">自動</option><option value="on">あり</option><option value="off">なし（文字）</option></select></label>
-  <div class="mut">URL に ?ux=off で演出を全部切る（試験用）、?ux=fast で速く、?img=off で文字の表示。</div></div>
+  <div class="mut">URL に ?ux=off で演出を全部切る（試験用）、?ux=fast で速く、?img=off で文字の表示。</div>
+  <div id="ux-new" style="display:none;margin-top:8px"><button class="go" id="newgame">新しいゲーム…</button></div></div>
 
 <script>
 const IMG = '/img/';
@@ -289,6 +307,7 @@ function render() {
     <span class="ph">${esc(S.phaseName)}</span><span>リーダー <b>${esc(S.leader)}</b></span>
     <span class="wait ${myTurn() ? 'mine' : ''}">${esc(w.text || '入力待ちなし')}</span><button id="uxbtn" title="表示の設定">⚙</button>`
     : '状態を読み込み中… <button id="uxbtn" title="表示の設定">⚙</button>';
+  if ((S.phaseName || '').startsWith('ゲーム終了') && canStart) $('band').insertAdjacentHTML('beforeend', '<button class="go" onclick="openStart()">新しいゲーム</button>');
   renderThink();
   $('board').innerHTML = AREAS.map(([name, img, side]) => {
     const b = (S.boards || {})[name] || {};
@@ -828,6 +847,37 @@ $('sc-ba').onclick = async e => {
     viewSnapshot(pick, `${scene.title}の${b.dataset.ba === 'before' ? '解決前' : '解決後'}`, b.dataset.ba === 'after' ? chg : new Set());
     $('sc-ba').querySelectorAll('[data-ba]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   } catch { alert('盤面の履歴を読めなかった'); }
+};
+// ---- 開始画面（脚本・脚本家・乱数の種を選んで進行役を起動し直す。サーバーが SANGEKI_AI=1 のときだけ）----
+const MMLABEL = { search: 'search（速い・ふつう）', searchL: 'searchL（強い）', calcG: 'calcG（最強・1手に数十秒）', route: 'route（最速・弱い）' };
+let canStart = false;
+fetch('/scripts').then(r => r.ok ? r.json() : null).then(d => {
+  if (!d) return;
+  canStart = true; $('ux-new').style.display = 'block';
+  const groups = {};
+  for (const s of d.scripts) (groups[s.group] = groups[s.group] || []).push(s);
+  $('st-script').innerHTML = Object.entries(groups).map(([g, ss]) => `<optgroup label="${esc(g)}">` + ss.map(s =>
+    `<option value="${esc(s.id)}">${esc(s.title)}（${s.loops}ループ×${s.days}日）</option>`).join('') + '</optgroup>').join('');
+  $('st-mm').innerHTML = d.mms.map(m => `<option value="${m}" ${m === 'search' ? 'selected' : ''}>${esc(MMLABEL[m] || m)}</option>`).join('');
+  $('st-seed').value = Math.floor(Math.random() * 10000);
+  if (!S.loop) openStart();
+}).catch(() => {});
+function openStart() { if (canStart) { $('start').classList.add('on'); $('uxpanel').classList.remove('on'); } }
+$('st-rand').onclick = () => { $('st-seed').value = Math.floor(Math.random() * 10000); };
+$('st-blind').onchange = () => { $('st-script').disabled = $('st-blind').checked; };
+$('st-cancel').onclick = () => $('start').classList.remove('on');
+$('newgame').onclick = e => { e.stopPropagation(); openStart(); };
+$('startf').onsubmit = async e => {
+  e.preventDefault();
+  if (S.loop && !(S.phaseName || '').startsWith('ゲーム終了') && !confirm('いまの試合を終えて、新しいゲームを始めますか？')) return;
+  try {
+    const r = await fetch('/new', { method: 'POST', body: JSON.stringify({ script: $('st-script').value, mm: $('st-mm').value, seed: +$('st-seed').value, blind: $('st-blind').checked }) });
+    if (!r.ok) throw new Error(await r.text());
+  } catch (err) { return alert('開始できなかった: ' + err.message); }
+  $('start').classList.remove('on');
+  // 前の試合の表示を片付ける（盤面・ログ・送信待ち・場面カード）
+  S = {}; LOG = []; pending = []; sent = []; lastState = lastLog = lastDed = ''; seenN = null; group = null; sceneQ = []; closeScene(); backToLive();
+  awaiting = Date.now(); render(); renderLog();
 };
 applyUX();
 render(); poll(); setInterval(poll, 2000);

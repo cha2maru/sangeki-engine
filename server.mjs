@@ -5,6 +5,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawn, execFileSync } from 'node:child_process';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 // SANGEKI_GAME: ゲームの置き場所（既定は手動モードの play/game。対AIモードは play/game_ai を使う＝ai_gm.py）
@@ -16,6 +17,27 @@ const PORT = Number(process.env.PORT || 8765);
 const HOST = process.env.HOST || '127.0.0.1';
 
 fs.mkdirSync(GAME, { recursive: true });
+// 対AIモードの開始画面（SANGEKI_AI=1 のときだけ）: 脚本の一覧を返し、『開始』で進行役（ai_gm.py）を起動し直す。
+// SANGEKI_PYTHON: 使う Python（既定 python3。仮想環境なら .venv/bin/python を渡す）
+const AI = process.env.SANGEKI_AI === '1';
+const PY = process.env.SANGEKI_PYTHON || 'python3';
+const MMS = ['search', 'searchL', 'calcG', 'route'];  // 開始画面で選べる自動の脚本家（ほかの型は ai_gm.py を直接起動）
+let child = null, scriptList = null;
+function listScripts() {
+  if (!scriptList) scriptList = JSON.parse(execFileSync(PY, [path.join(HERE, 'ai_gm.py'), '--list'], { cwd: HERE }).toString());
+  return scriptList;
+}
+function startGame({ script, mm, seed, blind }) {
+  if (!MMS.includes(mm)) throw new Error('脚本家の型が不正');
+  if (!blind && !listScripts().some(s => s.id === script)) throw new Error('脚本が無い');
+  seed = Number.isInteger(+seed) ? String(+seed) : '1';
+  if (child && child.exitCode === null) child.kill('SIGTERM');
+  for (const f of ['notes.json', 'state.json']) fs.rmSync(path.join(GAME, f), { force: true });  // 前の試合の推理の書き込み・盤面を残さない
+  const out = fs.openSync(path.join(GAME, 'ai_gm.log'), 'w');
+  const args = [path.join(HERE, 'ai_gm.py'), '--mm', mm, '--seed', seed, '--dir', GAME, ...(blind ? ['--blind'] : ['--script', script])];
+  child = spawn(PY, args, { cwd: HERE, stdio: ['ignore', out, out] });
+  console.log('開始:', args.slice(1).join(' '));
+}
 const INBOX = path.join(GAME, 'inbox.jsonl');
 const countLines = f => fs.existsSync(f) ? fs.readFileSync(f, 'utf8').split('\n').filter(Boolean).length : 0;
 let seq = countLines(INBOX);
@@ -51,6 +73,7 @@ http.createServer(async (req, res) => {
       if (p === '/notes') return sendFile(res, path.join(GAME, 'notes.json'), '{}');
       if (p === '/deduce') return sendFile(res, path.join(GAME, 'deduce.json'), '{}');
       if (p === '/snapshots') return sendFile(res, path.join(GAME, 'snapshots.jsonl'), '');
+      if (p === '/scripts') return AI ? send(res, 200, JSON.stringify({ scripts: listScripts(), mms: MMS }), TYPES['.json']) : send(res, 404, 'not found');
       // 公開のキャラクター情報（不安臨界・初期エリア・禁止エリア・友好能力の文面）。engine/data/build_public_chars.py が作る
       if (p === '/chars') return sendFile(res, path.join(HERE, 'engine', 'data', 'characters_public.json'), '{}');
       if (p === '/data/rules') return sendFile(res, path.join(HERE, 'engine', 'data', 'rules.json'), '{}');
@@ -74,6 +97,10 @@ http.createServer(async (req, res) => {
       const rec = { seq: ++seq, at: new Date().toISOString(), ...a };
       fs.appendFileSync(INBOX, JSON.stringify(rec) + '\n');
       return send(res, 200, JSON.stringify({ seq }), TYPES['.json']);
+    }
+    if (req.method === 'POST' && p === '/new' && AI) {
+      startGame(await readBody(req));
+      return send(res, 200, '{}', TYPES['.json']);
     }
     if (req.method === 'POST' && p === '/notes') {
       const n = await readBody(req);

@@ -76,6 +76,9 @@ python -m pytest -q tests         # 動作確認（数分。一部の試験は�
 
 ターミナルを2つ使います。どちらもリポジトリの根で実行します。
 
+**いちばん簡単な方法**: `SANGEKI_AI=1 SANGEKI_PYTHON=.venv/bin/python SANGEKI_GAME=game_ai PORT=8766 node server.mjs` を実行して http://localhost:8766/ を開くと、
+開始画面で脚本と脚本家を選べます（詳しくは [`docs/browser.md`](docs/browser.md)）。進行役を自分で起動するなら、次の手順です。
+
 **1. 盤面のサーバーを起動**
 
 ```bash

@@ -23,6 +23,21 @@
 
 準備（[README の「インストール」](../README.md#インストール)）が済んでいれば、ターミナルを2つ使います。どちらもリポジトリの根で実行します。
 
+**いちばん簡単な起動（開始画面つき）**: ターミナル1つで、サーバーが進行役も起動します。
+
+```bash
+SANGEKI_AI=1 SANGEKI_PYTHON=.venv/bin/python SANGEKI_GAME=game_ai PORT=8766 node server.mjs
+```
+
+ブラウザで **http://localhost:8766/** を開くと「新しいゲーム」の画面が出ます。脚本・脚本家・乱数の種を選んで『開始』。
+試合の途中や終わった後も、帯の ⚙ →『新しいゲーム…』（終わった後は帯の『新しいゲーム』）で始め直せます。
+
+- 脚本の一覧は、同梱の脚本と（sangeki-scripts があれば）設計した脚本です。題名は内容の手がかりになることがあるので、何も知らずに遊ぶなら「脚本を伏せて選ぶ」を使います（sangeki-scripts の自動生成の脚本から選ぶ）
+- 開始画面で選べる脚本家は `search`（既定・速い）・`searchL`・`calcG`（最強）・`route`（最速）
+- `SANGEKI_PYTHON` は Python の場所（仮想環境の python。省くと `python3`）
+
+**進行役を自分で起動する場合**（ほかの脚本家の型を使う、など）: ターミナルを2つ使います。
+
 ```bash
 # ターミナル1: 盤面のサーバー
 SANGEKI_GAME=game_ai PORT=8766 node server.mjs
