@@ -15,9 +15,9 @@
       else if (m.type === 'ready') {
         ready = true; list = JSON.parse(m.list); waitList.splice(0).forEach(f => f(list));
         if (pendingNew) { worker.postMessage(pendingNew); pendingNew = null; }
-      } else if (m.type === 'write') { if (m.f === 'state.json') store.state = m.s; else if (m.f === 'deduce.json') store.deduce = m.s; else if (m.f === 'record.json') store.record = m.s; }
+      } else if (m.type === 'write') { if (m.f === 'state.json') store.state = m.s; else if (m.f === 'deduce.json') store.deduce = m.s; else if (m.f === 'record.json') store.record = m.s; else if (m.f === 'rejected.json') store.rejected = m.s; }
       else if (m.type === 'append') { (m.f === 'log.jsonl' ? store.log : m.f === 'snapshots.jsonl' ? store.snaps : []).push(m.s); }
-      else if (m.type === 'reset') { store.log = []; store.snaps = []; store.deduce = '{}'; }
+      else if (m.type === 'reset') { store.log = []; store.snaps = []; store.deduce = '{}'; store.record = '{}'; store.rejected = '[]'; }
       else if (m.type === 'called') { const f = checks[m.id]; delete checks[m.id]; if (f) f(m.s); }
       else if (m.type === 'error') fail(m.msg);
     };
@@ -45,6 +45,7 @@
       case '/snapshots': return reply(store.snaps.join('\n'), 'text/plain');
       case '/deduce': return reply(store.deduce);
       case '/record': return reply(store.record || '{}');
+      case '/rejected': return reply(store.rejected || '[]');
       case '/scripts': return reply(JSON.stringify({ ...(ready ? list : await new Promise(r => waitList.push(r))), mms: ['calcG', 'searchL', 'search', 'route'] }));
       case '/new': {
         const a = body();

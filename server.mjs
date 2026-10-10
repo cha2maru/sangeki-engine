@@ -88,6 +88,7 @@ http.createServer(async (req, res) => {
       if (p === '/notes') return sendFile(res, path.join(GAME, 'notes.json'), '{}');
       if (p === '/deduce') return sendFile(res, path.join(GAME, 'deduce.json'), '{}');
       if (p === '/record') return sendFile(res, path.join(GAME, 'record.json'), '{}');  // リプレイの URL（#p=）の元
+      if (p === '/rejected') return sendFile(res, path.join(GAME, 'rejected.json'), '[]');  // 受け付けなかった操作（リプレイで見返す）
       if (p === '/snapshots') return sendFile(res, path.join(GAME, 'snapshots.jsonl'), '');
       if (p === '/scripts') return AI ? send(res, 200, JSON.stringify({ ...listScripts(), mms: MMS }), TYPES['.json']) : send(res, 404, 'not found');
       // 公開のキャラクター情報（不安臨界・初期エリア・禁止エリア・友好能力の文面）。engine/data/build_public_chars.py が作る

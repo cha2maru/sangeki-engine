@@ -76,14 +76,16 @@ class Table:
         # （エンジンのルール処理は乱数を使わない）。crc: 公開ログの文の照合値（再生が食い違えば、エンジンの版が違う）
         self.record = {'v': 1, 'h': [], 'm': [], 'n': 0, 'crc': 0}
         self.replay = None  # 再生中なら記録（record の形）。wait は記録から返す
+        self.rejected = []  # 受け付けなかった操作（公開ログには書かない。リプレイで見返せるように rejected.json に残す。ユーザー指摘 2026-10-10）
 
     # ファイルの読み書きはここにまとめる（ブラウザ版 web/web_gm.py はこれを差し替えて、ファイルの代わりに盤面へ直接送る）
     def _reset_files(self):
         os.makedirs(self.d, exist_ok=True)
         for f in ('log.jsonl', 'inbox.jsonl', 'snapshots.jsonl'):
             open(os.path.join(self.d, f), 'w').close()
-        if os.path.exists(os.path.join(self.d, 'deduce.json')):  # 前の試合の推理を推理シートに残さない
-            os.remove(os.path.join(self.d, 'deduce.json'))
+        for f in ('deduce.json', 'record.json', 'rejected.json'):  # 前の試合の推理・記録を残さない
+            if os.path.exists(os.path.join(self.d, f)):
+                os.remove(os.path.join(self.d, f))
 
     def _append(self, f, obj):
         with open(os.path.join(self.d, f), 'a', encoding='utf-8') as fp:
@@ -158,6 +160,14 @@ class Table:
         c, _, i = str(x).partition('#')
         return f'{name(c)}#{i}'
 
+    def reject(self, what, why):
+        """受け付けなかった操作を「脚本家の返答」に出し、rejected.json に残す（n は直前の公開ログの番号）。"""
+        self.reply = f'{why}。置き直してください' if what.startswith('札') else why
+        s = self.s or {}
+        self.rejected.append({'n': self.n, 'loop': min(s['loop'], self.script['loops']) if s.get('loop') else None, 'day': s.get('day'),
+                              'phase': self.phase_name, 'what': what, 'why': why})
+        self._write('rejected.json', self.rejected)
+
     def take(self, types):
         """主人公の操作を1つ受け取る（wait）。リプレイの記録に残し、再生中は記録から返す。"""
         if self.replay is not None:
@@ -185,6 +195,10 @@ class Table:
 
 
 PUBCHARS = json.load(open(os.path.join(HERE, 'engine', 'data', 'characters_public.json'), encoding='utf-8'))
+
+
+def _cards_text(rec):
+    return '、'.join(f"{p.get('actor')} {p.get('target')}={p.get('card')}" for p in rec.get('placements') or [])
 
 
 class ReplayEnd(Exception):
@@ -348,11 +362,11 @@ class HumanProtagonist:
             try:
                 pc = placements_from_inbox(rec)
             except KeyError as e:
-                self.t.reply = f'札を読めなかった（{e}）。置き直してください'
+                self.t.reject('札: ' + _cards_text(rec), f'札を読めなかった（{e}）')
                 continue
             err = self._check(s, pc)
             if err:
-                self.t.reply = f'札の置き方が合法でない: {err}。置き直してください'
+                self.t.reject('札: ' + _cards_text(rec), f'札の置き方が合法でない: {err}')
                 continue
             self.t.reply = ''
             return sorted(pc, key=lambda x: order.index(x['by']))
@@ -389,7 +403,10 @@ class HumanProtagonist:
                 return None
             dec = self._match(s, rec)
             if dec is None:  # 受け付けなかった宣言はログに書かない（「脚本家の返答」に出す）
-                self.t.reply = f'{rec.get("char")} の能力 {rec.get("label", "")} は、いまは使えない（友好・場所・対象・回数を確認）'
+                lab = ability_label(NAME2C.get(rec.get('char')), rec.get('ability'))
+                tg = '・'.join(f'{k}={rec[k]}' for k in ('target', 'mode', 'from', 'to', 'counter', 'declare', 'incident', 'day', 'board') if rec.get(k) is not None)
+                self.t.reject(f'能力: {rec.get("char")} {lab}' + (f'（{tg}）' if tg else ''),
+                              f'{rec.get("char")} の能力 {lab} は、いまは使えない（友好・場所・対象・回数を確認）')
                 self.t.show(bump=False)
                 continue
             self.t.reply = ''

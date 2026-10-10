@@ -130,7 +130,13 @@ def test_record_replays_to_the_same_game(tmp_path):
     class SimTable(ai_gm.Table):  # 人の代わり（無作為の3人に友好+1・不安+1・移動←→、能力・指摘はしない）
         rng = random.Random(5)
 
+        bad = True
+
         def wait(self, types):
+            if 'cards' in types and self.bad:  # 最初に1回、反則の置き方（同じ人物に2枚）を送る＝受け付けなかった操作の記録
+                self.bad = False
+                return {'type': 'cards', 'phaseId': self.phase_id, 'placements': [
+                    {'actor': a, 'target': ai_gm.name('C01'), 'card': CARD_UI['GW1']} for a in 'ABC']}
             if 'cards' in types:
                 alive = [c for c, v in self.s['chars'].items() if v['alive'] and v.get('present', True) and c != 'C20']
                 return {'type': 'cards', 'phaseId': self.phase_id, 'placements': [
@@ -142,3 +148,5 @@ def test_record_replays_to_the_same_game(tmp_path):
     ai_gm.run(SimpleNamespace(script='', mm='', seed=None, blind=False, dir=d2, code='', replay=rec))
     log = lambda d: [json.loads(x)['text'] for x in open(d + '/log.jsonl')]  # noqa: E731
     assert log(d1) == log(d2) and json.load(open(d2 + '/state.json'))['waiting']['ok'] is True
+    rej = lambda d: json.load(open(d + '/rejected.json'))  # noqa: E731
+    assert len(rej(d1)) == 1 and rej(d1) == rej(d2) and rej(d1)[0]['what'].startswith('札:')

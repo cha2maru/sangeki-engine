@@ -242,6 +242,7 @@ body.mode-ai .manual-only { display:none; }
 #reveal .ok { color:#50c878; font-weight:700; } #reveal .ng { color:var(--warn); font-weight:700; } #reveal .btns { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
 .rulename { cursor:help; text-decoration:underline dotted #777; text-underline-offset:3px; }
 /* リプレイ */
+#log div.rej { color:var(--warn); font-size:12px; opacity:.9; }
 #rpbuild { position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.8); }
 #rpbuild.on { display:flex; } #rpbuild .box { background:var(--panel); border:2px solid var(--acc); border-radius:8px; padding:18px 24px; font-size:16px; text-align:center; }
 #rpbar { position:fixed; z-index:24; left:50%; bottom:10px; transform:translateX(-50%); display:none; align-items:center; gap:6px; flex-wrap:wrap;
@@ -670,7 +671,7 @@ function renderToday() {
 }
 function renderLog() {
   // 過去の盤面へは行の端の小さな『盤面』ボタンだけで切り替える（行のクリックだと誤って切り替わり、今の伏せ札が消えたように見えた）
-  $('log').innerHTML = LOG.map(l => `<div data-log="${l.n}" class="${l.kind === 'correction' ? 'fix' : ''}"><span class="n">#${l.n} L${l.loop ?? '-'}D${l.day ?? '-'}</span>${esc(l.text)}${l.basis ? `<span class="basis">根拠: ${esc(l.basis)}</span>` : ''}<button class="snapbtn" data-snap="${l.n}" title="この行の処理の直後の盤面を見る">盤面</button></div>`).join('');
+  $('log').innerHTML = LOG.map(l => l.kind === 'rej' ? `<div class="rej"><span class="n">L${l.loop ?? '-'}D${l.day ?? '-'}</span>受け付けなかった操作: ${esc(l.what)} ― ${esc(l.why)}</div>` : `<div data-log="${l.n}" class="${l.kind === 'correction' ? 'fix' : ''}"><span class="n">#${l.n} L${l.loop ?? '-'}D${l.day ?? '-'}</span>${esc(l.text)}${l.basis ? `<span class="basis">根拠: ${esc(l.basis)}</span>` : ''}<button class="snapbtn" data-snap="${l.n}" title="この行の処理の直後の盤面を見る">盤面</button></div>`).join('');
   renderToday();
   const box = $('log').closest('.body');  // スクロールするのは欄の本体。最下部付近にいたときだけ最新へ送る（読み返し中は動かさない）
   if (logFollow) box.scrollTop = box.scrollHeight;
@@ -1062,7 +1063,8 @@ const RP = {
     const lines = s => s.split('\n').filter(Boolean).map(x => JSON.parse(x));
     const st = JSON.parse(await txt('/state') || '{}');
     let record = null; try { record = JSON.parse(await txt('/record') || 'null'); } catch {}
-    return { format: 'sangeki-replay', version: 1, exportedAt: new Date().toISOString(), complete: !!st.reveal, record: record && record.v ? record : undefined,
+    let rejected = []; try { rejected = JSON.parse(await txt('/rejected') || '[]'); } catch {}
+    return { format: 'sangeki-replay', version: 1, exportedAt: new Date().toISOString(), complete: !!st.reveal, record: record && record.v ? record : undefined, rejected,
              title: st.reveal ? st.reveal.title : null, log: lines(await txt('/log')), snapshots: lines(await txt('/snapshots')), final: st };
   },
   async exportFile() {
@@ -1090,7 +1092,10 @@ const RP = {
     const st = this.steps; this.i = Math.max(0, Math.min(i, st.length - 1));
     const s = st[this.i];
     S = { ...s.state, reveal: null, waiting: { kind: 'none', text: `リプレイ ${this.i + 1}/${st.length}` } };
-    LOG = this.data.log.filter(l => l.n <= s.log_n);
+    // 受け付けなかった操作（公開ログには無い）も、その位置（直前の公開ログの後）に挟んで見せる
+    const last = this.i === st.length - 1;
+    const rej = (this.data.rejected || []).filter(x => x.n < s.log_n || last).map(x => ({ ...x, kind: 'rej', n: x.n + 0.5 }));
+    LOG = [...this.data.log.filter(l => l.n <= s.log_n), ...rej].sort((a, b) => a.n - b.n);
     renderLog(); render();
     document.querySelectorAll('#log [data-log]').forEach(x => x.classList.toggle('rpnow', +x.dataset.log > (s.prev_n || 0) && +x.dataset.log <= s.log_n));
     const now = document.querySelector('#log .rpnow'); if (now) now.scrollIntoView({ block: 'nearest' });
@@ -1147,7 +1152,7 @@ const RP = {
     let prev = {};
     const diff = st => { const o = {}; for (const k in st) if (JSON.stringify(st[k]) !== JSON.stringify(prev[k])) o[k] = st[k]; prev = st; return o; };
     const s = d.snapshots.map(x => [x.prev_n, x.log_n, diff(x.state)]);
-    const o = { f: 'r1', t: d.title, c: d.complete, l: d.log.map(x => [x.n, x.loop, x.day, x.text]), s, z: diff(d.final || {}) };
+    const o = { f: 'r1', t: d.title, c: d.complete, l: d.log.map(x => [x.n, x.loop, x.day, x.text]), s, z: diff(d.final || {}), x: d.rejected || [] };
     const b = await this.z(new TextEncoder().encode(JSON.stringify(o)), true);
     let bin = ''; for (const c of b) bin += String.fromCharCode(c);
     return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -1159,7 +1164,7 @@ const RP = {
     let prev = {};
     const snapshots = o.s.map(([p, n, dl]) => { prev = { ...prev, ...dl }; return { prev_n: p, log_n: n, state: prev }; });
     return { format: 'sangeki-replay', version: 1, complete: o.c, title: o.t, log: o.l.map(([n, loop, day, text]) => ({ n, loop, day, text })),
-             snapshots, final: { ...prev, ...o.z } };
+             snapshots, final: { ...prev, ...o.z }, rejected: o.x || [] };
   },
   async shareURL(full) {  // full: 盤面の記録ごと入れる長い URL（その時に見えたことをそのまま残す。バグの報告向け）
     try {
