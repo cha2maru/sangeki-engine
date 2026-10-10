@@ -126,16 +126,11 @@ class Table:
             if r:
                 i['result'] = r
         sc = self.script
-        appear = []
-        for c, a in (sc.get('appear') or {}).items():
-            if a.get('loop'):
-                appear.append(f'{name(c)}: ループ{a["loop"]}から登場')
-            if a.get('day'):
-                appear.append(f'{name(c)}: 各ループの{a["day"]}日目から登場')
-        # 公開シートに書かれること（惨劇セット・ループ数・日数・事件予定・テリトリー・登場の時期・特殊ルール）
+        # 公開シートに書かれること（惨劇セット・ループ数・日数・事件予定・特殊ルール）。テリトリーはゲームの準備で縄張りトークンを置くので公開（大物の特性）。
+        # 神格・転校生の登場の時期は脚本作成時に脚本家が決める非公開の情報（カードの特性、wiki/concepts/script.md）。以前は出していた（ユーザー指摘 2026-10-10）
         pub['publicSheet'] = {'set': SET_JA.get(sc.get('set', 'BTX'), sc.get('set')), 'loops': sc['loops'], 'days': sc['days'],
                               'territory': AREA_JA.get(sc.get('territory')) if sc.get('territory') else None,
-                              'appear': appear, 'special': sc.get('special') or ''}
+                              'special': sc.get('special') or ''}
         pub['loop'] = min(pub['loop'], self.script['loops'])  # 最後の戦いではエンジンのループ番号が1つ進んでいる
         pub.update({'mode': 'ai', 'reply': self.reply, 'reveal': self.reveal,  # 対AIモード（盤面は手動モード用の欄＝脚本家に伝える・ハッシュ・異議を出さない）
                     'game': self.game, 'phaseId': self.phase_id, 'phaseName': self.phase_name, 'waiting': self.waiting,
@@ -366,6 +361,10 @@ class HumanProtagonist:
             want['from'] = NAME2C.get(rec['from'], rec['from'])
             want['to'] = NAME2C.get(rec.get('to'), rec.get('to'))
             want['counter'] = {v: k for k, v in COUNTER_JA.items()}.get(rec.get('counter'))
+        if rec.get('board'):  # 幻想[3]: 移動先のボード（HOS など）
+            want['board'] = rec['board']
+        if rec.get('counter') and not rec.get('from'):  # ご神木: 移すカウンター
+            want['counter'] = {v: k for k, v in COUNTER_JA.items()}.get(rec['counter'], rec['counter'])
         if rec.get('mode'):
             want['mode'] = {'取り除く': 'remove', '置く': 'place'}.get(rec['mode'], rec['mode'])
         if rec.get('declare'):

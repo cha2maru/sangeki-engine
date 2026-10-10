@@ -448,6 +448,15 @@ def declaration_options(state):
                 args += [{'incident': i, 'day': d, 'choice': {'target': x}} for i, d in incs if i == 'MURDER' for x in here if x != cid]
             else:
                 args = [{'incident': i, 'day': d} for i, d in incs]
+        # 以下4つは対象の作り方が抜けていて、宣言の候補に一度も出ていなかった（ユーザーが対AIモードで大物[5] を宣言できなかった、2026-10-10）
+        elif kind == 'territory':  # 大物[5]: テリトリーにいる自身以外
+            args = [{'target': x} for x in alive if x != cid and state['chars'][x]['area'] == state['script'].get('territory')]
+        elif kind == 'char_to_board':  # 幻想[3]: 同一エリアの1人を任意のボードへ
+            args = [{'target': x, 'board': b} for x in here for b in AREAS]
+        elif kind == 'tree':  # ご神木: 同一エリアの他の1人に、自身の上のカウンター1つを
+            args = [{'target': x, 'counter': k} for x in here if x != cid for k in COUNTERS]
+        elif kind == 'any_other':  # 従者[4]: ボードにいる自身以外の生存者
+            args = [{'target': x} for x in alive if x != cid]
         elif kind == 'proxy':
             args = [{'target': x, 'idx': j, 'arg': a2} for x in here if x != cid and '大人' in CHARS[x]['tags']
                     for (c2, j) in ABILITIES if c2 == x

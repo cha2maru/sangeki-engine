@@ -373,7 +373,8 @@ const ABIL = {
 };
 // 上の9人以外（第1陣・第2陣のキャラクター）の友好能力は、公開のキャラクター情報（/chars）から補う
 const KIND = {none: 'none', char: 'char', student: 'char', any: 'char', critical_any: 'char', critical_here: 'char', corpse: 'char',
-  corpse_any: 'char', char_or_board: 'char', transfer: 'transfer', doctor: 'doctor', incident: 'incident', sheet_incident: 'incident', ruleX: 'ruleX'};
+  corpse_any: 'char', char_or_board: 'char', transfer: 'transfer', doctor: 'doctor', incident: 'incident', sheet_incident: 'incident', ruleX: 'ruleX',
+  territory: 'char', any_other: 'char', char_to_board: 'char_board', tree: 'tree'};  // 大物[5]・従者[4]・幻想[3]・ご神木（以前は対象を選べなかった）
 const CHARPUB = {};  // 名前 → 公開のキャラクター情報（不安臨界・初期エリア・禁止エリア・属性・特性・友好能力）
 fetch('/chars').then(r => r.json()).then(cs => {
   for (const c of Object.values(cs)) CHARPUB[c.name] = c;
@@ -542,7 +543,6 @@ function renderSheet() {
   const ps = S.publicSheet;
   $('sh-pub').innerHTML = ps ? `<b style="color:var(--fg)">${esc(ps.set)}</b>　ループ ${ps.loops} 回 × ${ps.days} 日`
     + (ps.territory ? `<br>テリトリー（大物）: ${esc(ps.territory)}` : '')
-    + (ps.appear || []).map(a => `<br>${esc(a)}`).join('')
     + `<br>特殊ルール: ${esc(ps.special || 'なし')}`
     : `ループ ${S.loops ?? '?'} 回 × ${S.days ?? '?'} 日（手動モードでは、ほかの項目は脚本家が公開ログに書く）`;
   $('sh-inc').innerHTML = '<tr><th>日</th><th>事件</th><th>結果</th><th>犯人（推測）</th><th class="eng">エンジン</th></tr>' + (S.incidents || []).map(i => {
@@ -731,6 +731,10 @@ function ability(x, y, char, idx, label, arg) {
       menu(x, y, `${f} から：どこへ`, (L.tos || []).filter(t => t !== f).map(t => ({ label: t, go: () =>
         menu(x, y, `${f} → ${t}：何を`, (L.counters || ['不安', '友好', '暗躍']).map(k => ({ label: k, go: () => send({ from: f, to: t, counter: k }) }))) }))) })));
   }
+  if (arg === 'char_board') return menu(x, y, `${label} の対象`, charOpts(t => menu(x, y, `${t} をどのボードへ`,
+    Object.keys(BOARD).map(b => ({ label: b, go: () => send({ target: t, board: BOARD[b].slice(2) }) })))));
+  if (arg === 'tree') return menu(x, y, `${label} の対象`, charOpts(t => menu(x, y, `${t} に移すカウンター`,
+    ['不安', '友好', '暗躍'].map(k => ({ label: k, go: () => send({ target: t, counter: k }) })))));
   if (arg === 'doctor') return menu(x, y, `${label} の対象`, charOpts(t => menu(x, y, `${t} の不安を`,
     (legal && legal.modes.length ? legal.modes : ['取り除く', '置く']).map(m => ({ label: m, go: () => send({ target: t, mode: m }) })))));
 }

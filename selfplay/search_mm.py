@@ -13,6 +13,7 @@
   - 主人公の推理そのものではなく近似である（主人公の乱数や仮説の引き方までは再現しない）。
 """
 import copy
+import random
 
 from engine import phases as ph
 from engine.resolve import CARDS, ONCE, IllegalPlacement, copy_state, resolve_actions
@@ -97,7 +98,7 @@ def surplus(state):
 
 class SearchMastermind(RouteMastermind):
     def __init__(self, rng, triples=16, cards=8, replies=16, lam=0.1, hold=0.25, days=8, loops=3, lam_choices=None,
-                 explore=0.0, move_log=False, stop_replies=False, opp=0, urgency=1.0, force=1.0, stuck=0.3, v3=True, bluff=0.0, conceal=0.0, fit=True, bait=0.0, look=0, gamma=0.5, consp=0.0, stand=0.0, early=2.0, margin=0.0, hide=0.0, chain_ab=1.0, gate=None, enable=0.0, plan=0.0, plan_rank=0, recall=0.0, tempo=None, known=1.0, guide=None, worst=0.5, joseki=False, gwx_eve=0.0, hide_culprit=0.0, persist=0.0, joseki_top=6, cut_mm=0.0, lookday=False, calc=False, gamble=0.0):
+                 explore=0.0, move_log=False, stop_replies=False, opp=0, urgency=1.0, force=1.0, stuck=0.3, v3=True, bluff=0.0, conceal=0.0, fit=True, bait=0.0, look=0, gamma=0.5, consp=0.0, stand=0.0, early=2.0, margin=0.0, hide=0.0, chain_ab=1.0, gate=None, enable=0.0, plan=0.0, plan_rank=0, recall=0.0, tempo=None, known=1.0, guide=None, worst=0.5, joseki=False, gwx_eve=0.0, hide_culprit=0.0, persist=0.0, joseki_top=6, cut_mm=0.0, lookday=False, calc=False, gamble=0.0, double=False, align=False, dg=0.0):
         super().__init__(rng)
         # force: 止め手の枠を超える脅威（暗躍禁止は1日1枚、不安-1・移動禁止は各主人公1ループ1回）に加点。
         # stuck: このループで止められ続けている (対象, 種類) にまた置く手を減点（ユーザーの観点: 選択を迫りパワープレイを作る）
@@ -184,6 +185,10 @@ class SearchMastermind(RouteMastermind):
         # calc: 負け筋の逆算（engine/route_calc）でこのループを必ず取れると出たら、その札を最優先で置き、残りの枠を探索の手で埋める
         # （ユーザー「脚本家は常にループ勝利が最優先」2026-10-08）
         self.calc = calc
+        self.align = align  # 位置の筋を揃える移動（キラーをキーパーソンの所へ等）を候補に必ず入れる（d24: calcD が4日目の移動斜めを逃した）
+        self.dg = dg  # calcD と calcG の合成: 賭けが閾値に届かない日も、賭けの手を候補に入れ、評価に dg×確率を足す
+        self._gbonus = {}
+        self.double = double  # 二重の脅威（同じ日に2か所を押す手）を候補に必ず入れる（d07: 暗躍禁止は1日1か所しか効かない）
         self.gamble, self.intx_seen, self.int_reached = gamble, {}, set()  # 取れないループでも、今日の賭けでこの確率以上なら賭ける（0 で使わない）
         if self.guide.get('lock_hide') and not self.hide:  # 勝ちが確定したら押さずに隠す（searchhide と同じ）
             self.hide = self.guide['lock_hide']
@@ -768,6 +773,19 @@ class SearchMastermind(RouteMastermind):
         self._start_loop(s)
         self._reply_of = {}
         self._prog(0.02, '盤面を読んでいます')
+        fp = None
+        self._gbonus, self._gp = {}, {}
+        if self.calc and self.dg:  # 合成（dg）: 先に逆算と賭けを解き、閾値に届かない賭けの手も探索の候補に入れる
+            fp = forced_plan(s, self.days, hidden=True, watch=self._watch(s),
+                             pos=getattr(self, 'calc_pos', False), abil=getattr(self, 'calc_abil', False),
+                             pcab=getattr(self, 'calc_pcab', False))
+            if not fp['forced'] and fp.get('mix') and fp.get('p', 0) > 0:
+                for pr, mv in fp['mix']:
+                    mm_ = [{'by': 'M', 'target': tg, 'card': c} for tg, c in self._bluff_cards(s, mv)]
+                    if len(mm_) == 3:
+                        k_ = tuple((x['target'], x['card']) for x in mm_)
+                        self._gbonus[k_] = mm_
+                        self._gp[k_] = fp['p']
         scored = self.rank_moves(s)
         if not scored:
             return super().mm_cards(s)
@@ -779,8 +797,9 @@ class SearchMastermind(RouteMastermind):
         v, mm, v_reply, v_mean = scored[k]
         if self.calc:
             self._prog(0.85, '負け筋を逆算しています（このループを取れるか' + ('・伏せ札の賭け' if self.gamble else '') + '）')
-            fp = forced_plan(s, self.days, hidden=bool(self.gamble), watch=self._watch(s) if self.gamble else None,
-                             pos=getattr(self, 'calc_pos', False))
+            fp = fp or forced_plan(s, self.days, hidden=bool(self.gamble), watch=self._watch(s) if self.gamble else None,
+                                   pos=getattr(self, 'calc_pos', False), abil=getattr(self, 'calc_abil', False),
+                             pcab=getattr(self, 'calc_pcab', False))
             if fp['locked'] or self._locked(s):
                 # 確定したループは押さずに隠す（メモリ mastermind-hide-after-locked-loop）: 閾値に一番近い情報・守りの能力の持ち主に友好禁止。
                 # 残りの枠も押す札（不安+1・暗躍）は置かない: 犯人・負け筋を教えるだけ（問題 mm16c-l1d2-hide）
@@ -874,6 +893,72 @@ class SearchMastermind(RouteMastermind):
                     out.append(x)
         return out if len(out) == 3 or not skip else SearchMastermind._calc_merge(s, [(o['target'], o['card']) for o in out], scored)
 
+    def _align_moves(self, s, hand, xr, k=8):
+        """位置を揃える候補 [(置き先の組, 手)]: 位置の条件の不足が1で、ほかの条件（カウンター）は満たされている筋を、今日の移動1枚で成立させる。
+        残り2枚は近い負け筋の対象に押す札（無ければ無作為）。"""
+        from engine.route_calc import _pos_move
+        out = []
+        rel = sorted(t for t in self._relevant(s) if t[1] in ('int', 'par'))
+        for r_ in enumerate_routes(s)[:10]:
+            pos = [c for c in r_['conds'] if c['kind'] in ('same_area', 'alone_with', 'in_area')]
+            if len(pos) != 1 or pos[0]['deficit'] != 1 or any(c['deficit'] > 0 for c in r_['conds'] if c not in pos and c['kind'] != 'days'):
+                continue
+            pm = _pos_move(s, 'P:%s:%s:%s' % (pos[0]['kind'], *pos[0]['detail'][:2]))
+            if not pm or pm[1] not in hand:
+                continue
+            h = [c for c in hand if c != pm[1]]
+            mm = [{'by': 'M', 'target': pm[0], 'card': pm[1]}]
+            for t, kind in rel:
+                if len(mm) == 3 or t in {x['target'] for x in mm}:
+                    continue
+                c = next((c for c in (('INT2', 'INT1') if kind == 'int' else ('PAR+',)) if c in h), None)
+                if c:
+                    h.remove(c)
+                    mm.append({'by': 'M', 'target': t, 'card': c})
+            rest = [u for u in self._targets(s) if u not in {x['target'] for x in mm}]
+            while len(mm) < 3 and rest and h:
+                u = xr.choice(rest)
+                rest.remove(u)
+                c = xr.choice(h)
+                h.remove(c)
+                mm.append({'by': 'M', 'target': u, 'card': c})
+            if len(mm) == 3:
+                out.append((tuple(x['target'] for x in mm), mm))
+        return out[:k]
+
+    def _double_moves(self, s, hand, xr=None, k=12):
+        """二重の脅威の候補 [(置き先の組, 手)]: 近い負け筋が要るカウンター（_relevant）の2か所を同じ日に押す。
+        暗躍は暗躍+1・暗躍+2 で2か所（暗躍禁止は1日1か所しか効かない＝2枚出すと両方無効）、不安は不安+1（不安−1 は各主人公ループ1回）。
+        3枚目は近い負け筋の別の対象か、無作為の置き先に残りの札。"""
+        xr = xr or self.rng
+        rel = sorted(t for t in self._relevant(s) if t[1] in ('int', 'par'))
+        ok = lambda t: t.startswith('B:') or (t in s['chars'] and s['chars'][t]['alive'] and s['chars'][t].get('present', True) and t != 'C20')  # noqa: E731
+        rel = [t for t in rel if ok(t[0])]
+        out = []
+        for i, a in enumerate(rel):
+            for b in rel[i + 1:]:
+                if a[0] == b[0]:
+                    continue
+                pairs = []
+                for ca in (('INT2', 'INT1') if a[1] == 'int' else ('PAR+',)):
+                    for cb in (('INT1', 'INT2') if b[1] == 'int' else ('PAR+',)):
+                        h = list(hand)
+                        if ca in h:
+                            h.remove(ca)
+                            if cb in h:
+                                h.remove(cb)
+                                pairs.append((ca, cb, h))
+                for ca, cb, h in pairs[:2]:
+                    rest = [t for t in self._targets(s) if t not in (a[0], b[0])]
+                    if not rest or not h:
+                        continue
+                    third = next((t[0] for t in rel if t[0] not in (a[0], b[0])), None) or xr.choice(rest)
+                    c3 = next((c for c in h if (c in ('INT1', 'INT2')) == (third.startswith('B:'))), None) or xr.choice(h)
+                    mm = [{'by': 'M', 'target': a[0], 'card': ca}, {'by': 'M', 'target': b[0], 'card': cb}, {'by': 'M', 'target': third, 'card': c3}]
+                    out.append(((a[0], b[0], third), mm))
+        xr.shuffle(out)
+        return out[:k]
+
     def rank_moves(self, s):
         """候補の手を評価の高い順に [(評価, 手, 応手に対する評価, 平均の評価)]。"""
         plan_targets = self._plan_targets(s) if self.plan_w else set()
@@ -906,6 +991,16 @@ class SearchMastermind(RouteMastermind):
                     ts = (c, *others)
                     forced.setdefault(ts, []).append([{'by': 'M', 'target': c, 'card': 'GWX'}] +
                                                       [{'by': 'M', 'target': u, 'card': k} for u, k in zip(others, cards)])
+        # 足す候補は別の乱数で作る（本体の乱数の流れを変えない＝無作為の候補が入れ替わって良い手を逃さない。d24 の調べ）
+        xr = random.Random(f"{s['loop']}:{s['day']}:{len(s['used']['M'])}")
+        if self.double:
+            for ts, mm in self._double_moves(s, hand, xr):
+                forced.setdefault(ts, []).append(mm)
+        if self.align:
+            for ts, mm in self._align_moves(s, hand, xr):
+                forced.setdefault(ts, []).append(mm)
+        for key_, mm in self._gbonus.items():  # 賭けの手（dg）
+            forced.setdefault(tuple(x['target'] for x in mm), []).append(mm)
         locked = bool(self.hide_culprit) and self._locked(s)
         culprits_today = {i['culprit'] for i in s['script']['incidents'] if i['day'] >= s['day']} if locked else set()
         tss = self._triples(s) + [list(k) for k in forced]
@@ -948,6 +1043,8 @@ class SearchMastermind(RouteMastermind):
                     v += self.gwx_eve * sum(1 for x in mm if x['card'] == 'GWX' and x['target'] in eve)
                 if self.hide_culprit and locked:
                     v -= self.hide_culprit * sum(1 for x in mm if x['card'] in ('PAR-', 'PARX') and x['target'] in culprits_today)
+                if self._gp:
+                    v += self.dg * self._gp.get(tuple((x['target'], x['card']) for x in mm), 0)
                 if self.stuck:
                     v -= self._stuck_cost(s, mm)
                 if self.conceal:

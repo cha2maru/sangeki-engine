@@ -100,3 +100,15 @@ def test_ability_case(case):
         assert (out['loop_end'] is None) == (exp['loop_end'] is None), (out['loop_end'], exp['loop_end'])
     if 'winner' in exp:
         assert out['winner'] == exp['winner'] and out['stopped_at'] == exp['stopped_at']
+
+
+def test_every_targeted_ability_kind_gets_candidates():
+    """宣言の候補（declaration_options）が、対象を取る能力の種類すべてで作られる（大物[5]・幻想[3]・ご神木・従者[4] が抜けていた）。"""
+    from engine.abilities import ABILITIES, declaration_options
+    ch = lambda a, **k: dict({'area': a, 'alive': True, 'par': 0, 'gw': 5, 'int': 0, 'guard': 0}, **k)  # noqa: E731
+    s = {'loop': 2, 'day': 1, 'leader': 'A', 'script': {'rules': [], 'roles': {}, 'incidents': [], 'territory': 'CIT'},
+         'chars': {'C16': ch('CIT'), 'C05': ch('CIT'), 'C20': ch('SHR'), 'C04': ch('SHR'), 'C30': ch('SCH', par=1), 'C01': ch('SCH'),
+                   'C34': ch('HOS')},
+         'boards': {a: 0 for a in ('HOS', 'SHR', 'CIT', 'SCH')}, 'used': {p: [] for p in 'MABC'}, 'ability_used_loop': []}
+    got = {(c, i) for c, i, _ in declaration_options(s)}
+    assert {('C16', 0), ('C20', 0), ('C30', 0), ('C34', 0)} <= got

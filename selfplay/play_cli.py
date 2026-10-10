@@ -123,22 +123,36 @@ class BlockingMastermind(ClaudeMastermind):
         return getattr(self.fallback, name)
 
 
-def show_public(s, title, extra):
-    print(f'=== Claude（主人公）の番: {title}（L{s["loop"]}D{s["day"]}、リーダー {s["leader"]}）')
+CARD_CODES = ('札のコード: PAR+ 不安+1 / PAR- 不安-1（ループ1回）/ GW1 友好+1 / GW2 友好+2（ループ1回）/ INTX 暗躍禁止 / '
+              'MV_V 移動↑↓ / MV_H 移動←→ / MVX 移動禁止（ループ1回）。ボードは B:HOS・B:SHR・B:CIT・B:SCH')
+
+
+def show_public(s, title, extra, script=None):
+    """主人公に見える盤面（公開シート・キャラクター名・事件名は日本語。Claude が主人公の点検: d07 で SPREAD を流布と読み違えた）。"""
+    from engine.project import AREA_JA, INC_JA
+    from engine.resolve import CHARS
+    sc = dict(s['script'], **{k: v for k, v in (script or {}).items() if k in ('loops', 'set')})
+    print(f'=== Claude（主人公）の番: {title}（ループ {s["loop"]}/{sc.get("loops", "?")}・{s["day"]}日目/{sc.get("days")}日、リーダー {s["leader"]}）')
+    from ai_gm import SET_JA
+    print(f"  公開シート: {SET_JA.get(sc.get('set', 'BTX'), sc.get('set'))}（ループ {sc.get('loops', '?')} 回 × {sc.get('days')} 日）")
     for c, v in s['chars'].items():
-        print(f"  {c} {v['area']} {'生' if v['alive'] else '死'} 不{v['par']} 友{v['gw']} 暗{v['int']} 護{v['guard']}")
-    print('  ボードの暗躍', s['boards'], ' 使用済み', s['used'])
-    print('  事件予定', [(i['day'], i['id']) for i in s['script']['incidents']], ' 公開された役職', s.get('revealed_roles', {}))
+        if not v.get('present', True) or not v.get('area'):
+            continue
+        print(f"  {c} {CHARS[c]['name']}（臨界{CHARS[c]['limit']}） {AREA_JA.get(v['area'], v['area'])} {'生' if v['alive'] else '死'} "
+              f"不{v['par']} 友{v['gw']} 暗{v['int']} 護{v['guard']}")
+    print('  ボードの暗躍', {AREA_JA[k]: n for k, n in s['boards'].items()}, ' 使用済み', s['used'])
+    print('  事件予定', [(i['day'], INC_JA.get(i['id'], i['id'])) for i in sc['incidents']], ' 公開された役職', s.get('revealed_roles', {}))
+    print('  ' + CARD_CODES)
     print('  ', json.dumps(extra, ensure_ascii=False)[:500])
 
 
 class ClaudeProtagonist:
-    def __init__(self, decisions, rng):
-        self.d, self.rng = list(decisions), rng
+    def __init__(self, decisions, rng, script=None):
+        self.d, self.rng, self.script = list(decisions), rng, script
 
     def _next(self, kind, s, title, extra):
         if not self.d:
-            show_public(s, title, extra)
+            show_public(s, title, extra, self.script)
             raise NeedDecision(kind)
         x = self.d.pop(0)
         assert x['kind'] == kind, f'決定の順がずれている: 期待 {kind} / ファイル {x["kind"]}'
@@ -180,7 +194,7 @@ def main():
     if a.side == 'both':
         return main_both(a, script, rng, _load)
     if a.side == 'pc':
-        pc = ClaudeProtagonist(decs, rng)
+        pc = ClaudeProtagonist(decs, rng, script)
         player = Combo(make(a.opp or 'route', rng, script), pc)
     else:
         pc = make(a.opp or 'blind', rng, script)
@@ -194,9 +208,19 @@ def main():
     for k, rec in log[-8:]:
         if k == 'events' and rec.get('phase') != 'pc_knowledge':
             evs = rec.get('events') or []
-            if a.side == 'pc':
-                evs = [{kk: vv for kk, vv in e.items() if kk not in ('role', 'actor', 'cause', 'by', 'reason')} for e in evs if isinstance(e, dict)]  # 負けの理由は非公開（フェイズだけ）
-            print('  出来事', rec.get('phase'), json.dumps(evs, ensure_ascii=False)[:1500])
+            if a.side == 'pc':  # 対AIモードの公開ログと同じ文（ai_gm.describe）。死亡など起きた事実とフェイズは出し、理由は伏せる
+                from ai_gm import describe
+                lines = [x for x in (describe(e) for e in evs if isinstance(e, dict)) if x]
+                if rec.get('phase') == 'actions':  # 行動解決で脚本家の札も表向きになる（公開）
+                    from ai_gm import name
+                    from engine.project import CARD_UI
+                    mmc = next((r_['choice'] for k_, r_ in log if k_ == 'decisions' and r_.get('kind') == 'place_cards' and r_.get('who') == 'M'
+                                and (r_.get('loop'), r_.get('day')) == (rec.get('loop'), rec.get('day'))), None)
+                    if mmc:
+                        lines.insert(0, '脚本家の札: ' + '、'.join(f"{name(x['target'])}={CARD_UI.get(x['card'], x['card'])}" for x in mmc))
+                print(f"  出来事（L{rec.get('loop')}D{rec.get('day')} {rec.get('phase')}）: " + ' ／ '.join(lines)[:1500])
+            else:
+                print('  出来事', rec.get('phase'), json.dumps(evs, ensure_ascii=False)[:1500])
     if getattr(pc, 'ded', None) is not None:
         m, tot = pc.ded.marginals()
         top = {c: max(d.items(), key=lambda x: x[1]) for c, d in m.items() if d}
@@ -212,7 +236,7 @@ def main_both(a, script, rng, _load):
     import contextlib
     import io
     log = []
-    player = Combo(ClaudeMastermind(_load(a.mm_file)), ClaudeProtagonist(_load(a.pc_file), rng))
+    player = Combo(ClaudeMastermind(_load(a.mm_file)), ClaudeProtagonist(_load(a.pc_file), rng, script))
     buf = io.StringIO()
     turn, result = None, None
     try:

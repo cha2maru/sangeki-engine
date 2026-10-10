@@ -247,6 +247,24 @@ def _make(kind, rng, script=None):
     if kind.startswith('searchE'):  # searchE0.5: search に「閾値の前日に友好禁止」と「確定後に犯人を止めて教えない」を足す（重みは同じ値）
         w = float(kind[7:] or 0.5)
         return SearchMastermind(rng, lam=0.1, days=script['days'], loops=script['loops'], gwx_eve=w, hide_culprit=w, hide=0.0)
+    if kind == 'calcA':  # calcG＋脚本家の能力（クロマク・ミスリーダー）で毎日入る+1 を逆算と賭けに入れる（route_calc v2.2）
+        p = make('calcG', rng, script)
+        p.calc_abil = True
+        return p
+    if kind in ('calcN', 'calcDGN'):  # 主人公の友好能力（ナース[2] など、拒否されないもの）を逆算と賭けの応手に数える（route_calc v2.3）
+        p = make('calcG' if kind == 'calcN' else 'calcDG', rng, script)
+        p.calc_pcab = True
+        return p
+    if kind in ('calcD2', 'calcDG'):  # calcD2: calcG＋二重の脅威＋位置を揃える一手（別の乱数）。calcDG: さらに閾値未満の賭けの手を候補に（dg=2×確率）
+        p = make('calcG', rng, script)
+        p.double, p.align = True, True
+        if kind == 'calcDG':
+            p.dg = 2.0
+        return p
+    if kind in ('calcD', 'calcAD'):  # 二重の脅威の候補（double）。calcAD は calcA にも
+        p = make('calcA' if kind == 'calcAD' else 'calcG', rng, script)
+        p.double = True
+        return p
     if kind == 'calcP':  # calcG＋位置の筋（同じエリア・2人きり・病院にいる）を逆算に入れる（route_calc v2.1）
         p = make('calcG', rng, script)
         p.calc_pos = True
