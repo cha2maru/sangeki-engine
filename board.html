@@ -103,7 +103,8 @@ body.arming .area, body.arming .ch { cursor:crosshair; }
 button { font:inherit; background:#333; color:var(--fg); border:1px solid #666; border-radius:3px; padding:2px 10px; cursor:pointer; }
 button.go { background:var(--acc); color:#000; border-color:var(--acc); font-weight:700; }
 #log { font-size:12px; }
-#log div { padding:2px 0; border-bottom:1px solid var(--line); cursor:pointer; }
+#log div { padding:2px 0; border-bottom:1px solid var(--line); }
+#log .snapbtn { float:right; font-size:11px; padding:0 6px; margin-left:6px; opacity:.55; } #log div:hover .snapbtn { opacity:1; }
 #log div:hover { background:#2a2826; } #log div.sel { background:#3a3020; outline:1px solid var(--acc); }
 #log .n { color:var(--mut); margin-right:4px; } #log .basis { color:var(--mut); display:block; padding-left:1.5em; }
 #log .fix { color:var(--acc); }
@@ -249,7 +250,7 @@ body.mode-ai .manual-only { display:none; }
     <section><h3>手札</h3><div id="hands"></div></section>
     <section><h3>事件予定</h3><table class="inc" id="inc"></table></section>
     <section class="manual-only"><h3>脚本家に伝える</h3><textarea id="msg" rows="2" placeholder="質問・宣言など（Enterで送信、Shift+Enterで改行）"></textarea></section>
-    <section><details><summary>操作と記号</summary><div class="mut">右クリック: キャラクター・エリア → 札を置く／友好能力／役職の指摘。ログの行をクリック → その時点の盤面<span class="manual-only">、右クリック → 異議</span>。
+    <section><details><summary>操作と記号</summary><div class="mut">右クリック: キャラクター・エリア → 札を置く／友好能力／役職の指摘。ログの行の『盤面』 → その時点の盤面<span class="manual-only">、右クリック → 異議</span>。
       ボード左右の丸はエリアの暗躍。駒の <span class="b p">不</span> 不安 <span class="b g">友</span> 友好 <span class="b i">暗</span> 暗躍 <span class="b gd">護</span> 護衛、赤枠は不安臨界以上。
       手札の札をクリックしてからキャラクターかエリアをクリックしても置ける（タップ・Enter も可、Esc で解除）。
       右の欄は見出しで畳める。畳むと盤面が大きくなる。</div></details></section>
@@ -618,7 +619,8 @@ function renderToday() {
   $('today').innerHTML = html + (open ? '</ul>' : '');
 }
 function renderLog() {
-  $('log').innerHTML = LOG.map(l => `<div data-log="${l.n}" class="${l.kind === 'correction' ? 'fix' : ''}"><span class="n">#${l.n} L${l.loop ?? '-'}D${l.day ?? '-'}</span>${esc(l.text)}${l.basis ? `<span class="basis">根拠: ${esc(l.basis)}</span>` : ''}</div>`).join('');
+  // 過去の盤面へは行の端の小さな『盤面』ボタンだけで切り替える（行のクリックだと誤って切り替わり、今の伏せ札が消えたように見えた）
+  $('log').innerHTML = LOG.map(l => `<div data-log="${l.n}" class="${l.kind === 'correction' ? 'fix' : ''}"><span class="n">#${l.n} L${l.loop ?? '-'}D${l.day ?? '-'}</span>${esc(l.text)}${l.basis ? `<span class="basis">根拠: ${esc(l.basis)}</span>` : ''}<button class="snapbtn" data-snap="${l.n}" title="この行の処理の直後の盤面を見る">盤面</button></div>`).join('');
   renderToday();
   const box = $('log').closest('.body');  // スクロールするのは欄の本体。最下部付近にいたときだけ最新へ送る（読み返し中は動かさない）
   if (logFollow) box.scrollTop = box.scrollHeight;
@@ -791,8 +793,8 @@ function viewSnapshot(snap, label, chg) {
 }
 function backToLive() { if (!viewing) return; viewing = null; CHG = new Set(); S = liveS; render(); renderOptions(); }
 $('log').onclick = async e => {
-  const d = e.target.closest('[data-log]'); if (!d) return;
-  const n = +d.dataset.log;
+  const d = e.target.closest('[data-snap]'); if (!d) return;
+  const n = +d.dataset.snap;
   try {
     const snap = snapAt(await snapshots(), n);
     if (!snap) return alert(`#${n} の時点の盤面は残っていない（この機能より前の記録）`);
