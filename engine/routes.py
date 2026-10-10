@@ -80,10 +80,23 @@ def enumerate_routes(state, days_in_loop=None):
 
     # フレンドの死亡はループ終了時の敗北（早見表 フレンド）。殺す筋はキーパーソンと同じ形で数える（ループ中ならいつ死んでもよい）
     friends = [c for c in chars if br[c] == 'FRIEND']
-    victims = keys + [f for f in friends if f not in keys]
+    # ラバーズの死亡でメインラバーズに不安6（早見表 恋愛風景）→ メインラバーズに暗躍1でターン終了フェイズに主人公死亡（ML_PROT）。
+    # ラバーズを殺す筋も負け筋として数える（d24: 従者＝ラバーズの自殺・身代わりから男子学生の暴発。以前は数えていなかった）
+    mls = [c for c in chars if c in alive and br[c] == 'MAIN_LOVERS']
+    lovers = [c for c in chars if c in alive and br[c] == 'LOVERS'] if mls else []
+    victims = keys + [f for f in friends if f not in keys] + [c for c in lovers if c not in keys and c not in friends]
 
     def keycond(k):
         return [_cond('board', ('CIT', 2), max(0, 2 - state['boards']['CIT']))] if k in fkeys else []
+
+    def vname(k):  # 道筋の goal の表記（死んで負けにつながる理由）
+        return 'キーパーソン' if k in keys else 'フレンド' if k in friends else 'ラバーズ'
+
+    def vcond(k):  # 死亡が負けにつながるための残りの条件（ファクターの都市の暗躍、ラバーズならメインラバーズの暗躍1）
+        if k in lovers and k not in keys and k not in friends:
+            m = mls[0]
+            return [_cond('counter', (m, 'int', 1), max(0, 1 - chars[m]['int']))]
+        return keycond(k)
     routes = []
 
     keyset = set(keys)
@@ -96,11 +109,12 @@ def enumerate_routes(state, days_in_loop=None):
     # 従者【特性】同一エリアのお嬢様・大物（従者[友好4] で足した者）が死亡する場合、代わりに死亡する（phases.kill_many）。
     # 従者がフレンド・キーパーソンなら、お嬢様・大物を殺す事件は従者の死＝負けの筋になる（d16 のループ1・2の負け。敵対的レビュー 2026-10-09）
     sv = chars.get('C34')
-    servant_victim = sv is not None and 'C34' in alive and 'C34' in victims
+    servant_victim = sv is not None and 'C34' in alive and 'C34' in victims  # ラバーズの従者も victims に入る
     guarded = [c for c in ('C03', 'C16', *state.get('servant_targets', [])) if c in alive and c != 'C34'] if servant_victim else []
 
     def is_end(k):
-        return k not in keyset  # キーパーソンの死はその場でループが終わる。フレンドだけの死はループ終了時
+        # キーパーソンの死はその場でループが終わる。フレンドだけの死はループ終了時。ラバーズの死はその日のターン終了フェイズ
+        return k not in keyset and k in friends
 
     # 役職の能力（キラー・シリアルキラー・メインラバーズ）
     for cid in [c for c in chars if c in alive]:  # 並びを固定する（集合の順は実行ごとに変わる）
@@ -126,10 +140,10 @@ def enumerate_routes(state, days_in_loop=None):
         for k in victims:
             if k not in alive or k == s:
                 continue
-            conds = keycond(k) + [_cond('alone_with', (s, k), alone_with(state, s, k))]
+            conds = vcond(k) + [_cond('alone_with', (s, k), alone_with(state, s, k))]
             if s in persons:
                 conds.insert(0, _cond('counter', (s, 'par', 3), max(0, 3 - chars[s]['par'])))
-            add('SK_KILL', s, f'{k} 死亡（キーパーソン）', conds, '妄想拡大ウイルス' if s in persons else '')
+            add('SK_KILL', s, f'{k} 死亡（{vname(k)}）', conds, '妄想拡大ウイルス' if s in persons else '')
 
     # 事件（殺人事件・自殺・遠隔殺人・病院の事件）
     for inc in sc['incidents']:
@@ -143,23 +157,23 @@ def enumerate_routes(state, days_in_loop=None):
         if inc['id'] == 'MURDER':
             for k in victims:
                 if k in alive and k != cul:
-                    add('MURDER', cul, f'{k} 死亡（キーパーソン）', base + keycond(k) + [_cond('same_area', (cul, k), colocate(state, cul, k)[0])], end=is_end(k))
+                    add('MURDER', cul, f'{k} 死亡（{vname(k)}）', base + vcond(k) + [_cond('same_area', (cul, k), colocate(state, cul, k)[0])], end=is_end(k))
             for g in guarded:
                 if g != cul:
-                    add('MURDER', cul, f'C34 死亡（{g} の身代わり）', base + [_cond('same_area', (cul, g), colocate(state, cul, g)[0]), sub(g)],
+                    add('MURDER', cul, f'C34 死亡（{g} の身代わり）', base + [_cond('same_area', (cul, g), colocate(state, cul, g)[0]), sub(g)] + vcond('C34'),
                         end=is_end('C34'))
         elif inc['id'] == 'SUICIDE':
             if cul in victims:  # ファクターは都市の暗躍2でキーパーソンの能力を得たときだけ負け（keycond。以前は条件なしで負けにしていた）
-                add('SUICIDE', cul, f'{cul} 死亡（キーパーソン）', base + keycond(cul), end=is_end(cul))
+                add('SUICIDE', cul, f'{cul} 死亡（{vname(cul)}）', base + vcond(cul), end=is_end(cul))
             if cul in guarded:
-                add('SUICIDE', cul, f'C34 死亡（{cul} の身代わり）', base + [sub(cul)], end=is_end('C34'))
+                add('SUICIDE', cul, f'C34 死亡（{cul} の身代わり）', base + [sub(cul)] + vcond('C34'), end=is_end('C34'))
         elif inc['id'] == 'REMOTE':
             for k in victims:
                 if k in alive:
-                    add('REMOTE', cul, f'{k} 死亡（キーパーソン）', base + keycond(k) + [_cond('counter', (k, 'int', 2), max(0, 2 - chars[k]['int']))],
+                    add('REMOTE', cul, f'{k} 死亡（{vname(k)}）', base + vcond(k) + [_cond('counter', (k, 'int', 2), max(0, 2 - chars[k]['int']))],
                         end=is_end(k))
             for g in guarded:
-                add('REMOTE', cul, f'C34 死亡（{g} の身代わり）', base + [_cond('counter', (g, 'int', 2), max(0, 2 - chars[g]['int'])), sub(g)],
+                add('REMOTE', cul, f'C34 死亡（{g} の身代わり）', base + [_cond('counter', (g, 'int', 2), max(0, 2 - chars[g]['int'])), sub(g)] + vcond('C34'),
                     end=is_end('C34'))
         elif inc['id'] == 'BUTTERFLY' and 'Y_FUTURE' in sc['rules']:
             add('Y_FUTURE', cul, 'ループ終了時の敗北（蝶の羽ばたき）', base)
@@ -169,7 +183,7 @@ def enumerate_routes(state, days_in_loop=None):
             diag = 'MV_D' not in state['used']['M']
             for k in victims:
                 if k in alive and _can_enter(state, k, 'HOS'):
-                    add('HOSPITAL_KILL', cul, f'{k} 死亡（キーパーソン）', base + keycond(k) + [
+                    add('HOSPITAL_KILL', cul, f'{k} 死亡（{vname(k)}）', base + vcond(k) + [
                         _cond('board', ('HOS', 1), max(0, 1 - state['boards']['HOS'])),
                         _cond('in_area', (k, 'HOS'), move_steps(chars[k]['area'], 'HOS', diag))])
 

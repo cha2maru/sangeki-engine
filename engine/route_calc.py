@@ -25,8 +25,9 @@ def _raw(c):
     return c.get('supply', {}).get('before', c['deficit'])
 
 
-def _route_spec(r, state, days, positional=True):
-    """筋を (判定の日, [(対象, 種類, 必要量)]) に直す。扱えない筋は None。positional=False なら位置の条件を含む筋も None。"""
+def _route_spec(r, state, days, positional=True, pos_mode=False):
+    """筋を (判定の日, [(対象, 種類, 必要量)]) に直す。扱えない筋は None。positional=False なら位置の条件を含む筋も None。
+    pos_mode: 位置の条件を「揃っている（1）／いない（0）」の対象 'P:種類:人物:人物' として数える（v2.1。揃っていないなら移動1回で揃うものだけ）。"""
     when, need = None, []
     for c in r['conds']:
         k = c['kind']
@@ -45,6 +46,10 @@ def _route_spec(r, state, days, positional=True):
             need.append((c['detail'][0], c['detail'][1], c['detail'][2]))
         elif k == 'board':
             need.append(('B:' + c['detail'][0], 'int', c['detail'][1]))
+        elif k in ('same_area', 'alone_with', 'in_area') and pos_mode:
+            if _raw(c) > 1 or any(state['chars'].get(w, {}).get('alive') is not True for w in c['detail'][:2] if w in state['chars']):
+                return None
+            need.append(('P:%s:%s:%s' % (k, *c['detail'][:2]), 'pos', 1))
         elif k in ('same_area', 'alone_with', 'in_area'):
             if _raw(c) > 0 or not positional:
                 return None  # 位置がまだ揃っていない筋は数えない（下限）
@@ -60,18 +65,56 @@ def _route_spec(r, state, days, positional=True):
 
 
 def _current(state, t, kind):
+    if kind == 'pos':
+        return int(_pos_raw(state, t) == 0)
     if t.startswith('B:'):
         return state['boards'][t[2:]]
     return state['chars'][t][kind]
 
 
-def _abstract(rs, state, days, positional=True):
+def _pos_raw(state, t):
+    """位置の対象 'P:種類:a:b' の不足（routes.py と同じ数え方。0 なら揃っている）。"""
+    from .routes import alone_with, colocate, move_steps
+    _, k, a, b = t.split(':')
+    if k == 'same_area':
+        return colocate(state, a, b)[0]
+    if k == 'alone_with':
+        return alone_with(state, a, b)
+    return move_steps(state['chars'][a]['area'], b, 'MV_D' not in state['used']['M'])
+
+
+def _pos_move(state, t, taken=()):
+    """位置の対象 t を今日の移動1回で揃える脚本家の札 (人物, 札) or None。幻想は同じエリアのボードに置く（カードの特性）。"""
+    import copy
+    from .resolve import CARDS as RCARDS, CHARS as RCHARS, destination
+    _, k, a, b = t.split(':')
+    cands = [a, b] if k != 'in_area' else [a]
+    if k == 'alone_with':  # 他の人物を追い出す手も
+        A = state['chars'][b]['area']
+        cands += [c for c, v in state['chars'].items() if v['alive'] and v.get('present', True) and v.get('area') == A and c not in (a, b)]
+    hand = [c for c in ('MV_V', 'MV_H', 'MV_D') if not (c == 'MV_D' and 'MV_D' in state['used']['M'])]
+    for c in cands:
+        nm = 'B:' + state['chars'][c]['area'] if c == 'C20' else c
+        if nm in taken:
+            continue
+        for card in hand:
+            to = destination(state['chars'][c]['area'], {'MV_V': 'V', 'MV_H': 'H', 'MV_D': 'D'}[card])
+            if to in RCHARS[c]['forbidden'] and c not in state.get('unbound', []):
+                continue
+            s2 = copy.deepcopy(state)
+            s2['chars'][c]['area'] = to
+            if _pos_raw(s2, t) == 0:
+                return nm, card
+    return None
+
+
+def _abstract(rs, state, days, positional=True, pos_mode=False):
     """筋を抽象化した盤面に直す: (対象 [(対象, 種類)], 筋 [(判定の日, ((対象の番号, 必要量), ...))], [(筋, spec)]) or None。"""
     specs = []
     for r in sorted(rs, key=lambda r: r['total']):
         if r['total'] >= INF:
             continue
-        sp = _route_spec(r, state, days, positional)
+        sp = _route_spec(r, state, days, positional, pos_mode)
         if sp is not None:
             specs.append((r, sp))
         if len(specs) >= MAX_ROUTES:
@@ -88,18 +131,28 @@ def _abstract(rs, state, days, positional=True):
     return targets, [(sp[0], tuple((targets.index((t, k)), n) for t, k, n in sp[1])) for _, sp in specs], specs
 
 
-def forced_plan(state, days, hidden=False, watch=None):
+def forced_plan(state, days, hidden=False, watch=None, pos=False):
     """このループを脚本家が必ず取れるか（下限）と、取れるなら今日の手（[(対象, 札)]）。
     hidden: 伏せ札の中身が主人公に見えない場合の、ループを取る確率 p と今日の混ぜ方 mix [(確率, [(対象, 札)])] も返す。
     watch: {置き先: 主人公に見張られている度合い}。賭けで同じ値の手のうち、暗躍+2 を見張られていない側に置く手を選ぶ。"""
     rs = enumerate_routes(state)
-    abst = _abstract(rs, state, days)
+    abst = _abstract(rs, state, days, pos_mode=pos)
     if abst is None:
         return {'forced': False, 'move': None, 'locked': False, 'routes': [], **({'p': 0.0, 'mix': None} if hidden else {})}
     targets, route_need, specs = abst
     args = (targets, [_current(state, t, k) for t, k in targets], route_need, state['day'], days,
             tuple('PAR-' not in state['used'][p] for p in 'ABC'), 'INT2' not in state['used']['M'])
     ok, move = solve(*args)
+    if move and pos:  # 位置の対象への「移動」を実際の札に直す（揃えられなければ外す）
+        out = []
+        for tg, c in move:
+            if c == 'MOVE':
+                pm = _pos_move(state, tg, {x for x, _ in out} | {x for x, cc in move if cc != 'MOVE'})
+                if pm and pm[1] not in {cc for _, cc in out}:
+                    out.append(pm)
+            else:
+                out.append((tg, c))
+        move = out
     extra = {}
     if hidden:
         # 賭けの計算では位置の条件を含む筋を数えない（主人公の移動で崩される。従者の身代わりで 0.95 と出た）
@@ -150,6 +203,9 @@ def _dp(targets, route_need, days, idle):
            for j, (_, k) in enumerate(targets)]
     par_idx = [i for i, (t, k) in enumerate(targets) if k == 'par']
     int_idx = [i for i, (t, k) in enumerate(targets) if k == 'int']
+    # 位置の対象（v2.1）: 脚本家は移動札1枚で揃える（↑↓・←→の2枚まで。斜めは数えない＝下限）、主人公は誰でも札1枚で崩せる
+    # （揃える人物か相手を動かす。2人きりは他の人物を入れてもよい）。崩した位置は脚本家がまた揃えるまで崩れたまま
+    pos_idx = [i for i, (t, k) in enumerate(targets) if k == 'pos']
 
     def lost(vals, day):
         for when, need in route_need:
@@ -164,6 +220,8 @@ def _dp(targets, route_need, days, idle):
         opts = {i: ['PAR+', 'PARX'] for i in par_idx}
         for i in int_idx:
             opts[i] = ['INT1'] + (['INT2'] if int2_ok else [])
+        for i in pos_idx:
+            opts[i] = ['MOVE']
         idx = list(opts)
 
         def rec(j, cur):
@@ -176,7 +234,7 @@ def _dp(targets, route_need, days, idle):
                 nxt = dict(cur)
                 nxt[idx[j]] = card
                 cs = list(nxt.values())
-                if len({targets[i][0] for i in nxt}) < len(nxt):
+                if len({targets[i][0] for i in nxt}) < len(nxt) or cs.count('MOVE') > 2:
                     continue  # 同じ対象に2枚は置けない（人物の不安と暗躍は同じ対象）
                 if len(cs) > 3 or cs.count('PAR+') > 2 or cs.count('INT1') > 1 or cs.count('INT2') > 1:
                     continue
@@ -189,6 +247,7 @@ def _dp(targets, route_need, days, idle):
         """主人公の応手: 各主人公1枚、同じ対象に2人は置かない。不安−1 は残っている人だけ、暗躍禁止は1か所だけ。"""
         par_t = [i for i in par_idx if mm.get(i) == 'PAR+' or vals[i] > 0]
         int_t = [i for i in int_idx if mm.get(i) in ('INT1', 'INT2')]
+        brk_t = [i for i in pos_idx if mm.get(i) == 'MOVE' or vals[i] > 0]
         res = [((), None)]  # (不安−1 を置く対象の組, 暗躍禁止の対象)
         people = [p for p in range(3) if pl[p]]
         for k in range(1, min(len(people), len(par_t)) + 1):
@@ -201,11 +260,22 @@ def _dp(targets, route_need, days, idle):
                 for i in int_t:
                     if targets[i][0] not in {targets[j][0] for j in ts}:
                         out.append((ts, i))
-        return out
+        if not brk_t:
+            return out
+        full = []  # 位置を崩す札（不安−1・暗躍禁止と合わせて3枚まで）。崩す対象は不安−1 の組に混ぜて返す（apply で見分ける）
+        for ts, ix in out:
+            room = 3 - len(ts) - (ix is not None)
+            for k in range(0, min(room, len(brk_t)) + 1):
+                for bs in combinations(brk_t, k):
+                    full.append((ts + bs, ix))
+        return full
 
     def apply(vals, mm, reply, pl):
         ts, ix = reply
         v = list(vals)
+        for i in pos_idx:
+            v[i] = 0 if i in ts else 1 if mm.get(i) == 'MOVE' else v[i]
+        ts = tuple(i for i in ts if i not in pos_idx)
         for i in par_idx:
             plus = mm.get(i) == 'PAR+'
             lock = mm.get(i) == 'PARX'
@@ -231,7 +301,7 @@ def _dp(targets, route_need, days, idle):
         for mm in mm_moves(i2):
             ok = True
             for reply in pc_replies(mm, vals, pl):
-                if len(reply[0]) > sum(pl):
+                if sum(1 for i in reply[0] if i not in pos_idx) > sum(pl):
                     continue
                 v2, pl2 = apply(vals, mm, reply, pl)
                 if lost(v2, day):
@@ -355,3 +425,4 @@ def block_rates(state, days, mm_targets):
     return solve_hidden(targets, [_current(state, t, k) for t, k in targets], route_need, state['day'], days,
                         tuple('PAR-' not in state['used'][p] for p in 'ABC'), 'INT2' not in state['used']['M'],
                         fixed_T=[t for t in mm_targets if t != 'C20'])
+

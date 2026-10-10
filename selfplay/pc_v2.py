@@ -683,10 +683,10 @@ class ReadingBlocker(DeductiveBlocker):
                 if p(via, ph.base_role(dict(s, script=sc), via)) < th:
                     return False
             g = re.match(r'(C\d\d)', r.get('goal') or '')
-            if g and 'キーパーソン' in r['goal']:
-                v = g.group(1)
-                if max(p(v, 'KEY'), p(v, 'FACTOR')) < th:
-                    return False
+            vr = next((rs for lab, rs in (('キーパーソン', ('KEY', 'FACTOR')), ('フレンド', ('FRIEND',)), ('ラバーズ', ('LOVERS',)))
+                       if lab in (r.get('goal') or '')), None)  # 死んで負けにつながる者の役職（routes.py の goal の表記）
+            if g and vr and max(p(g.group(1), x) for x in vr) < th:
+                return False
             return True
         return known
 

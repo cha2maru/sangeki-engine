@@ -87,3 +87,15 @@ def test_absent_character_not_targeted():
     assert _route_spec(r, s, 6) is None
     s['chars']['C24']['present'] = True
     assert _route_spec(r, s, 6) is not None
+
+
+def test_lovers_death_route():
+    """恋愛風景: ラバーズ（従者）の自殺 → メインラバーズに不安6 → 暗躍1でターン終了に主人公死亡、を負け筋として数える（d24）。"""
+    from engine.routes import enumerate_routes
+    ch = lambda a: {'area': a, 'alive': True, 'par': 0, 'gw': 0, 'int': 0, 'guard': 0}  # noqa: E731
+    s = {'loop': 1, 'day': 1, 'script': {'rules': ['Y_MURDER', 'X_LOVE'], 'roles': {'C34': 'LOVERS', 'C01': 'MAIN_LOVERS', 'C03': 'KEY'},
+                                         'incidents': [{'day': 4, 'id': 'SUICIDE', 'culprit': 'C34'}], 'days': 6},
+         'chars': {'C34': ch('SCH'), 'C01': ch('SCH'), 'C03': ch('SCH')}, 'boards': {a: 0 for a in ('HOS', 'SHR', 'CIT', 'SCH')},
+         'used': {p: [] for p in 'MABC'}}
+    r = [r for r in enumerate_routes(s) if r['id'] == 'SUICIDE' and r['via'] == 'C34' and r['goal'] == 'C34 死亡（ラバーズ）']
+    assert r and any(c['kind'] == 'counter' and c['detail'] == ('C01', 'int', 1) for c in r[0]['conds']) and r[0]['end'] is False

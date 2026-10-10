@@ -247,6 +247,10 @@ def _make(kind, rng, script=None):
     if kind.startswith('searchE'):  # searchE0.5: search に「閾値の前日に友好禁止」と「確定後に犯人を止めて教えない」を足す（重みは同じ値）
         w = float(kind[7:] or 0.5)
         return SearchMastermind(rng, lam=0.1, days=script['days'], loops=script['loops'], gwx_eve=w, hide_culprit=w, hide=0.0)
+    if kind == 'calcP':  # calcG＋位置の筋（同じエリア・2人きり・病院にいる）を逆算に入れる（route_calc v2.1）
+        p = make('calcG', rng, script)
+        p.calc_pos = True
+        return p
     if kind in ('calcL', 'calcG'):  # calcG: calcL＋今日の賭け（確率 0.5 以上の二択）。calcL: searchL＋負け筋の逆算（取れるループはその札を最優先。plan/route-calc.md）
         p = make('searchL', rng, script)
         p.calc, p.gwx_eve = True, 1.0

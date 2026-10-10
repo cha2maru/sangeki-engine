@@ -679,6 +679,7 @@ function menu(x, y, title, opts) {
   const m = $('menu');
   m.innerHTML = `<div class="t">${esc(title)}</div>` + opts.map((o, i) => `<div class="o ${o.dim ? 'dim' : ''}" data-i="${i}">${esc(o.label)}</div>`).join('');
   m.style.display = 'block';
+  ctip.style.display = 'none'; ctipFor = null;  // キャラクターの説明とメニューを重ねない（スマホではタップで両方が出ていた）
   // 実際の大きさを測って、画面の内側に収める（下にはみ出すなら上へずらす）
   m.style.maxHeight = (innerHeight - 8) + 'px';
   const w = m.offsetWidth, h = m.offsetHeight;
@@ -687,7 +688,7 @@ function menu(x, y, title, opts) {
   m.onclick = e => { e.stopPropagation(); const i = e.target.dataset.i; if (i == null) return; hide(); opts[i].go(); };
 }
 const hide = () => $('menu').style.display = 'none';
-document.addEventListener('click', e => { if (!$('menu').contains(e.target)) hide(); });
+document.addEventListener('click', e => { if (!$('menu').contains(e.target)) { hide(); if (!e.target.closest('#chartip')) ctip.style.display = 'none'; } });
 
 const alive = () => (S.characters || []).filter(c => c.alive !== false);
 const charOpts = go => (S.characters || []).map(c => ({ label: c.name + (c.alive === false ? '（死亡）' : ''), go: () => go(c.name) }));
@@ -702,6 +703,9 @@ function targetMenu(x, y, target) {
       go: () => { pending = pending.filter(q => q.actor !== p); pending.push({ type: 'card', actor: p, card: n, target }); render(); } }))) }));
   if (!target.startsWith('board:')) {
     (ABIL[target] || []).forEach(([label, arg], idx) => opts.push({ label: `友好能力 ${label}`, dim: kind !== 'ability', go: () => ability(x, y, target, idx, label, arg) }));
+    // スマホ（マウスを乗せられない）でも説明を読めるように。説明は画面の上端に出す
+    opts.push({ label: 'キャラクターの説明を見る', go: () => { ctipFor = target; ctip.innerHTML = charTipHTML(target);
+      ctip.style.display = 'block'; ctip.style.left = Math.max(4, (innerWidth - ctip.offsetWidth) / 2) + 'px'; ctip.style.top = '4px'; } });
     opts.push({ label: '役職を指摘する（最後の戦い）…', dim: kind !== 'final', go: () =>
       menu(x, y, `${target} の役職は`, ROLES.map(r => ({ label: r, go: () => post({ type: 'final', char: target, role: r }) }))) });
   }

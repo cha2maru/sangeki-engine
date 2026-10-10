@@ -779,7 +779,8 @@ class SearchMastermind(RouteMastermind):
         v, mm, v_reply, v_mean = scored[k]
         if self.calc:
             self._prog(0.85, '負け筋を逆算しています（このループを取れるか' + ('・伏せ札の賭け' if self.gamble else '') + '）')
-            fp = forced_plan(s, self.days, hidden=bool(self.gamble), watch=self._watch(s) if self.gamble else None)
+            fp = forced_plan(s, self.days, hidden=bool(self.gamble), watch=self._watch(s) if self.gamble else None,
+                             pos=getattr(self, 'calc_pos', False))
             if fp['locked'] or self._locked(s):
                 # 確定したループは押さずに隠す（メモリ mastermind-hide-after-locked-loop）: 閾値に一番近い情報・守りの能力の持ち主に友好禁止。
                 # 残りの枠も押す札（不安+1・暗躍）は置かない: 犯人・負け筋を教えるだけ（問題 mm16c-l1d2-hide）
