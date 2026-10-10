@@ -241,6 +241,12 @@ body.mode-ai .manual-only { display:none; }
 #reveal th { color:var(--mut); font-weight:400; font-size:12px; } #reveal tr.role td:nth-child(2) { color:var(--acc); font-weight:700; }
 #reveal .ok { color:#50c878; font-weight:700; } #reveal .ng { color:var(--warn); font-weight:700; } #reveal .btns { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
 .rulename { cursor:help; text-decoration:underline dotted #777; text-underline-offset:3px; }
+/* リプレイ */
+#rpbar { position:fixed; z-index:24; left:50%; bottom:10px; transform:translateX(-50%); display:none; align-items:center; gap:6px; flex-wrap:wrap;
+  background:rgba(0,0,0,.92); border:2px solid #6fc3ff; border-radius:8px; padding:6px 10px; max-width:96vw; box-shadow:0 4px 18px #000; }
+body.replay #rpbar { display:flex; } #rpbar .t { color:#6fc3ff; font-weight:700; margin-right:4px; } #rpbar input[type=range] { width:min(320px, 40vw); }
+#rpbar .pos { color:var(--mut); font-size:12px; min-width:5em; text-align:center; }
+body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#1d3346; }
 </style>
 
 <div id="band"></div>
@@ -325,6 +331,11 @@ body.mode-ai .manual-only { display:none; }
   <label for="st-seed">乱数の種</label><div class="row"><input type="number" id="st-seed" min="0"><button type="button" id="st-rand">ランダム</button></div>
   <div class="btns"><button type="button" id="st-cancel">やめる</button><button class="go" type="submit">開始</button></div>
 </form></div>
+<div id="rpbar"><span class="t">リプレイ</span><span id="rp-title" class="mut"></span>
+  <button id="rp-first" title="最初へ">⏮</button><button id="rp-prev" title="1つ戻る">◀</button><button id="rp-play" class="go" title="再生／停止">▶ 再生</button>
+  <button id="rp-next" title="1つ進む">▶|</button><button id="rp-last" title="最後へ">⏭</button>
+  <input type="range" id="rp-seek" min="0" value="0"><span class="pos" id="rp-pos"></span><button id="rp-reveal" style="display:none">非公開シート</button><button id="rp-exit">リプレイを終える</button></div>
+<input type="file" id="rp-file" accept=".json,application/json" style="display:none">
 <div id="uxpanel"><b style="color:var(--acc)">表示の設定</b> <span class="mut" id="ux-q"></span>
   <label>場面カード <input type="checkbox" data-ux="scene"></label>
   <label>演出の速さ <select data-ux="speed"><option value="slow">ゆっくり</option><option value="normal">ふつう</option><option value="fast">速い</option><option value="none">なし</option></select></label>
@@ -332,7 +343,8 @@ body.mode-ai .manual-only { display:none; }
   <label>考え中の表示 <input type="checkbox" data-ux="think"></label>
   <label>画像 <select data-ux="img"><option value="auto">自動</option><option value="on">あり</option><option value="off">なし（文字）</option></select></label>
   <div class="mut">URL に ?ux=off で演出を全部切る（試験用）、?ux=fast で速く、?img=off で文字の表示。</div>
-  <div id="ux-new" style="display:none;margin-top:8px"><button class="go" id="newgame">新しいゲーム…</button></div></div>
+  <div id="ux-new" style="display:none;margin-top:8px"><button class="go" id="newgame">新しいゲーム…</button></div>
+  <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><button id="rp-export">リプレイを書き出す</button><button id="rp-import">リプレイを読み込む…</button></div></div>
 
 <script>
 const IMG = '/img/';
@@ -788,6 +800,7 @@ function renderSent() {
   $('sent').innerHTML = mine.length ? `<div class="h">送信済み（このフェイズ）</div><ul>${mine.map(x => `<li>#${x.seq} ${esc(x.text)}</li>`).join('')}</ul>` : '';
 }
 async function post(a) {
+  if (RP.on) return alert('リプレイの表示中は操作できません（『リプレイを終える』で戻る）');
   // 返事を待つ前に送信済みとして描く（待つ間に置いた札が盤面から消えていた。ユーザー指摘）
   const rec = { game: S.game, phaseId: S.phaseId, seq: '…', text: describeAction(a), placements: a.type === 'cards' ? a.placements : null };
   sent.push(rec); awaiting = Date.now(); render();
@@ -1016,9 +1029,75 @@ function openReveal() {
     <h3>ルール</h3>${r.ruleY.map(x => `<span class="chip y">Y ${esc(x)}</span>`).join('')}${r.ruleX.map(x => `<span class="chip x">X ${esc(x)}</span>`).join('')}
     <h3>役職</h3><table><tr><th>キャラクター</th><th>役職</th>${r.final ? '<th>最後の戦いの指摘</th>' : ''}</tr>${roleRows}</table>
     <h3>事件と犯人</h3><table><tr><th>日</th><th>事件</th><th>犯人</th></tr>${r.incidents.map(i => `<tr><td>${i.day}日</td><td>${esc(i.name)}</td><td>${esc(i.culprit)}</td></tr>`).join('')}</table>
-    <div class="btns"><button onclick="document.getElementById('reveal').classList.remove('on')">閉じる</button>${canStart ? '<button class="go" onclick="document.getElementById(\'reveal\').classList.remove(\'on\'); openStart()">新しいゲーム</button>' : ''}</div>`;
+    <div class="btns"><button onclick="RP.exportFile()">リプレイを保存</button><button onclick="document.getElementById('reveal').classList.remove('on')">閉じる</button>${canStart ? '<button class="go" onclick="document.getElementById(\'reveal\').classList.remove(\'on\'); openStart()">新しいゲーム</button>' : ''}</div>`;
   $('reveal').classList.add('on');
 }
+// ---- リプレイ: 試合の記録（公開ログ・場面ごとの盤面・終了時の盤面と非公開シート）を JSON に書き出し、読み込んで見返す ----
+// エンジンは使わない（盤面の記録を順に表示するだけ）。サーバー版でもブラウザ版でも同じ。?replay=<URL> で開ける
+const RP = {
+  on: false, data: null, i: 0, timer: null,
+  async collect() {
+    const txt = async u => (await fetch(u)).text();
+    const lines = s => s.split('\n').filter(Boolean).map(x => JSON.parse(x));
+    const st = JSON.parse(await txt('/state') || '{}');
+    return { format: 'sangeki-replay', version: 1, exportedAt: new Date().toISOString(), complete: !!st.reveal,
+             title: st.reveal ? st.reveal.title : null, log: lines(await txt('/log')), snapshots: lines(await txt('/snapshots')), final: st };
+  },
+  async exportFile() {
+    try {
+      const d = await this.collect();
+      if (!d.snapshots.length) return alert('書き出す記録がありません（試合が始まっていない）');
+      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([JSON.stringify(d)], { type: 'application/json' })),
+        download: `sangeki_replay_${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '')}${d.complete ? '' : '_途中'}.json` });
+      document.body.appendChild(a); a.click(); a.remove();
+      if (!d.complete) alert('試合の途中までを書き出しました。脚本の中身（非公開シート）は含みません。');
+    } catch (e) { alert('書き出せなかった: ' + e.message); }
+  },
+  load(d) {
+    if (!d || d.format !== 'sangeki-replay' || !Array.isArray(d.snapshots) || !d.snapshots.length) return alert('リプレイのファイルではありません');
+    if (S.loop && !(S.phaseName || '').startsWith('ゲーム終了') && !RP.on && !confirm('いまの試合の表示をリプレイに切り替えますか？（試合はそのまま続いています。『リプレイを終える』で戻ります）')) return;
+    clearInterval(pollTimer); backToLive(); closeScene(); $('welcome').classList.remove('on'); $('start').classList.remove('on'); $('reveal').classList.remove('on');
+    this.on = true; this.data = d; awaiting = 0; document.body.classList.add('replay');
+    const steps = [...d.snapshots]; if (d.final && d.final.loop) steps.push({ prev_n: steps.length ? steps[steps.length - 1].log_n : 0, log_n: d.log.length ? d.log[d.log.length - 1].n : 0, state: d.final });
+    this.steps = steps; $('rp-seek').max = steps.length - 1;
+    $('rp-title').textContent = d.title ? `「${d.title}」` : d.complete ? '' : '（途中まで）';
+    $('rp-reveal').style.display = d.final && d.final.reveal ? '' : 'none';
+    this.go(0);
+  },
+  go(i) {
+    const st = this.steps; this.i = Math.max(0, Math.min(i, st.length - 1));
+    const s = st[this.i];
+    S = { ...s.state, reveal: null, waiting: { kind: 'none', text: `リプレイ ${this.i + 1}/${st.length}` } };
+    LOG = this.data.log.filter(l => l.n <= s.log_n);
+    renderLog(); render();
+    document.querySelectorAll('#log [data-log]').forEach(x => x.classList.toggle('rpnow', +x.dataset.log > (s.prev_n || 0) && +x.dataset.log <= s.log_n));
+    const now = document.querySelector('#log .rpnow'); if (now) now.scrollIntoView({ block: 'nearest' });
+    $('rp-seek').value = this.i; $('rp-pos').textContent = `${this.i + 1} / ${st.length}`;
+  },
+  play() {
+    if (this.timer) { clearInterval(this.timer); this.timer = null; $('rp-play').textContent = '▶ 再生'; return; }
+    $('rp-play').textContent = '❚❚ 停止';
+    const ms = 1500 * ({ slow: 1.6, normal: 1, fast: 0.5, none: 0.5 }[ux('speed')] || 1);
+    this.timer = setInterval(() => { if (this.i >= this.steps.length - 1) return this.play(); this.go(this.i + 1); }, ms);
+  },
+  exit() {
+    if (this.timer) this.play();
+    this.on = false; this.data = null; document.body.classList.remove('replay');
+    S = {}; LOG = []; lastState = lastLog = lastDed = ''; seenN = null; render(); renderLog();
+    poll(); pollTimer = setInterval(poll, 2000);
+  },
+  boot() {
+    const u = new URLSearchParams(location.search).get('replay');
+    if (u) fetch(u).then(r => r.json()).then(d => this.load(d)).catch(e => alert('リプレイを読み込めなかった: ' + e.message));
+  },
+};
+$('rp-export').onclick = e => { e.stopPropagation(); RP.exportFile(); };
+$('rp-import').onclick = e => { e.stopPropagation(); $('rp-file').click(); };
+$('rp-file').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { RP.load(JSON.parse(await f.text())); } catch (err) { alert('読み込めなかった: ' + err.message); } e.target.value = ''; };
+$('rp-first').onclick = () => RP.go(0); $('rp-prev').onclick = () => RP.go(RP.i - 1); $('rp-next').onclick = () => RP.go(RP.i + 1);
+$('rp-last').onclick = () => RP.go(RP.steps.length - 1); $('rp-play').onclick = () => RP.play(); $('rp-exit').onclick = () => RP.exit();
+$('rp-seek').oninput = e => RP.go(+e.target.value);
+$('rp-reveal').onclick = () => { const keep = S; S = { ...S, reveal: RP.data.final.reveal }; openReveal(); S = keep; };
 // ---- 開始画面（脚本・脚本家・乱数の種を選んで進行役を起動し直す。サーバーが SANGEKI_AI=1 のときだけ）----
 const MMLABEL = { search: 'search（速い・ふつう）', searchL: 'searchL（強い）', calcG: 'calcG（最強・1手に数十秒）', route: 'route（最速・弱い）' };
 let canStart = false;
@@ -1039,6 +1118,7 @@ fetch('/scripts').then(r => r.ok ? r.json() : null).then(d => {
 }).catch(() => {});
 // 初めの案内（タイトル・免責事項・遊び方）。開始画面のあるとき（SANGEKI_AI=1）に、ページを開くたびに出す。?ux=off では出さない
 function openWelcome() {
+  if (RP.on) return;  // リプレイを開いたとき（?replay=）は案内を出さない
   if (new URLSearchParams(location.search).get('ux') === 'off') { if (!S.loop) openStart(); return; }
   $('wl-cont').style.display = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '' : 'none';
   $('welcome').classList.add('on');
@@ -1065,7 +1145,7 @@ $('startf').onsubmit = async e => {
   awaiting = Date.now(); render(); renderLog();
 };
 applyUX();
-render(); poll(); setInterval(poll, 2000);
+render(); let pollTimer = setInterval(poll, 2000); RP.boot();
 addEventListener('resize', () => document.documentElement.style.setProperty('--bandh', $('band').offsetHeight + 'px'));
 </script>
 </html>
