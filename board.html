@@ -301,7 +301,7 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
 <div id="think" role="status" aria-live="polite"><div class="t"><span class="spin"></span><span id="thinktxt">脚本家が考えています</span><span id="thinksec" class="mut"></span></div>
   <div class="pbar" id="thinkbar"><i></i></div><div class="step" id="thinkstep"></div></div>
 <div id="scene"><div class="box"><h2 id="sc-t"></h2><div class="sub" id="sc-s"></div><div class="body"><ul id="sc-l"></ul></div>
-  <div class="btns"><span class="left" id="sc-n"></span><span id="sc-ba"></span><button id="sc-look">盤面を見る</button><button class="go" id="sc-next">閉じる</button></div></div></div>
+  <div class="btns"><span class="left" id="sc-n"></span><button id="sc-skip" style="display:none" title="残りの場面を飛ばして、最後の場面だけ見る">最後までスキップ</button><span id="sc-ba"></span><button id="sc-look">盤面を見る</button><button class="go" id="sc-next">閉じる</button></div></div></div>
 <div id="welcome"><div class="box">
   <h1>惨劇RoopeR 対AIモード</h1>
   <div class="lead">主人公3人を操作して、自動の脚本家と対戦する非公式のファンツール</div>
@@ -987,6 +987,7 @@ function flushDay(label) {
   day = null;
 }
 function sceneOnLog() {
+  if (RP.resuming || RP.building) return;  // 途中から再開・リプレイを作り直している間の場面は出さない（終わった時点から数える）
   if (seenN == null) { seenN = LOG.length ? LOG[LOG.length - 1].n : 0; return; }  // 開いた時点より前はさかのぼらない
   for (const l of LOG.filter(x => x.n > seenN)) {
     seenN = l.n;
@@ -1013,6 +1014,7 @@ function sceneOnLog() {
   nextScene();
 }
 function sceneOnState(v) {
+  if (RP.resuming || RP.building) return;
   // 脚本家が次の日の伏せ札を考え始めた＝前の日が終わった。日の終わりのカードをすぐ出す（脚本家はその間に考える）
   const w = (v || S).waiting || {};
   if (day && w.kind === 'thinking' && w.what === '伏せ札' && ((v || S).day !== +day.dayNo || (v || S).loop !== +day.loop)) {
@@ -1032,12 +1034,14 @@ function nextScene(force) {
   const k = SPEED[ux('speed')] ?? 1;
   $('sc-l').innerHTML = scene.lines.map((x, i) => `<li style="animation-delay:${(i * 0.18 * k).toFixed(2)}s">${esc(x)}</li>`).join('');
   $('sc-n').textContent = sceneQ.length ? `あと ${sceneQ.length} 件` : '';
+  $('sc-skip').style.display = sceneQ.length > 1 ? '' : 'none';
   $('sc-next').textContent = scene.hold ? (sceneQ.length ? '次の日へ' : '閉じる') : sceneQ.length ? '次へ' : '閉じる';
   $('sc-ba').innerHTML = scene.first <= scene.last ? '<button data-ba="before">解決前</button> <button data-ba="after">解決後</button>' : '';
   // 自動で閉じる: 自分の番で最後の1枚なら閉じない（見落とさないように、閉じるまで操作できない）
   const sec = ux('autoclose') * (k || 1);
   if (sec > 0 && !scene.hold && !(myTurn() && !sceneQ.length)) sceneTimer = setTimeout(() => { if ($('scene').classList.contains('mini')) return; scene = null; nextScene(); }, sec * 1000);
 }
+$('sc-skip').onclick = () => { sceneQ = sceneQ.slice(-1); nextScene(true); };  // 溜まった場面を飛ばし、最後の1枚だけ見る
 function closeScene() { scene = null; clearTimeout(sceneTimer); $('scene').classList.remove('on', 'mini'); }
 $('sc-next').onclick = () => { backToLive(); scene = null; nextScene(); };
 $('sc-look').onclick = () => { const el = $('scene'); clearTimeout(sceneTimer); el.classList.toggle('mini');
@@ -1189,7 +1193,8 @@ const RP = {
     $('rpbuild').classList.add('on'); this.resuming = true;
     const r = await fetch('/new', { method: 'POST', body: JSON.stringify({ replay: rec, resume: true }) });
     if (!r.ok) { this.resuming = false; $('rpbuild').classList.remove('on'); throw new Error(await r.text()); }
-    S = {}; LOG = []; pending = []; sent = []; lastState = lastLog = lastDed = ''; awaiting = Date.now(); render(); renderLog();
+    S = {}; LOG = []; pending = []; sent = []; lastState = lastLog = lastDed = ''; awaiting = Date.now();
+    seenN = null; group = null; sceneQ = []; day = null; lastHdr = null; lastLD = null; closeScene(); render(); renderLog();
   },
   async finishBuild() {
     this.building = false;
