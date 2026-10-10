@@ -542,8 +542,9 @@ def main():
     ap.add_argument('--dir', default=os.path.join(HERE, 'game_ai'))
     ap.add_argument('--list', action='store_true', help='開始画面の脚本の一覧（題名・ループ数・日数だけ。役職・犯人は出さない）を JSON で出して終わる')
     a = ap.parse_args()
-    if a.list:
-        print(json.dumps(list_scripts(), ensure_ascii=False))
+    if a.list:  # 開始画面用: 選べる脚本と、伏せて選べる脚本（自動生成）の数
+        from engine.scripts import glob_scripts
+        print(json.dumps({'scripts': list_scripts(), 'blind': len(glob_scripts('generated/*.json'))}, ensure_ascii=False))
         return
     if a.blind:
         a.script, n = pick_blind(random.Random(f'blind:{a.seed}:{time.time()}'))

@@ -21,7 +21,7 @@ fs.mkdirSync(GAME, { recursive: true });
 // SANGEKI_PYTHON: 使う Python（既定 python3。仮想環境なら .venv/bin/python を渡す）
 const AI = process.env.SANGEKI_AI === '1';
 const PY = process.env.SANGEKI_PYTHON || 'python3';
-const MMS = ['search', 'searchL', 'calcG', 'route'];  // 開始画面で選べる自動の脚本家（ほかの型は ai_gm.py を直接起動）
+const MMS = ['calcG', 'searchL', 'search', 'route'];  // 先頭が既定（最強）  // 開始画面で選べる自動の脚本家（ほかの型は ai_gm.py を直接起動）
 let child = null, scriptList = null;
 function listScripts() {
   if (!scriptList) scriptList = JSON.parse(execFileSync(PY, [path.join(HERE, 'ai_gm.py'), '--list'], { cwd: HERE }).toString());
@@ -29,7 +29,8 @@ function listScripts() {
 }
 function startGame({ script, mm, seed, blind }) {
   if (!MMS.includes(mm)) throw new Error('脚本家の型が不正');
-  if (!blind && !listScripts().some(s => s.id === script)) throw new Error('脚本が無い');
+  if (!blind && !listScripts().scripts.some(s => s.id === script)) throw new Error('脚本が無い');
+  if (blind && !listScripts().blind) throw new Error('伏せて選べる脚本（自動生成）が無い');
   seed = Number.isInteger(+seed) ? String(+seed) : '1';
   if (child && child.exitCode === null) child.kill('SIGTERM');
   for (const f of ['notes.json', 'state.json']) fs.rmSync(path.join(GAME, f), { force: true });  // 前の試合の推理の書き込み・盤面を残さない
@@ -73,7 +74,7 @@ http.createServer(async (req, res) => {
       if (p === '/notes') return sendFile(res, path.join(GAME, 'notes.json'), '{}');
       if (p === '/deduce') return sendFile(res, path.join(GAME, 'deduce.json'), '{}');
       if (p === '/snapshots') return sendFile(res, path.join(GAME, 'snapshots.jsonl'), '');
-      if (p === '/scripts') return AI ? send(res, 200, JSON.stringify({ scripts: listScripts(), mms: MMS }), TYPES['.json']) : send(res, 404, 'not found');
+      if (p === '/scripts') return AI ? send(res, 200, JSON.stringify({ ...listScripts(), mms: MMS }), TYPES['.json']) : send(res, 404, 'not found');
       // 公開のキャラクター情報（不安臨界・初期エリア・禁止エリア・友好能力の文面）。engine/data/build_public_chars.py が作る
       if (p === '/chars') return sendFile(res, path.join(HERE, 'engine', 'data', 'characters_public.json'), '{}');
       if (p === '/data/rules') return sendFile(res, path.join(HERE, 'engine', 'data', 'rules.json'), '{}');

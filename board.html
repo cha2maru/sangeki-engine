@@ -209,6 +209,13 @@ span.turf { position:absolute; right:6px; bottom:6px; background:#6b5a1a; color:
 #start .note { color:var(--mut); font-size:12px; margin-top:4px; }
 /* 対AIモード（ai_gm.py・GitHub Pages 版）では、人が進行役を務める手動モード用の欄を出さない */
 body.mode-ai .manual-only { display:none; }
+/* 初めの案内（タイトル・免責事項・操作方法）*/
+#welcome { position:fixed; inset:0; z-index:29; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.78); }
+#welcome.on { display:flex; }
+#welcome .box { background:var(--panel); border:2px solid var(--acc); border-radius:8px; padding:18px 22px; width:min(640px, 94vw); max-height:90vh; overflow:auto; }
+#welcome h1 { margin:0; color:var(--acc); font-size:24px; } #welcome .lead { color:var(--mut); margin:2px 0 12px; }
+#welcome h3 { margin:12px 0 4px; color:var(--acc); font-size:14px; } #welcome ul, #welcome ol { margin:0 0 0 1.3em; padding:0; } #welcome li { margin:2px 0; }
+#welcome .btns { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; } #welcome a { color:var(--mut); }
 </style>
 
 <div id="band"></div>
@@ -255,11 +262,34 @@ body.mode-ai .manual-only { display:none; }
 <div id="think"><span class="spin"></span><span id="thinktxt">脚本家が考えています</span><span id="thinksec" class="mut"></span></div>
 <div id="scene"><div class="box"><h2 id="sc-t"></h2><div class="sub" id="sc-s"></div><div class="body"><ul id="sc-l"></ul></div>
   <div class="btns"><span class="left" id="sc-n"></span><span id="sc-ba"></span><button id="sc-look">盤面を見る</button><button class="go" id="sc-next">閉じる</button></div></div></div>
+<div id="welcome"><div class="box">
+  <h1>惨劇RoopeR 対AIモード</h1>
+  <div class="lead">主人公3人を操作して、自動の脚本家と対戦する非公式のファンツール</div>
+  <h3>はじめに（免責事項）</h3>
+  <ul>
+    <li>ボードゲーム「惨劇RoopeR」（BakaFire Party）の<b>非公式の二次創作</b>です。BakaFire Party とは関係ありません。</li>
+    <li>遊ぶには惨劇RoopeR のルールの知識が必要です（ルールの説明は含みません）。</li>
+    <li>ルールの処理や自動の脚本家には、誤りが含まれている場合があります。</li>
+    <li>ルール・カードの能力は、公式の<a href="http://bakafire.main.jp/rooper/sr_dl_04_sozai.htm" target="_blank">二次創作のガイドライン</a>に従い、出典を示して転載しています（出典: 惨劇RoopeR の主人公の書・脚本家の書・早見表・各カード）。</li>
+    <li>画像: <a href="http://bakafire.main.jp/rooper/sr_dl_04_sozai.htm" target="_blank">惨劇コモンズ5th</a>（惨劇コモンズ作成: BakaFire・NEKOG(紺ノ玲)、CC BY-SA 2.1 JP）。</li>
+  </ul>
+  <h3>遊び方</h3>
+  <ol>
+    <li>あなたは主人公 A・B・C の3人です。自動の脚本家と対戦します。</li>
+    <li>毎日、キャラクターやエリアを<b>右クリック</b>（または手札の札を選んでからクリック）して札を3枚置き、<b>『確定して送る』</b>。</li>
+    <li>友好能力は「友好能力」の欄の『宣言』で1件ずつ。終わったら『能力の宣言を終える』。</li>
+    <li>フェイズごとに<b>場面カード</b>で起きたことを確かめられます（『盤面を見る』『解決前／解決後』）。</li>
+    <li>最後の戦いでは、キャラクターを右クリックして役職を1人ずつ指摘します。</li>
+    <li>帯の右端の <b>⚙</b> で表示の設定（場面カード・演出の速さ・画像なしの表示）と、新しいゲーム。</li>
+  </ol>
+  <div class="btns"><button id="wl-cont" style="display:none">続きから遊ぶ</button><button class="go" id="wl-start">ゲームを始める</button></div>
+</div></div>
 <div id="start"><form id="startf">
   <h2>新しいゲーム</h2>
-  <label for="st-script">脚本</label><select id="st-script"></select>
-  <div class="row" style="margin-top:6px"><input type="checkbox" id="st-blind"><span>脚本を伏せて選ぶ（自動生成の脚本から、遊んだことのない組を選ぶ）</span></div>
-  <div class="note">題名は内容の手がかりになることがあります。何も知らずに遊ぶなら「伏せて選ぶ」を。</div>
+  <div class="row"><input type="checkbox" id="st-blind" checked><label for="st-blind" style="margin:0">脚本を伏せて遊ぶ（おすすめ）</label></div>
+  <div class="note" id="st-blind-note">自動生成の脚本から、遊んだことのない組を選びます。</div>
+  <label for="st-script">脚本を選ぶ</label><select id="st-script" disabled></select>
+  <div class="note">脚本のタイトルから脚本の内容が分かる可能性があります。</div>
   <label for="st-mm">脚本家</label><select id="st-mm"></select>
   <label for="st-seed">乱数の種</label><div class="row"><input type="number" id="st-seed" min="0"><button type="button" id="st-rand">ランダム</button></div>
   <div class="btns"><button type="button" id="st-cancel">やめる</button><button class="go" type="submit">開始</button></div>
@@ -319,7 +349,8 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;
 // ---- 描画 ----
 function render() {
   const w = S.waiting || {};
-  document.body.classList.toggle('mode-ai', S.mode === 'ai');
+  document.body.classList.toggle('mode-ai', S.mode === 'ai' || canStart);  // 開始画面のあるサーバー＝対AIモード（試合の前も）
+  if ($('welcome').classList.contains('on')) $('wl-cont').style.display = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '' : 'none';
   $('band').innerHTML = S.loop ? `<span>ループ <b>${S.loop}</b>/${S.loops}</span><span>日 <b>${S.day ?? '-'}</b>/${S.days}</span>
     <span class="ph">${esc(S.phaseName)}</span><span>リーダー <b>${esc(S.leader)}</b></span>
     <span class="wait ${myTurn() ? 'mine' : ''}">${esc(w.text || '入力待ちなし')}</span><button id="uxbtn" title="表示の設定">⚙</button>`
@@ -876,10 +907,22 @@ fetch('/scripts').then(r => r.ok ? r.json() : null).then(d => {
   for (const s of d.scripts) (groups[s.group] = groups[s.group] || []).push(s);
   $('st-script').innerHTML = Object.entries(groups).map(([g, ss]) => `<optgroup label="${esc(g)}">` + ss.map(s =>
     `<option value="${esc(s.id)}">${esc(s.title)}（${s.loops}ループ×${s.days}日）</option>`).join('') + '</optgroup>').join('');
-  $('st-mm').innerHTML = d.mms.map(m => `<option value="${m}" ${m === 'search' ? 'selected' : ''}>${esc(MMLABEL[m] || m)}</option>`).join('');
+  $('st-mm').innerHTML = d.mms.map((m, i) => `<option value="${m}" ${i === 0 ? 'selected' : ''}>${esc(MMLABEL[m] || m)}</option>`).join('');  // 既定は最強
   $('st-seed').value = Math.floor(Math.random() * 10000);
-  if (!S.loop) openStart();
+  if (!d.blind) {  // 伏せて選べる脚本（自動生成。sangeki-scripts）が無い: 一覧から選ぶ
+    $('st-blind').checked = false; $('st-blind').disabled = true; $('st-script').disabled = false;
+    $('st-blind-note').textContent = '伏せて選べる脚本（自動生成）がありません（sangeki-scripts を隣に置くと使えます）。';
+  }
+  openWelcome();
 }).catch(() => {});
+// 初めの案内（タイトル・免責事項・遊び方）。開始画面のあるとき（SANGEKI_AI=1）に、ページを開くたびに出す。?ux=off では出さない
+function openWelcome() {
+  if (new URLSearchParams(location.search).get('ux') === 'off') { if (!S.loop) openStart(); return; }
+  $('wl-cont').style.display = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '' : 'none';
+  $('welcome').classList.add('on');
+}
+$('wl-start').onclick = () => { $('welcome').classList.remove('on'); openStart(); };
+$('wl-cont').onclick = () => $('welcome').classList.remove('on');
 function openStart() { if (canStart) { $('start').classList.add('on'); $('uxpanel').classList.remove('on'); } }
 $('st-rand').onclick = () => { $('st-seed').value = Math.floor(Math.random() * 10000); };
 $('st-blind').onchange = () => { $('st-script').disabled = $('st-blind').checked; };
