@@ -99,3 +99,15 @@ def test_lovers_death_route():
          'used': {p: [] for p in 'MABC'}}
     r = [r for r in enumerate_routes(s) if r['id'] == 'SUICIDE' and r['via'] == 'C34' and r['goal'] == 'C34 死亡（ラバーズ）']
     assert r and any(c['kind'] == 'counter' and c['detail'] == ('C01', 'int', 1) for c in r[0]['conds']) and r[0]['end'] is False
+
+
+def test_gw_eve_includes_minion_when_it_is_a_culprit():
+    """手先がこれから起きる事件の犯人なら、友好3の手先[3]（事件を止める）の前日に友好禁止を置く対象に入る。犯人でなければ入らない。"""
+    import random
+    from selfplay.search_mm import SearchMastermind
+    mm = SearchMastermind(random.Random(0), days=5, loops=3)
+    s = {'day': 2, 'used': {p: [] for p in 'MABC'}, 'chars': {'C18': {'alive': True, 'gw': 2, 'area': 'SHR'}},
+         'script': {'incidents': [{'day': 4, 'id': 'CORRUPT', 'culprit': 'C18'}]}}
+    assert 'C18' in mm._gw_eve(s)
+    s['script']['incidents'] = [{'day': 4, 'id': 'CORRUPT', 'culprit': 'C01'}]
+    assert 'C18' not in mm._gw_eve(s)

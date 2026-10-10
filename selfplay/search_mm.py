@@ -631,7 +631,12 @@ class SearchMastermind(RouteMastermind):
         from selfplay.pc_v2 import DEFENSE_ABILITIES
         gw2 = any('GW2' not in s['used'][p] for p in 'ABC')
         out = {}
-        for (cid, idx), need in {**INFO_ABILITIES, **DEFENSE_ABILITIES}.items():
+        abil = {**INFO_ABILITIES, **DEFENSE_ABILITIES}
+        # 手先[3]（このループ中、自身が犯人の事件を発生させない）: 手先がこれから起きる事件の犯人なら、主人公の止め手になる（脚本家は犯人を知っている）。
+        # 例: 封印されしモノで、邪気の汚染（神社に暗躍2）の犯人が手先（ユーザー指摘 2026-10-10）
+        if any(i['culprit'] == 'C18' and i['day'] >= s['day'] for i in s['script']['incidents']):
+            abil[('C18', 0)] = 3
+        for (cid, idx), need in abil.items():
             ch = s['chars'].get(cid)
             if ch and ch['alive'] and ch.get('present', True) and need - (2 if gw2 else 1) <= ch['gw'] < need:
                 out[cid] = min(out.get(cid, 9), need - ch['gw'])
