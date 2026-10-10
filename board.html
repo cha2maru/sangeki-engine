@@ -178,6 +178,20 @@ body.noimg .ch, body.noimg .area.crowd .ch, body.noimg .area.crowd2 .ch { width:
 body.noimg .ch .nm { font-size:clamp(11px,3.4cqi,15px); overflow:visible; display:inline; }
 body.noimg .ch .lim { position:static; display:inline-block; margin-left:4px; padding:0 3px; font-size:10px; vertical-align:middle; }
 body.noimg .ch .lim b { display:inline; font-size:11px; margin-left:1px; }
+/* 画像なし: 駒の中を「名前と不安臨界 → カウンター → 置かれた札」の3段に（札が名前に重なっていた）*/
+body.noimg .ch { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:2px 3px; }
+body.noimg .ch .lim { order:1; margin-left:0; } body.noimg .ch .nm { order:2; padding:0; }
+body.noimg .ch .cnt { order:3; width:100%; } body.noimg .ch .cnt:empty { display:none; }
+body.noimg .ch .ccards { order:4; position:static; width:100%; justify-content:center; gap:2px; }
+body.noimg .ch .ccards:empty { display:none; }
+body.noimg .ccards span.card { width:auto; min-width:24px; height:18px; aspect-ratio:auto; font-size:10px; padding:0 3px; border-radius:3px; }
+/* 画像なし: エリアは位置を固定せず並べる（見出しの行: エリア名・暗躍・ボードの札 → 駒の段）。人数に応じて高さが伸びる */
+body.noimg .area { aspect-ratio:auto; min-height:120px; display:flex; flex-wrap:wrap; align-content:flex-start; align-items:center; gap:4px 8px; padding:6px 8px 26px; box-sizing:border-box; }
+body.noimg .alabel { position:static; transform:none; font-size:16px; color:rgba(255,255,255,.75); }
+body.noimg .slots, body.noimg .acards { position:static; }
+body.noimg .acards:empty { display:none; }
+body.noimg .chars { position:static; width:100%; }
+body.noimg .acards span.card { width:auto; min-width:26px; height:20px; aspect-ratio:auto; font-size:11px; padding:0 4px; border-radius:3px; }
 span.card { display:inline-flex; align-items:center; justify-content:center; text-align:center; font-weight:800; font-size:12px; line-height:1.1; color:#fff;
   background:#2a4f7a; box-sizing:border-box; padding:1px; overflow:hidden; }
 span.card.o-B { background:#246b70; } span.card.o-C { background:#41438f; } span.card.mm { background:#7a2626; }
