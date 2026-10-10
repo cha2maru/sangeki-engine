@@ -16,7 +16,15 @@ open(sys.argv[2], 'w', encoding='utf-8').write(t)
 PY
 cp "$WEB/shim.js" "$WEB/worker.js" "$OUT/"
 cp "$PLAY/engine/data/characters_public.json" "$OUT/data/chars.json"
-cp "$PLAY/engine/data/rules.json" "$PLAY/engine/data/roles.json" "$OUT/data/"
+cp "$PLAY/engine/data/rules.json" "$PLAY/engine/data/roles.json" "$PLAY/engine/data/incidents.json" "$OUT/data/"
+# シナリオエディタ: shim.js（検証は Worker の Python）を先に読み込ませる
+python3 - "$PLAY/editor.html" "$OUT/editor.html" <<'PY'
+import sys
+t = open(sys.argv[1], encoding='utf-8').read()
+t = t.replace('<script>\nconst EDITOR', '<script src="shim.js"></script>\n<script>\nconst EDITOR', 1)
+assert 'shim.js' in t, '差し込む場所が見つからない（editor.html が変わった）'
+open(sys.argv[2], 'w', encoding='utf-8').write(t)
+PY
 # Python のコード（エンジン・自動のプレイヤー・進行役）と脚本・重みを1つの zip に
 python3 - "$PLAY" "$WEB" "$OUT/engine.zip" <<'PY'
 import os, sys, zipfile

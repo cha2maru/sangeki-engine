@@ -196,3 +196,134 @@ def by_id(sid):
     if p is None:
         raise FileNotFoundError(f'脚本 {sid} が見つからない（置き場所: {script_dirs()}。設計した脚本は sangeki-scripts にある）')
     return to_game(load(p))
+
+
+# ---- 利用者が作ったシナリオ（シナリオエディタ editor.html、2026-10-10） ----
+# コード: 's1.' ＋ 番号に置き換えて詰めたバイト列を base64url（= を落とす）。作るのも読むのもエンジン（ブラウザ版は Pyodide）。
+# JSON を deflate しただけだと d16 で約390文字 → 詰めると約60文字（ユーザー「json 直だと長い」）。
+# 表の並びはコードの互換に関わるので、足すときは末尾に足す（並べ替えない）
+CODE_PREFIX = 's1.'
+T_RULES = ('Y_MURDER', 'Y_SEAL', 'Y_CONTRACT', 'Y_FUTURE', 'Y_BOMB', 'X_CIRCLE', 'X_LOVE', 'X_KILLER', 'X_RUMOR', 'X_VIRUS', 'X_THREAD', 'X_FACTOR')
+T_ROLES = ('PERSON', 'KEY', 'KILLER', 'KUROMAKU', 'CULTIST', 'TT', 'WITCH', 'FRIEND', 'MISLEADER', 'LOVERS', 'MAIN_LOVERS', 'SK', 'FACTOR')
+T_INC = ('MURDER', 'SPREAD', 'CORRUPT', 'SUICIDE', 'HOSPITAL', 'REMOTE', 'MISSING', 'RUMOR_SPREAD', 'BUTTERFLY')
+T_AREA = (None, 'HOS', 'SHR', 'CIT', 'SCH')
+
+
+def encode(sc):
+    """シナリオ → コード。表に無い ID・範囲外の数は ValueError。"""
+    import base64
+    sc = normalize(sc)
+    ix = lambda tab, v, what: tab.index(v) if v in tab else (_ for _ in ()).throw(ValueError(f'{what} {v} はコードにできない'))  # noqa: E731
+    num = lambda c: int(c[1:]) if c[:1] == 'C' and c[1:].isdigit() and 0 < int(c[1:]) < 256 else ix((), c, 'キャラクター')  # noqa: E731
+    if len(sc['rules']) != 3:
+        raise ValueError('ルールは Y1つと X2つ')
+    b = bytearray([sc['loops'] << 4 | sc['days']] + [ix(T_RULES, r, 'ルール') for r in sc['rules']] + [len(sc['characters'])])
+    for c in sc['characters']:
+        b += bytes([num(c), ix(T_ROLES, sc['roles'].get(c, 'PERSON'), '役職') << 3 | ix(T_AREA, sc['init'].get(c), 'エリア')])
+    b.append(ix(T_AREA, sc.get('territory'), 'テリトリー'))
+    b.append(len(sc['appear']))
+    for c, a in sc['appear'].items():
+        (k, n), = a.items()
+        b += bytes([num(c), (k == 'loop') << 4 | n])
+    b.append(len(sc['incidents']))
+    for i in sc['incidents']:
+        b += bytes([i['day'] << 4 | ix(T_INC, i['id'], '事件'), num(i['culprit'])])
+    for s, w in ((sc['title'], 1), (sc['special'], 2)):
+        u = s.encode('utf-8')
+        b += len(u).to_bytes(w, 'big') + u
+    return CODE_PREFIX + base64.urlsafe_b64encode(bytes(b)).decode('ascii').rstrip('=')
+
+
+def decode(code):
+    """コード → 脚本の dict。壊れていれば ValueError（誰が作ったか分からない入力なので、型と範囲を確かめる）。"""
+    import base64
+    code = (code or '').strip()
+    if not code.startswith(CODE_PREFIX) or len(code) > 4000:
+        raise ValueError('シナリオのコードではない（s1. で始まる）')
+    body = code[len(CODE_PREFIX):]
+    try:
+        b = base64.urlsafe_b64decode(body + '=' * (-len(body) % 4))
+        p = [0]
+
+        def take(n=1):
+            if p[0] + n > len(b):
+                raise IndexError
+            p[0] += n
+            return b[p[0] - n:p[0]]
+        one = lambda: take()[0]  # noqa: E731
+        ch = lambda: 'C%02d' % one()  # noqa: E731
+        ld = one()
+        rules = [T_RULES[x] for x in take(3)]
+        chars, roles, init = [], {}, {}
+        for _ in range(one()):
+            c, x = ch(), one()
+            chars.append(c)
+            if x >> 3:
+                roles[c] = T_ROLES[x >> 3]
+            if x & 7:
+                init[c] = T_AREA[x & 7]
+        terr = T_AREA[one()]
+        appear = {}
+        for _ in range(one()):
+            c, x = ch(), one()
+            appear[c] = {('loop' if x >> 4 else 'day'): x & 15}
+        incs = []
+        for _ in range(one()):
+            x, c = one(), ch()
+            incs.append({'day': x >> 4, 'id': T_INC[x & 15], 'culprit': c})
+        title = take(one()).decode('utf-8')
+        special = take(int.from_bytes(take(2), 'big')).decode('utf-8')
+    except Exception as e:
+        raise ValueError(f'コードを読めない（壊れている: {type(e).__name__}）')
+    sc = {'title': title, 'loops': ld >> 4, 'days': ld & 15, 'rules': rules, 'characters': chars, 'roles': roles, 'init': init,
+          'appear': appear, 'incidents': incs, 'special': special}
+    if terr:
+        sc['territory'] = terr
+    return normalize(sc)
+
+
+def normalize(sc):
+    """利用者のシナリオを、エンジンの脚本の形に揃える（型と範囲を確かめる）。"""
+    if not isinstance(sc, dict):
+        raise ValueError('シナリオは JSON のオブジェクト')
+    ints = lambda v, lo, hi: isinstance(v, int) and not isinstance(v, bool) and lo <= v <= hi  # noqa: E731
+    strs = lambda v: isinstance(v, list) and all(isinstance(x, str) for x in v)  # noqa: E731
+    if not ints(sc.get('loops'), 1, 9) or not ints(sc.get('days'), 1, 9):
+        raise ValueError('ループ数・日数は 1〜9 の整数')
+    if not strs(sc.get('rules')) or not strs(sc.get('characters')):
+        raise ValueError('rules・characters は文字列のリスト')
+    roles, init, appear = sc.get('roles', {}), sc.get('init', {}), sc.get('appear', {})
+    if not (isinstance(roles, dict) and all(isinstance(k, str) and isinstance(v, str) for k, v in roles.items())):
+        raise ValueError('roles は {キャラクター: 役職}')
+    if not (isinstance(init, dict) and all(isinstance(k, str) and isinstance(v, str) for k, v in init.items())):
+        raise ValueError('init は {キャラクター: エリア}')
+    if not (isinstance(appear, dict) and all(isinstance(v, dict) and all(ints(n, 1, 9) for n in v.values()) for v in appear.values())):
+        raise ValueError('appear は {キャラクター: {"day"|"loop": 数}}')
+    incs = sc.get('incidents', [])
+    if not (isinstance(incs, list) and all(isinstance(i, dict) and ints(i.get('day'), 1, 9) and isinstance(i.get('id'), str)
+                                           and isinstance(i.get('culprit'), str) for i in incs)):
+        raise ValueError('incidents は [{day, id, culprit}]')
+    out = {'id': 'user', 'title': str(sc.get('title') or 'ユーザーのシナリオ')[:60], 'set': 'BTX',
+           'loops': sc['loops'], 'days': sc['days'], 'rules': list(sc['rules']), 'characters': list(sc['characters']),
+           'roles': {k: v for k, v in roles.items() if v != 'PERSON'}, 'init': dict(init), 'appear': dict(appear),
+           'incidents': [{'day': i['day'], 'id': i['id'], 'culprit': i['culprit']} for i in incs],
+           'special': str(sc.get('special') or '')[:500]}
+    if isinstance(sc.get('territory'), str):
+        out['territory'] = sc['territory']
+    return out
+
+
+def report(sc):
+    """シナリオエディタの検証: {'errors', 'warnings'}。エンジンが処理できない要素も誤りに入れる（遊べないので）。"""
+    try:
+        sc = normalize(sc)
+        err, warn = check(sc)
+    except ValueError as e:
+        return {'errors': [str(e)], 'warnings': []}
+    except (KeyError, TypeError) as e:
+        return {'errors': [f'形が崩れている（{e}）'], 'warnings': []}
+    if not err:
+        uns = unsupported(sc)
+        if uns:
+            err.append('このエンジンでまだ遊べない要素: ' + '・'.join(uns))
+    return {'errors': err, 'warnings': warn}

@@ -27,8 +27,30 @@ class WebTable(ai_gm.Table):
                 return rec
 
 
-def start(script, mm, seed, blind):
-    ai_gm.run(SimpleNamespace(script=script, mm=mm, seed=int(seed), blind=bool(blind), dir='/tmp/game'), WebTable)
+def start(script, mm, seed, blind, code=''):
+    ai_gm.run(SimpleNamespace(script=script, mm=mm, seed=int(seed), blind=bool(blind), dir='/tmp/game', code=code or ''), WebTable)
+
+
+def check_json(s):
+    """シナリオエディタの検証（engine.scripts.report）。s: シナリオの JSON の文字列。"""
+    from engine.scripts import encode, report
+    try:
+        sc = json.loads(s)
+    except ValueError:
+        return json.dumps({'errors': ['JSON として読めない'], 'warnings': []}, ensure_ascii=False)
+    rep = report(sc)
+    if not rep['errors']:
+        rep['code'] = encode(sc)
+    return json.dumps(rep, ensure_ascii=False)
+
+
+def decode_json(code):
+    """シナリオエディタ: コード → シナリオの JSON（読み込み用）。"""
+    from engine.scripts import decode
+    try:
+        return json.dumps({'script': decode(code)}, ensure_ascii=False)
+    except ValueError as e:
+        return json.dumps({'error': str(e)}, ensure_ascii=False)
 
 
 def list_json():

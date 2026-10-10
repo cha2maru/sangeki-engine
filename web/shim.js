@@ -2,6 +2,7 @@
 // 中身の計算は Web Worker（worker.js、Pyodide）。board.html はサーバー版と同じものを使う（build.sh がこれを先に読み込ませる）。
 (() => {
   const store = { state: '{}', log: [], snaps: [], deduce: '{}' };
+  const checks = {};  // シナリオエディタの検証の返事を待つもの（id → resolve）
   let worker = null, ready = false, list = null, waitList = [], step = '準備しています', since = Date.now() / 1000, started = false, pendingNew = null, seq = 0;
   function boot() {
     ready = false; since = Date.now() / 1000; step = '準備しています';
@@ -17,6 +18,7 @@
       } else if (m.type === 'write') { if (m.f === 'state.json') store.state = m.s; else if (m.f === 'deduce.json') store.deduce = m.s; }
       else if (m.type === 'append') { (m.f === 'log.jsonl' ? store.log : m.f === 'snapshots.jsonl' ? store.snaps : []).push(m.s); }
       else if (m.type === 'reset') { store.log = []; store.snaps = []; store.deduce = '{}'; }
+      else if (m.type === 'called') { const f = checks[m.id]; delete checks[m.id]; if (f) f(m.s); }
       else if (m.type === 'error') fail(m.msg);
     };
   }
@@ -55,6 +57,14 @@
       case '/notes':
         if ((opt.method || 'GET') === 'POST') { try { localStorage.setItem(NOTES, opt.body); } catch {} return reply('{}'); }
         try { return reply(localStorage.getItem(NOTES) || '{}'); } catch { return reply('{}'); }
+      case '/check': case '/decode': {  // シナリオエディタ: エンジンで検証してコードを作る／コードを読む（Python の準備を待つ）
+        const id = ++seq;
+        const p = new Promise(r => { checks[id] = r; });
+        const arg = u === '/check' ? (opt.body || '{}') : (body().code || '');
+        worker.postMessage({ type: 'call', id, fn: u === '/check' ? 'check_json' : 'decode_json', arg });
+        return reply(await p);
+      }
+      case '/data/incidents': return origFetch('data/incidents.json');
       case '/chars': return origFetch('data/chars.json');
       case '/data/rules': return origFetch('data/rules.json');
       case '/data/roles': return origFetch('data/roles.json');

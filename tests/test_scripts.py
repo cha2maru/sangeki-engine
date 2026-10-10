@@ -55,3 +55,18 @@ def test_generated_scripts_are_consistent():
     for p in glob.glob(os.path.join(os.path.dirname(scripts.__file__), 'scripts', 'generated', '*.json')):
         sc = json.load(open(p, encoding='utf-8'))
         assert scripts.check(sc)[0] == [], p
+
+
+def test_user_code_roundtrip_and_bad_input():
+    """シナリオエディタのコード: 作って読めば同じ脚本、壊れた・形の違う入力は ValueError か誤りの一覧。"""
+    import pytest
+    from engine import scripts as S
+    sc = {'title': 't', 'loops': 3, 'days': 5, 'rules': ['Y_MURDER', 'X_CIRCLE', 'X_LOVE'],
+          'characters': ['C01', 'C02', 'C03', 'C04', 'C05', 'C06'], 'roles': {'C01': 'KEY', 'C02': 'KILLER', 'C03': 'KUROMAKU'},
+          'incidents': [{'day': 2, 'id': 'MURDER', 'culprit': 'C04'}]}
+    d = S.decode(S.encode(sc))
+    assert d['rules'] == sc['rules'] and d['roles'] == sc['roles'] and d['incidents'] == sc['incidents']
+    for bad in ('x', 's1.AAAA', 's1.' + '!' * 10):
+        with pytest.raises(ValueError):
+            S.decode(bad)
+    assert S.report({'loops': 3})['errors'] and S.report(dict(sc, roles={}))['errors']

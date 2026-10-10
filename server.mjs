@@ -27,15 +27,18 @@ function listScripts() {
   if (!scriptList) scriptList = JSON.parse(execFileSync(PY, [path.join(HERE, 'ai_gm.py'), '--list'], { cwd: HERE }).toString());
   return scriptList;
 }
-function startGame({ script, mm, seed, blind }) {
+function startGame({ script, mm, seed, blind, code }) {
   if (!MMS.includes(mm)) throw new Error('脚本家の型が不正');
-  if (!blind && !listScripts().scripts.some(s => s.id === script)) throw new Error('脚本が無い');
+  // code: シナリオエディタのコード（s1.＋base64url）。中身の検証は ai_gm.py がする
+  if (code && !/^s1\.[A-Za-z0-9_-]{1,20000}$/.test(code)) throw new Error('シナリオのコードが不正');
+  if (code) blind = false;
+  else if (!blind && !listScripts().scripts.some(s => s.id === script)) throw new Error('脚本が無い');
   if (blind && !listScripts().blind) throw new Error('伏せて選べる脚本（自動生成）が無い');
   seed = Number.isInteger(+seed) ? String(+seed) : '1';
   if (child && child.exitCode === null) child.kill('SIGTERM');
   for (const f of ['notes.json', 'state.json']) fs.rmSync(path.join(GAME, f), { force: true });  // 前の試合の推理の書き込み・盤面を残さない
   const out = fs.openSync(path.join(GAME, 'ai_gm.log'), 'w');
-  const args = [path.join(HERE, 'ai_gm.py'), '--mm', mm, '--seed', seed, '--dir', GAME, ...(blind ? ['--blind'] : ['--script', script])];
+  const args = [path.join(HERE, 'ai_gm.py'), '--mm', mm, '--seed', seed, '--dir', GAME, ...(code ? ['--code', code] : blind ? ['--blind'] : ['--script', script])];
   child = spawn(PY, args, { cwd: HERE, stdio: ['ignore', out, out] });
   console.log('開始:', args.slice(1).join(' '));
 }
@@ -67,8 +70,10 @@ http.createServer(async (req, res) => {
   const p = decodeURIComponent(url.pathname);
   try {
     if (req.method === 'GET') {
-      if (p === '/') return sendFile(res, path.join(HERE, 'board.html'));
+      if (p === '/' || p === '/index.html') return sendFile(res, path.join(HERE, 'board.html'));  // index.html: ブラウザ版と同じ名前（シナリオエディタの「遊ぶ」）
       if (p === '/sheet') return sendFile(res, path.join(HERE, 'sheet.html'));
+      if (p === '/editor' || p === '/editor.html') return sendFile(res, path.join(HERE, 'editor.html'));
+      if (p === '/data/incidents') return sendFile(res, path.join(HERE, 'engine', 'data', 'incidents.json'), '{}');
       if (p === '/state') return sendFile(res, path.join(GAME, 'state.json'), '{}');
       if (p === '/log') return sendFile(res, path.join(GAME, 'log.jsonl'), '');
       if (p === '/notes') return sendFile(res, path.join(GAME, 'notes.json'), '{}');
@@ -104,6 +109,12 @@ http.createServer(async (req, res) => {
     if (req.method === 'POST' && p === '/new' && AI) {
       startGame(await readBody(req));
       return send(res, 200, '{}', TYPES['.json']);
+    }
+    if (req.method === 'POST' && (p === '/check' || p === '/decode')) {  // シナリオエディタの検証・コードの読み込み（ai_gm.py --check／--decode）
+      const b = await readBody(req);
+      const input = p === '/check' ? JSON.stringify(b) : String(b.code || '');
+      const out = execFileSync(PY, [path.join(HERE, 'ai_gm.py'), p === '/check' ? '--check' : '--decode'], { cwd: HERE, input }).toString();
+      return send(res, 200, out, TYPES['.json']);
     }
     if (req.method === 'POST' && p === '/notes') {
       const n = await readBody(req);

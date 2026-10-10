@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>惨劇RoopeR シナリオエディタ</title>
+<style>
+:root { --bg:#141312; --fg:#ece8e0; --mut:#a39d91; --line:#3d3a35; --panel:#1e1d1b; --acc:#e0a24a; --warn:#e05a4a; --ok:#6cc070; }
+body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.6 system-ui, sans-serif; }
+header { position:sticky; top:0; z-index:5; background:#000; border-bottom:2px solid var(--acc); padding:6px 16px; display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; }
+header h1 { margin:0; font-size:18px; color:var(--acc); }
+header a { color:var(--mut); margin-left:auto; }
+main { max-width:1000px; margin:0 auto; padding:12px 16px 80px; }
+section { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:10px 14px; margin:12px 0; }
+h2 { margin:0 0 8px; font-size:15px; color:var(--acc); }
+label { color:var(--mut); }
+input, select, textarea, button { font:inherit; color:var(--fg); background:#2a2825; border:1px solid var(--line); border-radius:4px; padding:3px 6px; }
+input[type=number] { width:4em; }
+textarea { width:100%; box-sizing:border-box; }
+button { cursor:pointer; } button.go { background:var(--acc); color:#000; font-weight:700; border-color:var(--acc); }
+button:disabled { opacity:.5; cursor:default; }
+.row { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; margin:4px 0; }
+.mut { color:var(--mut); } .err { color:var(--warn); } .ok { color:var(--ok); }
+#chars { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:4px 10px; }
+#chars label { color:var(--fg); }
+table { border-collapse:collapse; width:100%; } th, td { text-align:left; padding:3px 6px; border-bottom:1px solid var(--line); vertical-align:middle; }
+th { color:var(--mut); font-weight:400; }
+#code { width:100%; font-family:ui-monospace, monospace; word-break:break-all; }
+#saved li { margin:2px 0; } #saved button { margin-left:6px; padding:0 6px; }
+@media (max-width:600px) { main { padding:8px 16px 60px; } th, td { padding:3px 3px; } }
+</style>
+<header><h1>シナリオエディタ</h1><span class="mut">非公開シートを作って、ブラウザ版の対戦で試す</span><a href="index.html" id="back">対戦の画面へ</a></header>
+<main>
+<section>
+  <h2>基本</h2>
+  <div class="row"><label for="title">題名</label><input id="title" maxlength="60" style="flex:1;min-width:12em" placeholder="ユーザーのシナリオ"></div>
+  <div class="row"><label>惨劇セット</label><span>Basic Tragedy X</span>
+    <label for="loops">ループ数</label><input type="number" id="loops" min="1" max="9" value="3">
+    <label for="days">1ループの日数</label><input type="number" id="days" min="1" max="9" value="5"></div>
+  <label for="special">特殊ルール（任意）</label><textarea id="special" rows="2" maxlength="500"></textarea>
+</section>
+<section>
+  <h2>ルール</h2>
+  <div class="row"><label for="ry">ルールY</label><select id="ry"></select>
+    <label for="rx1">ルールX</label><select id="rx1"></select><select id="rx2"></select></div>
+  <div class="mut" id="need"></div>
+</section>
+<section>
+  <h2>登場人物</h2>
+  <div class="mut">登場させる人物に印を付け、下の表で役職と初期エリアを決めます（役職の無い人物はパーソン）。このエンジンで遊べる人物だけを出しています。</div>
+  <div id="chars"></div>
+  <table id="cast" style="margin-top:8px"></table>
+  <div class="row" id="terr-row" style="display:none"><label for="terr">大物のテリトリー</label><select id="terr"></select></div>
+</section>
+<section>
+  <h2>事件</h2>
+  <table id="incs"></table>
+  <div class="row"><button id="addinc">事件を足す</button><span class="mut">犯人は互いに異なる人物にします。</span></div>
+</section>
+<section>
+  <h2>確かめる・遊ぶ</h2>
+  <div class="row"><button id="check">エンジンで確かめる</button><span id="engine" class="mut"></span></div>
+  <ul id="report"></ul>
+  <div id="codebox" style="display:none">
+    <label for="code">シナリオのコード（対戦の画面の「新しいゲーム」に貼るか、下のボタンで遊ぶ）</label>
+    <textarea id="code" rows="2" readonly></textarea>
+    <div class="row"><button id="copy">コードをコピー</button><button id="copyurl">プレイ用の URL をコピー</button><button class="go" id="play">このシナリオで遊ぶ</button></div>
+    <div class="mut">URL やコードを渡すと、相手もこのシナリオで遊べます（中身＝非公開シートも相手に分かります）。</div>
+  </div>
+</section>
+<section>
+  <h2>保存・読み込み</h2>
+  <div class="row"><button id="save">このブラウザに保存</button><button id="export">JSON を書き出す</button><button id="import">JSON を読み込む…</button>
+    <input type="file" id="file" accept=".json,application/json" style="display:none"><button id="clear">白紙にする</button></div>
+  <div class="row"><input id="incode" placeholder="コード（s1.…）から読み込む" style="flex:1;min-width:14em"><button id="fromcode">読み込む</button></div>
+  <div class="mut">このブラウザに保存したシナリオ（ほかの端末やブラウザとは共有されません）</div>
+  <ul id="saved"></ul>
+</section>
+</main>
+<script>
+const EDITOR = 1;  // build.sh がこの前に shim.js（ブラウザ版の検証）を差し込む
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const AREAS = { HOS: '病院', SHR: '神社', CIT: '都市', SCH: '学校' };
+const STORE = 'sangeki-scenarios';
+let CH = {}, RU = {}, RO = {}, INC = {};
+let cast = {};    // 人物 → {role, init, appear}
+let incs = [];    // [{day, id, culprit}]
+let lastCode = '';
+
+const opt = (v, t, sel) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(t)}</option>`;
+const rolesOf = () => [$('ry').value, $('rx1').value, $('rx2').value];
+function needCount() {  // ルールが加える役職の員数（表示用。正しさはエンジンの検証が見る）
+  const n = {};
+  for (const r of rolesOf()) for (const [k, v] of Object.entries((RU[r] || {}).roles || {})) n[k] = (n[k] || 0) + v;
+  return n;
+}
+function script() {
+  const chars = Object.keys(cast);
+  const sc = { title: $('title').value.trim(), loops: +$('loops').value, days: +$('days').value, rules: rolesOf(), characters: chars,
+    roles: {}, init: {}, appear: {}, incidents: incs.map(i => ({ day: +i.day, id: i.id, culprit: i.culprit })), special: $('special').value };
+  for (const c of chars) {
+    const x = cast[c];
+    if (x.role && x.role !== 'PERSON') sc.roles[c] = x.role;
+    if (x.init) sc.init[c] = x.init;
+    if (c === 'C24') sc.appear[c] = { day: +x.appear || 1 };
+    if (c === 'C13') sc.appear[c] = { loop: +x.appear || 1 };
+  }
+  if (chars.includes('C16')) sc.territory = $('terr').value;
+  return sc;
+}
+function load(sc) {
+  $('title').value = sc.title || ''; $('loops').value = sc.loops || 3; $('days').value = sc.days || 5; $('special').value = sc.special || '';
+  const [y, x1, x2] = sc.rules || [];
+  if (y) $('ry').value = y; if (x1) $('rx1').value = x1; if (x2) $('rx2').value = x2;
+  cast = {};
+  for (const c of sc.characters || []) if (CH[c]) cast[c] = { role: (sc.roles || {})[c] || 'PERSON', init: (sc.init || {})[c] || '',
+    appear: Object.values((sc.appear || {})[c] || {})[0] || '' };
+  if (sc.territory) $('terr').value = sc.territory;
+  incs = (sc.incidents || []).map(i => ({ ...i }));
+  render();
+}
+
+function render() {
+  const nd = needCount();
+  const have = {};
+  for (const x of Object.values(cast)) if (x.role !== 'PERSON') have[x.role] = (have[x.role] || 0) + 1;
+  $('need').innerHTML = '必要な役職: ' + (Object.entries(nd).filter(([, n]) => n).map(([k, n]) =>
+    `<span class="${(have[k] || 0) === n ? 'ok' : 'err'}">${esc(RO[k] || k)} ${have[k] || 0}/${n}</span>`).join('・') || 'なし');
+  $('chars').innerHTML = Object.entries(CH).filter(([, c]) => c.engine).map(([id, c]) =>
+    `<label><input type="checkbox" data-c="${id}" ${cast[id] ? 'checked' : ''}> ${esc(c.name)}<span class="mut">（臨界${c.limit}）</span></label>`).join('');
+  $('cast').innerHTML = Object.keys(cast).length ? '<tr><th>人物</th><th>役職</th><th>初期エリア</th><th>登場</th></tr>' + Object.entries(cast).map(([id, x]) => {
+    const c = CH[id];
+    const roles = ['PERSON', ...Object.keys(nd).filter(k => nd[k])];
+    if (['C11', 'C28'].includes(id)) roles.push(...Object.keys(RO).filter(k => k !== 'PERSON' && !roles.includes(k)));  // イレギュラー・コピーキャットはルールの枠の外
+    if (x.role && !roles.includes(x.role)) roles.push(x.role);
+    const areas = `<select data-init="${id}">${opt('', 'カードどおり（' + (AREAS[c.start] || '—') + '）', x.init)}${Object.entries(AREAS).filter(([a]) => !(c.forbidden || []).includes(a)).map(([a, n]) => opt(a, n, x.init)).join('')}</select>`;
+    const ap = id === 'C24' ? `<input type="number" min="1" max="9" data-ap="${id}" value="${esc(x.appear || 1)}"> 日目` : id === 'C13' ? `<input type="number" min="1" max="9" data-ap="${id}" value="${esc(x.appear || 1)}"> ループ目` : '';
+    return `<tr><td>${esc(c.name)}</td><td><select data-role="${id}">${roles.map(r => opt(r, RO[r] || r, x.role)).join('')}</select></td><td>${areas}</td><td>${ap}</td></tr>`;
+  }).join('') : '';
+  $('terr-row').style.display = cast.C16 ? '' : 'none';
+  const names = Object.keys(cast);
+  $('incs').innerHTML = incs.length ? '<tr><th>日</th><th>事件</th><th>犯人</th><th></th></tr>' + incs.map((i, k) =>
+    `<tr><td><input type="number" min="1" max="9" data-iday="${k}" value="${esc(i.day)}"></td>
+     <td><select data-iid="${k}">${Object.entries(INC).map(([id, v]) => opt(id, v.name, i.id)).join('')}</select></td>
+     <td><select data-icul="${k}">${opt('', '—', i.culprit)}${names.map(c => opt(c, CH[c].name, i.culprit)).join('')}</select></td>
+     <td><button data-idel="${k}">消す</button></td></tr>`).join('') : '<tr><td class="mut">事件はまだありません</td></tr>';
+  renderSaved();
+  stale();
+}
+// 入力が変わったら、前のコードは使えない（確かめ直す）
+function stale() { lastCode = ''; $('codebox').style.display = 'none'; clearTimeout(stale.t); stale.t = setTimeout(check, 900); }
+
+async function check() {
+  $('engine').textContent = 'エンジンで確かめています…（ブラウザ版は初回に Python の準備で数十秒かかります）';
+  $('check').disabled = true;
+  try {
+    const r = await (await fetch('/check', { method: 'POST', body: JSON.stringify(script()) })).json();
+    const items = [...(r.errors || []).map(e => `<li class="err">${esc(e)}</li>`), ...(r.warnings || []).map(w => `<li class="mut">注意: ${esc(w)}</li>`)];
+    $('report').innerHTML = items.join('') || '<li class="ok">問題ありません</li>';
+    lastCode = r.code || '';
+    $('codebox').style.display = lastCode ? '' : 'none';
+    $('code').value = lastCode;
+    $('engine').textContent = r.errors && r.errors.length ? '誤りを直すと遊べます' : '遊べます';
+  } catch (e) { $('engine').textContent = '確かめられなかった: ' + e.message; }
+  $('check').disabled = false;
+}
+
+// ---- 保存（このブラウザの localStorage）----
+const saved = () => { try { return JSON.parse(localStorage.getItem(STORE) || '{}'); } catch { return {}; } };
+function renderSaved() {
+  const s = saved();
+  $('saved').innerHTML = Object.entries(s).sort((a, b) => (b[1].at || '').localeCompare(a[1].at || '')).map(([k, v]) =>
+    `<li>${esc(k)} <span class="mut">${esc((v.at || '').slice(0, 16).replace('T', ' '))}</span><button data-load="${esc(k)}">開く</button><button data-del="${esc(k)}">消す</button></li>`).join('')
+    || '<li class="mut">まだありません</li>';
+}
+$('save').onclick = () => {
+  const sc = script(), name = sc.title || 'ユーザーのシナリオ';
+  const s = saved();
+  if (s[name] && !confirm(`「${name}」を上書きしますか？`)) return;
+  s[name] = { script: sc, at: new Date().toISOString() };
+  try { localStorage.setItem(STORE, JSON.stringify(s)); renderSaved(); } catch (e) { alert('保存できなかった: ' + e.message); }
+};
+$('export').onclick = () => {
+  const sc = script();
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([JSON.stringify(sc, null, 1)], { type: 'application/json' })),
+    download: `sangeki_scenario_${(sc.title || 'user').replace(/[\\/:*?"<>|\s]/g, '_')}.json` });
+  document.body.appendChild(a); a.click(); a.remove();
+};
+$('import').onclick = () => $('file').click();
+$('file').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try { load(JSON.parse(await f.text())); } catch (err) { alert('読み込めなかった: ' + err.message); }
+};
+$('fromcode').onclick = async () => {
+  const code = $('incode').value.trim(); if (!code) return;
+  try {
+    const r = await (await fetch('/decode', { method: 'POST', body: JSON.stringify({ code }) })).json();
+    if (r.error) return alert(r.error);
+    load(r.script); $('incode').value = '';
+  } catch (err) { alert('読み込めなかった: ' + err.message); }
+};
+$('clear').onclick = () => { if (confirm('入力を白紙にしますか？（保存したものは消えません）')) load({}); };
+$('copy').onclick = async () => { try { await navigator.clipboard.writeText(lastCode); $('copy').textContent = 'コピーしました'; setTimeout(() => $('copy').textContent = 'コードをコピー', 1500); } catch { $('code').select(); } };
+const playURL = () => new URL((location.pathname.endsWith('editor.html') ? 'index.html' : '/') + '?code=' + encodeURIComponent(lastCode), location.href).href;
+$('copyurl').onclick = async () => { try { await navigator.clipboard.writeText(playURL()); $('copyurl').textContent = 'コピーしました'; setTimeout(() => $('copyurl').textContent = 'プレイ用の URL をコピー', 1500); } catch { prompt('プレイ用の URL（選んでコピーしてください）', playURL()); } };
+$('play').onclick = () => { if (lastCode) location.href = playURL(); };
+$('check').onclick = check;
+$('addinc').onclick = () => { incs.push({ day: Math.min(incs.length + 1, +$('days').value || 1), id: 'MURDER', culprit: '' }); render(); };
+
+// 入力の変化（表の中の select・input はまとめて受ける）
+document.addEventListener('change', e => {
+  const t = e.target, d = t.dataset;
+  if (d.c) { if (t.checked) cast[d.c] = { role: 'PERSON', init: '', appear: '' }; else { delete cast[d.c]; incs.forEach(i => { if (i.culprit === d.c) i.culprit = ''; }); } }
+  else if (d.role) cast[d.role].role = t.value;
+  else if (d.init !== undefined) cast[d.init].init = t.value;
+  else if (d.ap) cast[d.ap].appear = t.value;
+  else if (d.iday !== undefined) incs[d.iday].day = +t.value;
+  else if (d.iid !== undefined) incs[d.iid].id = t.value;
+  else if (d.icul !== undefined) incs[d.icul].culprit = t.value;
+  else if (!['title', 'loops', 'days', 'special', 'ry', 'rx1', 'rx2', 'terr'].includes(t.id)) return;
+  render();
+});
+document.addEventListener('click', e => {
+  const d = e.target.dataset;
+  if (d.idel !== undefined) { incs.splice(+d.idel, 1); render(); }
+  if (d.load) { const s = saved()[d.load]; if (s) load(s.script); }
+  if (d.del && confirm(`「${d.del}」を消しますか？`)) { const s = saved(); delete s[d.del]; try { localStorage.setItem(STORE, JSON.stringify(s)); } catch {} renderSaved(); }
+});
+
+Promise.all(['/chars', '/data/rules', '/data/roles', '/data/incidents'].map(u => fetch(u).then(r => r.json()))).then(([c, ru, ro, inc]) => {
+  CH = c; RU = ru.rules || {}; INC = inc.incidents || {};
+  for (const [k, v] of Object.entries(ro.roles || {})) RO[k] = v.name || v;
+  const ys = Object.entries(RU).filter(([, r]) => r.type === 'Y'), xs = Object.entries(RU).filter(([, r]) => r.type === 'X');
+  $('ry').innerHTML = ys.map(([k, r]) => opt(k, r.name)).join('');
+  $('rx1').innerHTML = xs.map(([k, r]) => opt(k, r.name)).join('');
+  $('rx2').innerHTML = xs.map(([k, r]) => opt(k, r.name)).join('');
+  if (xs[1]) $('rx2').value = xs[1][0];
+  $('terr').innerHTML = Object.entries(AREAS).map(([a, n]) => opt(a, n)).join('');
+  if (!location.pathname.endsWith('editor.html')) $('back').href = '/';
+  render();
+}).catch(e => { $('engine').textContent = 'データを読めなかった: ' + e.message; });
+</script>

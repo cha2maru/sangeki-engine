@@ -33,9 +33,14 @@ onmessage = async e => {
     const s = JSON.stringify(m.rec);
     if (waiter) { const w = waiter; waiter = null; w(s); } else actions.push(s);
   }
+  if (m.type === 'call' && ['check_json', 'decode_json'].includes(m.fn)) {  // シナリオエディタ: 検証とコードの作成・読み込み（engine.scripts）
+    await booted;
+    py.globals.set('ARG', m.arg);
+    postMessage({ type: 'called', id: m.id, s: py.runPython(`web_gm.${m.fn}(ARG)`) });
+  }
   if (m.type === 'new') {
     await booted;
-    py.globals.set('ARGS', py.toPy({ script: m.script || '', mm: m.mm, seed: m.seed, blind: !!m.blind }));
+    py.globals.set('ARGS', py.toPy({ script: m.script || '', mm: m.mm, seed: m.seed, blind: !!m.blind, code: m.code || '' }));
     try {
       await py.runPythonAsync('web_gm.start(**ARGS)');
     } catch (err) { postMessage({ type: 'error', msg: String(err) }); }

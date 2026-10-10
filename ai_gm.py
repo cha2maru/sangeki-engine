@@ -578,7 +578,28 @@ def main():
     ap.add_argument('--seed', type=int, default=1)
     ap.add_argument('--dir', default=os.path.join(HERE, 'game_ai'))
     ap.add_argument('--list', action='store_true', help='開始画面の脚本の一覧（題名・ループ数・日数だけ。役職・犯人は出さない）を JSON で出して終わる')
+    ap.add_argument('--code', default='', help='シナリオエディタのコード（s1.…）の脚本で遊ぶ（--script の代わり）')
+    ap.add_argument('--decode', action='store_true', help='標準入力のコードを読んで、シナリオの JSON を出して終わる（シナリオエディタ）')
+    ap.add_argument('--check', action='store_true', help='標準入力のシナリオ（JSON）を検証し、{errors, warnings} を JSON で出して終わる（シナリオエディタ）')
     a = ap.parse_args()
+    if a.decode:
+        from engine.scripts import decode
+        try:
+            print(json.dumps({'script': decode(sys.stdin.read())}, ensure_ascii=False))
+        except ValueError as e:
+            print(json.dumps({'error': str(e)}, ensure_ascii=False))
+        return
+    if a.check:
+        from engine.scripts import encode, report
+        try:
+            sc = json.loads(sys.stdin.read())
+        except ValueError:
+            sc = None
+        rep = report(sc)
+        if not rep['errors']:
+            rep['code'] = encode(sc)  # 遊ぶためのコード（ブラウザ版と同じ形）
+        print(json.dumps(rep, ensure_ascii=False))
+        return
     if a.list:  # 開始画面用: 選べる脚本と、伏せて選べる脚本（自動生成）の数
         from engine.scripts import glob_scripts
         print(json.dumps({'scripts': list_scripts(), 'blind': len(glob_scripts('generated/*.json'))}, ensure_ascii=False))
@@ -594,7 +615,15 @@ def run(a, table_cls=None):
         os.makedirs(os.path.join(a.dir, 'private'), exist_ok=True)
         json.dump({'script': a.script}, open(os.path.join(a.dir, 'private', 'pick.json'), 'w'))  # Claude は試合中に読まない
         print(f'目隠しで脚本を選んだ（候補 {n} 本）')
-    script = by_id(a.script)
+    if getattr(a, 'code', ''):  # シナリオエディタで作ったシナリオ（誰が作ったか分からない入力なので、検証してから使う）
+        from engine.scripts import decode, report, to_game
+        user = decode(a.code)
+        errs = report(user)['errors']
+        if errs:
+            raise ValueError('シナリオに誤りがある: ' + ' ／ '.join(errs))
+        script, a.script, a.blind = to_game(user), 'user', False
+    else:
+        script = by_id(a.script)
     t = table_cls(a.dir, script)
     rng = random.Random(a.seed)
     pc = HumanProtagonist(t, rng)
@@ -613,7 +642,8 @@ def run(a, table_cls=None):
     player = Combo(mm, pc)
     nar = Narrator(t)
     # 題名は内容の手がかりになるので、開始時は ID だけ出す（題名はゲーム終了時の非公開シートの公開で出す）
-    t.log(f'対AIモード開始。脚本 {short_id(a.script)}（ループ {script["loops"]} 回・1ループ {script["days"]} 日・'
+    shown = f'「{script["title"]}」（ユーザーのシナリオ）' if a.script == 'user' else short_id(a.script)
+    t.log(f'対AIモード開始。脚本 {shown}（ループ {script["loops"]} 回・1ループ {script["days"]} 日・'
           f'{script.get("set", "BTX")}）。脚本家は' + ('Claude' if a.mm == 'claude' else f'自動（{a.mm}）'))
 
     def log0(kind, rec):
