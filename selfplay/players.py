@@ -510,6 +510,10 @@ class DeductiveBlocker(DeductiveProtagonist):
         if not picks:
             # 推理が矛盾した（本来は起きない）。本当の脚本は使わず、役職の無い仮の脚本で妨害する
             return [{'rules': [], 'roles': {}, 'incidents': list(s['script']['incidents'])}]
+        return self._scripts_from_picks(s, picks)
+
+    def _scripts_from_picks(self, s, picks):
+        """推理の仮説（ルールの組, 配役）を、事件の犯人を引いて脚本の形にする。"""
         alive = [c for c, v in s['chars'].items() if v['alive'] and v.get('present', True)]
         # 犯人は、推理した候補（事件の発生・不発、刑事[4]、犯人の相異＝deduce.incident_candidates）から引く。
         # 以前は生存者から無作為に引いていて、ループ1で犯人が割れても次のループの守りに使えていなかった

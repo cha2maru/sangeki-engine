@@ -61,7 +61,7 @@ class Table:
     def __init__(self, d, script):
         self.d, self.script = d, script
         os.makedirs(d, exist_ok=True)
-        for f in ('log.jsonl', 'inbox.jsonl'):
+        for f in ('log.jsonl', 'inbox.jsonl', 'snapshots.jsonl'):
             open(os.path.join(d, f), 'w').close()
         if os.path.exists(os.path.join(d, 'deduce.json')):  # 前の試合の推理を推理シートに残さない
             os.remove(os.path.join(d, 'deduce.json'))
@@ -135,6 +135,11 @@ class Table:
                     # 主人公能力フェイズの間だけ、いま合法な宣言（盤面の能力のメニューを絞る）
                     'abilityOptions': self.ability_options if (self.waiting or {}).get('kind') == 'ability' else None})
         self._write('state.json', pub)
+        # 盤面の履歴（ログ #n の処理が反映された直後の盤面）。盤面の「過去の盤面」「解決前／解決後」が読む（手動モードの gm.py と同じ形）
+        if self.n > getattr(self, '_snap_n', 0):
+            with open(os.path.join(self.d, 'snapshots.jsonl'), 'a', encoding='utf-8') as fp:
+                fp.write(json.dumps({'prev_n': getattr(self, '_snap_n', 0), 'log_n': self.n, 'state': pub}, ensure_ascii=False) + '\n')
+            self._snap_n = self.n
 
     @staticmethod
     def _tag(x):
@@ -159,6 +164,8 @@ class Table:
 def describe(e):
     """公開の出来事1つを日本語の1行に。秘匿の項目は使わない。"""
     k = e.get('kind')
+    if k == 'revealed':  # 行動解決で6枚が公開された（脚本家の札は「脚本家の札が公開された」の行で出す。主人公の札は自分で置いたもの）
+        return None
     if k == 'move':
         src = f'{AREA_JA.get(e["from"], e["from"])} → ' if e.get('from') else ''  # 行方不明の移動には移動元が無い
         return f'{name(e["char"])} が {src}{AREA_JA.get(e.get("to"), e.get("to"))} へ移動'
@@ -498,6 +505,17 @@ def pick_blind(rng):
     return rng.choices(cands, weights=ws)[0], len(cands)
 
 
+THINK = {'loop_setup': 'ループの準備', 'mm_cards': '伏せ札', 'mm_ability': '脚本家能力', 'incident_choice': '事件の対象',
+         'refuse': '友好能力を拒否するか', 'killer_pick': '任意能力', 'choose_rule_x': 'ルールの選択'}
+
+
+def _thinking(t, what, f):
+    def g(*a, **k):
+        t.show(waiting={'kind': 'thinking', 'text': f'脚本家が考えています（{what}）', 'what': what, 'since': time.time(), 'options': []}, bump=False)
+        return f(*a, **k)
+    return g
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--script', default='s03_bomb')
@@ -521,6 +539,11 @@ def main():
                                 make('search', rng, script))
     else:
         mm = make(a.mm, rng, script)
+    # 脚本家が考えている間は、盤面に「考え中」を出す（何を考えているかと開始時刻。calcG は1手に数十秒かかる）
+    for meth, what in THINK.items():
+        f = getattr(mm, meth, None)
+        if callable(f):
+            setattr(mm, meth, _thinking(t, what, f))
     player = Combo(mm, pc)
     nar = Narrator(t)
     t.log(f'対AIモード開始。脚本 {script.get("title", a.script)}（ループ {script["loops"]} 回・1ループ {script["days"]} 日・'

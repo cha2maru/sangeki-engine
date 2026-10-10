@@ -185,6 +185,7 @@ class Deduction:
         self.truth_lost_by = None
         self._watch = Deduction.WATCH
         self._truth = None
+        self.assumptions = {}  # 名前 → 仮定（assume_card）
         # カードの特性による配役の制約（公開情報）。A.I.【特性】パーソンにできない、妹【特性】友好無視を持つ役職にできない。
         # 脚本の検査（scripts.check）と生成（generate）は守っていたが、推理が残していた（対AIモードの点検で発見）
         if 'C22' in self.ix:
@@ -340,6 +341,11 @@ class Deduction:
                 self._truth = self._truth[keep]
                 if had and not self._truth.any() and self.truth_lost_by is None:
                     self.truth_lost_by = (kind, kw)
+            for a in self.assumptions.values():
+                if a['status'] == 'alive':
+                    a['mask'] = a['mask'][keep]
+                    if not a['mask'].any():
+                        a['status'], a['refuted_by'] = 'refuted', (kind, kw)
             if not len(self._C) and self.empty_by is None:
                 self.empty_by = (kind, kw)
                 import sys
@@ -372,19 +378,18 @@ class Deduction:
     # 自分の不安が負け筋になる役職（メインラバーズ: 暗躍1・不安3 で主人公の死）。事件の犯人も不安で動くが、犯人は仮説の外なので数えない
     PAR_ROLES = ('MAIN_LOVERS',)  # 自分の暗躍が負け筋になる役職（契約・遠隔殺人の標的・キラー・メインラバーズ）
 
-    def card_evidence(self, target, card, init, lr):
-        """公開された脚本家の暗躍・不安+1 の札（行動解決で6枚公開。学者の特性で脚本家が選んだカウンターも同じ扱い）から、その札が負け筋を進める仮説を lr 倍に重くする（仮説は消さない）。
-        人物への暗躍: その人物の役職が INT_ROLES。ボードへの暗躍: 封印されしモノ（神社）・巨大時限爆弾X（ウィッチの初期エリア）・
-        不定因子χ（都市、ファクターがキーパーソンの能力）。脚本家の意図の読み（Claude の主人公「暗躍+2 を使った所が要」）。
-        ponytail: 不安+1 は事件の犯人（仮説の外）に効くので使わない。おとりの札も同じ重みで数える（lr を小さめに）。"""
+    def _card_mask(self, target, card, init):
+        """脚本家が置いた暗躍・不安+1 が負け筋を進める仮説の印（R, C に対して）。手がかりにならない札は None。
+        人物への暗躍: その人物の役職が INT_ROLES。人物への不安+1: PAR_ROLES。ボードへの暗躍: 封印されしモノ（神社）・
+        巨大時限爆弾X（ウィッチの初期エリア）・不定因子χ（都市、ファクターがキーパーソンの能力）。"""
         if card not in ('INT1', 'INT2', 'PAR+'):
-            return
+            return None
         R, C = self._sync()
         if not len(C):
-            return
+            return None
         if target.startswith('B:'):
             if card == 'PAR+':
-                return
+                return None
             a = target[2:]
             rules = lambda r: np.array([r in cb for cb in COMBOS])[C]  # noqa: E731
             m = np.zeros(len(C), bool)
@@ -395,14 +400,65 @@ class Deduction:
             ws = [c for c in self.chars if (init or {}).get(c) == a]
             if ws:
                 m |= rules('Y_BOMB') & np.logical_or.reduce([self._is(R, c, 'WITCH') for c in ws])
-        elif target in self.ix:
-            m = self._is(R, target, *(self.PAR_ROLES if card == 'PAR+' else self.INT_ROLES))
-        else:
+            return m
+        if target in self.ix:
+            return self._is(R, target, *(self.PAR_ROLES if card == 'PAR+' else self.INT_ROLES))
+        return None
+
+    def card_evidence(self, target, card, init, lr):
+        """公開された脚本家の暗躍・不安+1 の札（行動解決で6枚公開。学者の特性で脚本家が選んだカウンターも同じ扱い）から、
+        その札が負け筋を進める仮説を lr 倍に重くする（仮説は消さない）。脚本家の意図の読み（Claude の主人公「暗躍+2 を使った所が要」）。
+        ponytail: おとりの札も同じ重みで数え、外れても気づかない（仮定 assume_card はこれを直す形）。"""
+        m = self._card_mask(target, card, init)
+        if m is None:
             return
         if self._lw is None:
-            self._lw = np.zeros(len(C), dtype=np.float32)
+            self._lw = np.zeros(len(self._C), dtype=np.float32)
         self._lw += math.log(lr) * m
         self._lw -= self._lw.max()
+
+    # ---- 仮定（ユーザーの案 2026-10-10: 仮定を置いて推理を分岐させ、合う仮説が0になった仮定は誤りだったとする）----
+    def assume_card(self, target, card, init, basis):
+        """脚本家が置いたカウンターから「この札は負け筋を進めている」という仮定を立てる（同じ所・同じ種類はまとめて裏付けを数える）。
+        仮定は仮説を消さない。確実な観測で、仮定に合う仮説が無くなったら否定（refuted_by に観測）。"""
+        m = self._card_mask(target, card, init)
+        if m is None:
+            return None
+        kind = 'par' if card == 'PAR+' else 'int'
+        name = f'{target} への{"不安" if kind == "par" else "暗躍"}は負け筋'
+        a = self.assumptions.get(name)
+        if a is None:
+            a = self.assumptions[name] = {'name': name, 'basis': [], 'support': 0, 'mask': m, 'status': 'alive', 'refuted_by': None}
+        a['basis'].append(basis)
+        a['support'] += 1
+        return a
+
+    def live_assumptions(self, top=3, max_share=0.9):
+        """枝分かれに使う仮定: 生きていて、すでに推理でほぼ確か（重みの max_share 以上）でないもの。裏付けの多い順に top 個。"""
+        R, C = self._sync()
+        if not len(C):
+            return []
+        w = self._w(C)
+        tot = w.sum() or 1.0
+        out = []
+        for a in self.assumptions.values():
+            if a['status'] != 'alive':
+                continue
+            share = float(w[a['mask']].sum() / tot)
+            if share < max_share:
+                out.append((a, share))
+        return sorted(out, key=lambda x: (-x[0]['support'], x[1]))[:top]
+
+    def sample_in(self, rng, a, k):
+        """仮定 a に合う仮説から重みつきで k 個引く。"""
+        R, C = self._sync()
+        idx = np.nonzero(a['mask'])[0]
+        if not len(idx):
+            return []
+        w = self._w(C)[idx]
+        pick = rng.choices(idx.tolist(), weights=w.tolist(), k=k)
+        return [(COMBOS[C[i]], {self.chars[j]: ROLES[x] for j, x in enumerate(R[i].tolist()) if x}) for i in pick]
+
 
     # ---- 読み出し ----
     def n_hyp(self):

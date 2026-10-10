@@ -163,7 +163,7 @@ def incident_info(after, day_incs, cands):
 
 
 class ReadingBlocker(DeductiveBlocker):
-    def __init__(self, rng, hyps=40, beta=0.7, hold=0.15, null_cost=0.1, model_mm=True, tt_weight=1.0, soft_gamma=0.0, pairs=True, memory=0.0, info_sched=False, loops=3, info_last=None, intent=0.0, urgency=0.3, reach=True, crit=False, info_adapt=9.0, reach_mv=False, safe=0.0, chain=False, zero=0.0, obs=0.0, clear=False, defense=0.0, itarget=False, probe=0.0, reveal=True, nulled=0.3, defplan=False, lookday=False, recall_mm=0.0, reach_info=0.0, board_waste=0.0, probe_broad=False, cut_w=0.0, lock_block=0.0, lock_probe=0.0, lock_danger=0.0, danger_lr=4.0, card_lr=0.0, prio=0.0, lost_th=0.05, prio_info=1.0, prio_gate=0.0, split=0.0, split_info=2.0, split_known=False, **kw):
+    def __init__(self, rng, hyps=40, beta=0.7, hold=0.15, null_cost=0.1, model_mm=True, tt_weight=1.0, soft_gamma=0.0, pairs=True, memory=0.0, info_sched=False, loops=3, info_last=None, intent=0.0, urgency=0.3, reach=True, crit=False, info_adapt=9.0, reach_mv=False, safe=0.0, chain=False, zero=0.0, obs=0.0, clear=False, defense=0.0, itarget=False, probe=0.0, reveal=True, nulled=0.3, defplan=False, lookday=False, recall_mm=0.0, reach_info=0.0, board_waste=0.0, probe_broad=False, cut_w=0.0, lock_block=0.0, lock_probe=0.0, lock_danger=0.0, danger_lr=4.0, card_lr=0.0, prio=0.0, lost_th=0.05, prio_info=1.0, prio_gate=0.0, split=0.0, split_info=2.0, split_known=False, assume=0.0, **kw):
         super().__init__(rng, hyps=hyps, **kw)
         # nulled: 脚本家の不安禁止・友好禁止で打ち消された (対象, 禁止) の回数を覚え、同じ対象へ不安±・友好の札を置く手を回数×nulled 減点する（ループをまたいで残す）。
         # 中身を知る Claude が脚本家の d27（seed 51）: 無関係の C07 に毎ループ不安禁止を置かれ、不安−1 を4回打ち消されて学者を守る札が足りなくなった
@@ -199,6 +199,8 @@ class ReadingBlocker(DeductiveBlocker):
         self.prio, self.lost_th, self.prio_info, self.prio_gate = prio, lost_th, prio_info, prio_gate
         # split: ループを途中で終わらせる筋だけを評価し（score_cut）、その脅威が届く世界の割合が split 未満なら情報に（重み split_info 倍）
         self.split, self.split_info, self.split_known = split, split_info, split_known
+        # assume: 仮定ごとに世界を枝分かれさせる（脚本家が置いたカウンターから仮定を立て、否定されたら捨てる）。値は足す世界の割合
+        self.assume = assume
         # obs: 事件の観測の価値。今日の事件が起きるか起きないかで犯人の候補がどれだけ割れるか（ビット）×obs を足す
         # （中身を知らない Claude が d01 で「自殺をわざと起こさせて巫女[5] で役職を見た」。ユーザー「わざと事件を起こすなどもある」）
         self.obs = obs
@@ -290,6 +292,8 @@ class ReadingBlocker(DeductiveBlocker):
                 if not tg.startswith('B:'):
                     self.ded.soft_target(tg, self.soft_gamma)
         scripts = self._intent_worlds(s) if self.intent else self._worlds(s)
+        if self.assume:  # 仮定ごとに世界を枝分かれさせる（生きている仮定に合う世界を足す）
+            scripts = scripts + self._assume_worlds(s, len(scripts))
         ws = self._weights(s, scripts, mm_targets)
         for t in mm_targets:
             self.targeted[t] = self.targeted.get(t, 0) + 1
@@ -761,9 +765,9 @@ class ReadingBlocker(DeductiveBlocker):
                     if x['by'] == 'M':
                         h = self.mm_hist.setdefault(x['target'], {})
                         h[x['card']] = h.get(x['card'], 0) + 1
-                        if self.card_lr and x['card'] in ('INT1', 'INT2', 'PAR+'):
+                        if (self.card_lr or self.assume) and x['card'] in ('INT1', 'INT2', 'PAR+'):
                             self._evidence(s, x['target'], x['card'])
-            if e.get('by') == 'SCHOLAR' and self.card_lr and e.get('kind') in ('par', 'int'):  # 学者の特性: 脚本家が選んだカウンター
+            if e.get('by') == 'SCHOLAR' and (self.card_lr or self.assume) and e.get('kind') in ('par', 'int'):  # 学者の特性: 脚本家が選んだカウンター
                 self._evidence(s, 'C19', 'PAR+' if e['kind'] == 'par' else 'INT1')
             if e.get('kind') == 'nullified' and e.get('by') in ('PARX', 'GWX'):
                 k = (e['target'], e['by'])
@@ -771,13 +775,25 @@ class ReadingBlocker(DeductiveBlocker):
                 if e['by'] == 'GWX':
                     self._gwx_loop = getattr(self, '_gwx_loop', set()) | {(s['loop'], e['target'])}
 
+    def _assume_worlds(self, s, n):
+        """生きている仮定（裏付けの多い順に3つまで）ごとに、その仮定に合う世界を引く。合わせて n×assume 個（仮定の間は等分）。"""
+        live = self.ded.live_assumptions()
+        if not live:
+            return []
+        k = max(1, round(n * self.assume / len(live)))
+        picks = [p for a, _ in live for p in self.ded.sample_in(self.rng, a, k)]
+        return self._scripts_from_picks(s, picks) if picks else []
+
     def _evidence(self, s, target, card):
         """脚本家が選んで置いたカウンターを推理の手がかりにする（Deduction.card_evidence）。同じ所・同じ種類は1ループ1回だけ（毎日のおとりで膨らまない）。"""
         kind = 'par' if card == 'PAR+' else 'int'
         if getattr(self, 'ded', None) is None or (s['loop'], target, kind) in self._card_seen:
             return
         self._card_seen.add((s['loop'], target, kind))
-        self.ded.card_evidence(target, card, s.get('init'), self.card_lr * (1.5 if card == 'INT2' else 1.0))
+        if self.assume:
+            self.ded.assume_card(target, card, s.get('init'), f"L{s['loop']}D{s['day']} {card}")
+        if self.card_lr:
+            self.ded.card_evidence(target, card, s.get('init'), self.card_lr * (1.5 if card == 'INT2' else 1.0))
 
     def _fill(self, s, sc, targets, hand, temp=0.3, n=24):
         """伏せ札の中身を1通り引く。脚本家の評価を上げる組ほど選ばれやすい。

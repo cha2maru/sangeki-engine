@@ -76,21 +76,21 @@ summary { cursor:pointer; color:var(--acc); }
 .b.p { background:var(--par); } .b.g { background:var(--gw); } .b.i { background:var(--int); border:1px solid #aaa; } .b.gd { background:var(--guard); }
 .b.crit { outline:2px solid var(--warn); }
 .ccards { position:absolute; top:-8px; right:-8px; display:flex; gap:1px; }
-img.card { width:44px; height:62px; border-radius:2px; box-shadow:0 1px 3px #000; }
-img.card.nul { opacity:.45; }
+.card { width:44px; height:62px; border-radius:2px; box-shadow:0 1px 3px #000; }
+.card.nul { opacity:.45; }
 /* 脚本家の札は赤い太枠と光で目立たせる。置かれたキャラクターの駒も赤枠にする */
-img.card.mm { outline:3px solid #ff3b3b; outline-offset:1px; box-shadow:0 0 12px 3px rgba(255,59,59,.85); }
-img.card.pc { outline:2px solid #6fc3ff; outline-offset:1px; }
+.card.mm { outline:3px solid #ff3b3b; outline-offset:1px; box-shadow:0 0 12px 3px rgba(255,59,59,.85); }
+.card.pc { outline:2px solid #6fc3ff; outline-offset:1px; }
 .ch.hasm { border:3px solid #ff3b3b; box-shadow:0 0 14px 2px rgba(255,59,59,.7); }
 .area.hasm { box-shadow:inset 0 0 0 4px #ff3b3b; }
-img.card.sent { outline:2px solid #6fc3ff; outline-offset:1px; opacity:.9; }
+.card.sent { outline:2px solid #6fc3ff; outline-offset:1px; opacity:.9; }
 #sent { margin-top:6px; font-size:12px; } #sent .h { color:#6fc3ff; font-weight:700; } #sent li { margin:1px 0; }
-img.card.pend { outline:2px dashed var(--acc); }
-.hand img.card { cursor:pointer; } .hand img.card.armed { outline:3px solid var(--acc); outline-offset:1px; transform:translateY(-3px); }
-.hand img.card:focus-visible, .ch:focus-visible, .area:focus-visible { outline:3px solid #6fc3ff; outline-offset:1px; }
+.card.pend { outline:2px dashed var(--acc); }
+.hand .card { cursor:pointer; } .hand .card.armed { outline:3px solid var(--acc); outline-offset:1px; transform:translateY(-3px); }
+.hand .card:focus-visible, .ch:focus-visible, .area:focus-visible { outline:3px solid #6fc3ff; outline-offset:1px; }
 body.arming .area, body.arming .ch { cursor:crosshair; }
-.ccards img.card { width:clamp(18px,7.5cqi,40px); height:auto; aspect-ratio:373/526; }
-.hand img.card { flex:1 1 0; min-width:0; max-width:34px; width:auto; height:auto; aspect-ratio:373/526; }
+.ccards .card { width:clamp(18px,7.5cqi,40px); height:auto; aspect-ratio:373/526; }
+.hand .card { flex:1 1 0; min-width:0; max-width:34px; width:auto; height:auto; aspect-ratio:373/526; }
 .hand { flex-wrap:wrap; } .hand .cards { display:flex; gap:3px; width:100%; }
 .cardzoom { position:fixed; z-index:30; width:220px; pointer-events:none; box-shadow:0 4px 20px #000; border-radius:6px; }
 .pane section { border-bottom:1px solid var(--line); padding:6px 2px 8px; }
@@ -98,7 +98,7 @@ body.arming .area, body.arming .ch { cursor:crosshair; }
 .pane h3 { margin:0 0 6px; font-size:13px; color:var(--acc); }
 .hand { display:flex; flex-wrap:wrap; gap:3px; margin:2px 0 6px; align-items:center; }
 .hand .who { width:100%; font-weight:700; font-size:12px; }
-.hand img.card.used { filter:grayscale(1) brightness(.4); }
+.hand .card.used { filter:grayscale(1) brightness(.4); }
 #pending li { margin:2px 0; } #pending button { margin-left:6px; }
 button { font:inherit; background:#333; color:var(--fg); border:1px solid #666; border-radius:3px; padding:2px 10px; cursor:pointer; }
 button.go { background:var(--acc); color:#000; border-color:var(--acc); font-weight:700; }
@@ -138,6 +138,53 @@ table.sh input { width:100%; box-sizing:border-box; }
 #sh-mat td:first-child { white-space: nowrap; }
 #board .area { position: relative; }
 #board .area .turf { position: absolute; right: 6px; bottom: 6px; width: 44px; height: 44px; border-radius: 50%; pointer-events: none; }
+/* ---- 人が遊ぶための表示（設定パネルと URL の ?ux=off で切れる）---- */
+#uxbtn { margin-left:auto; padding:0 8px; } #band a { margin-left:0; }
+#uxpanel { position:fixed; z-index:26; top:calc(var(--bandh, 52px) + 4px); right:12px; background:#222; border:1px solid var(--acc); border-radius:4px;
+  padding:8px 12px; display:none; box-shadow:0 4px 16px #000; min-width:240px; }
+#uxpanel.on { display:block; } #uxpanel label { display:flex; justify-content:space-between; gap:12px; margin:5px 0; }
+#uxpanel select, #uxpanel input { font:inherit; background:#111; color:var(--fg); border:1px solid #555; }
+/* 考え中: 盤面は見え・触れたまま、上に小さな表示を出す */
+#think { position:fixed; z-index:15; left:50%; top:calc(var(--bandh, 52px) + 10px); transform:translateX(-50%); display:none; align-items:center; gap:10px;
+  background:rgba(0,0,0,.88); border:1px solid var(--acc); border-radius:20px; padding:6px 16px; font-weight:700; pointer-events:none; }
+body.thinking #think { display:flex; } body.thinking #board { filter:brightness(.72); transition:filter .3s; }
+.spin { width:16px; height:16px; border:3px solid #555; border-top-color:var(--acc); border-radius:50%; animation:spin 1s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+#band .wait.mine { background:#1f7a45; animation:pulse 1.4s ease-in-out 3; }
+@keyframes pulse { 50% { box-shadow:0 0 0 6px rgba(80,200,120,.45); } }
+/* 場面カード */
+#scene { position:fixed; inset:0; z-index:18; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.55); }
+#scene.on { display:flex; }
+#scene .box { background:var(--panel); border:2px solid var(--acc); border-radius:8px; padding:14px 18px; width:min(560px, 92vw); max-height:80vh; overflow:auto;
+  box-shadow:0 8px 30px #000; animation:pop .25s ease-out; }
+#scene h2 { margin:0 0 2px; color:var(--acc); font-size:20px; } #scene .sub { color:var(--mut); margin-bottom:6px; }
+#scene ul { margin:4px 0 10px 1.2em; padding:0; } #scene li { margin:3px 0; animation:fadein .35s both; }
+#scene .btns { display:flex; gap:8px; flex-wrap:wrap; align-items:center; } #scene .left { color:var(--mut); font-size:12px; margin-right:auto; }
+#scene.mini { inset:auto; left:50%; bottom:12px; transform:translateX(-50%); background:none; }
+#scene.mini .box { width:auto; max-width:94vw; padding:6px 12px; animation:none; } #scene.mini .body { display:none; } #scene.mini h2 { font-size:14px; display:inline; margin-right:8px; }
+#scene.mini .sub { display:none; } #scene button[aria-pressed=true] { background:var(--acc); color:#000; }
+@keyframes pop { from { transform:scale(.92); opacity:0; } } @keyframes fadein { from { opacity:0; transform:translateY(4px); } }
+body.ux-fast #scene li, body.ux-fast #scene .box { animation-duration:.12s; }
+body.ux-noanim *, body.ux-noanim *::before, body.ux-noanim *::after { animation:none !important; transition:none !important; }
+.ch.chg { outline:3px solid #ffd54a; outline-offset:1px; }
+/* 画像なしの表示（画像が読めないとき・?img=off）*/
+.alabel { display:none; position:absolute; left:50%; top:3%; transform:translateX(-50%); font-size:clamp(14px,6cqi,30px); font-weight:800; color:rgba(255,255,255,.28); pointer-events:none; }
+body.noimg .area { background-image:none !important; } body.noimg .alabel { display:block; }
+body.noimg .area[data-area="病院"] { background:#1d3a47; } body.noimg .area[data-area="神社"] { background:#4a2323; }
+body.noimg .area[data-area="都市"] { background:#33334a; } body.noimg .area[data-area="学校"] { background:#234a31; }
+body.noimg .ch img.st { display:none; }
+/* 画像なし: 駒は名前の札。名前を削らず、不安臨界は名前の横に小さく */
+body.noimg .ch, body.noimg .area.crowd .ch, body.noimg .area.crowd2 .ch { width:auto; min-width:44px; padding:3px 5px; }
+body.noimg .ch .nm { font-size:clamp(11px,3.4cqi,15px); overflow:visible; display:inline; }
+body.noimg .ch .lim { position:static; display:inline-block; margin-left:4px; padding:0 3px; font-size:10px; vertical-align:middle; }
+body.noimg .ch .lim b { display:inline; font-size:11px; margin-left:1px; }
+span.card { display:inline-flex; align-items:center; justify-content:center; text-align:center; font-weight:800; font-size:12px; line-height:1.1; color:#fff;
+  background:#2a4f7a; box-sizing:border-box; padding:1px; overflow:hidden; }
+span.card.o-B { background:#246b70; } span.card.o-C { background:#41438f; } span.card.mm { background:#7a2626; }
+span.card.back { background:repeating-linear-gradient(45deg, #4a4a4a 0 4px, #353535 4px 8px); color:#ddd; }
+span.card.nul { text-decoration:line-through; }
+.ccards span.card { font-size:clamp(8px,2.4cqi,12px); } .hand span.card { font-size:10px; }
+span.turf { position:absolute; right:6px; bottom:6px; background:#6b5a1a; color:#fff; font-weight:700; font-size:12px; padding:2px 8px; border-radius:10px; }
 </style>
 
 <div id="band"></div>
@@ -181,6 +228,16 @@ table.sh input { width:100%; box-sizing:border-box; }
 </div>
 <p class="mut" style="margin:8px 12px">画像: <a href="http://bakafire.main.jp/rooper/sr_dl_04_sozai.htm" target="_blank" style="color:var(--mut)">惨劇コモンズ5th</a>（惨劇コモンズ作成: BakaFire・紺ノ玲、CC BY-SA 2.1 JP）</p>
 <div id="menu"></div>
+<div id="think"><span class="spin"></span><span id="thinktxt">脚本家が考えています</span><span id="thinksec" class="mut"></span></div>
+<div id="scene"><div class="box"><h2 id="sc-t"></h2><div class="sub" id="sc-s"></div><div class="body"><ul id="sc-l"></ul></div>
+  <div class="btns"><span class="left" id="sc-n"></span><span id="sc-ba"></span><button id="sc-look">盤面を見る</button><button class="go" id="sc-next">閉じる</button></div></div></div>
+<div id="uxpanel"><b style="color:var(--acc)">表示の設定</b> <span class="mut" id="ux-q"></span>
+  <label>場面カード <input type="checkbox" data-ux="scene"></label>
+  <label>演出の速さ <select data-ux="speed"><option value="slow">ゆっくり</option><option value="normal">ふつう</option><option value="fast">速い</option><option value="none">なし</option></select></label>
+  <label>自動で閉じる（秒、0 で閉じない） <input type="number" min="0" max="60" style="width:4em" data-ux="autoclose"></label>
+  <label>考え中の表示 <input type="checkbox" data-ux="think"></label>
+  <label>画像 <select data-ux="img"><option value="auto">自動</option><option value="on">あり</option><option value="off">なし（文字）</option></select></label>
+  <div class="mut">URL に ?ux=off で演出を全部切る（試験用）、?ux=fast で速く、?img=off で文字の表示。</div></div>
 
 <script>
 const IMG = '/img/';
@@ -230,8 +287,9 @@ function render() {
   const w = S.waiting || {};
   $('band').innerHTML = S.loop ? `<span>ループ <b>${S.loop}</b>/${S.loops}</span><span>日 <b>${S.day ?? '-'}</b>/${S.days}</span>
     <span class="ph">${esc(S.phaseName)}</span><span>リーダー <b>${esc(S.leader)}</b></span>
-    <span class="wait">${esc(w.text || '入力待ちなし')}</span>`
-    : '状態を読み込み中…';
+    <span class="wait ${myTurn() ? 'mine' : ''}">${esc(w.text || '入力待ちなし')}</span><button id="uxbtn" title="表示の設定">⚙</button>`
+    : '状態を読み込み中… <button id="uxbtn" title="表示の設定">⚙</button>';
+  renderThink();
   $('board').innerHTML = AREAS.map(([name, img, side]) => {
     const b = (S.boards || {})[name] || {};
     const slots = '暗躍 ' + [0,1,2].map(i => `<span class="slot ${i < (b.intrigue || 0) ? 'on' : ''}"></span>`).join('')
@@ -243,12 +301,14 @@ function render() {
     const n = (S.characters || []).filter(c => c.area === name).length;
     const crowd = n > 6 ? 'crowd2' : n > 4 ? 'crowd' : '';
     // 大物のテリトリー（公開情報。ゲームの準備に縄張りトークンを置く＝大物の特性）。文字だけだと見つからなかった（ユーザー指摘）
-    const turf = (S.publicSheet || {}).territory === name ? `<img class="turf" src="${IMG}tokens/turf.png" title="縄張りトークン（大物のテリトリー）" alt="縄張り">` : '';
+    const turf = (S.publicSheet || {}).territory !== name ? '' : noimg() ? '<span class="turf" title="縄張りトークン（大物のテリトリー）">縄張り</span>'
+      : `<img class="turf" src="${IMG}tokens/turf.png" title="縄張りトークン（大物のテリトリー）" alt="縄張り">`;
     return `<div class="area tgt ${areaM ? 'hasm' : ''} ${crowd}" data-area="${name}" tabindex="0" aria-label="${name}" style="background-image:url(${IMG}board/${img}.png)">
-      <div class="slots ${side}">${slots}</div><div class="acards ${side}">${cards}</div><div class="chars">${chars}</div>${turf}</div>`;
+      <span class="alabel">${name}</span><div class="slots ${side}">${slots}</div><div class="acards ${side}">${cards}</div><div class="chars">${chars}</div>${turf}</div>`;
   }).join('');
   $('hands').innerHTML = ['A','B','C'].map(p => `<div class="hand"><span class="who">主人公${p}${S.leader === p ? '★' : ''}</span>` +
-    '<div class="cards">' + PCARDS.map(([n, , lim]) => `<img class="card ${lim && (S.used?.[p] || []).includes(n) ? 'used' : ''} ${armed && armed.actor === p && armed.card === n ? 'armed' : ''}" tabindex="0" role="button" aria-pressed="${!!(armed && armed.actor === p && armed.card === n)}" data-armp="${p}" data-armc="${n}" title="${n}${lim ? '（1ループ1回）' : ''} ― 選んでからキャラクターかエリアをクリックすると置ける" src="${cardImg(p, n)}">`).join('') + '</div></div>').join('')
+    '<div class="cards">' + PCARDS.map(([n, , lim]) => cardEl(p, n, `${lim && (S.used?.[p] || []).includes(n) ? 'used' : ''} ${armed && armed.actor === p && armed.card === n ? 'armed' : ''}`,
+      `tabindex="0" role="button" aria-pressed="${!!(armed && armed.actor === p && armed.card === n)}" data-armp="${p}" data-armc="${n}" title="${n}${lim ? '（1ループ1回）' : ''} ― 選んでからキャラクターかエリアをクリックすると置ける"`)).join('') + '</div></div>').join('')
     + (armed ? `<div class="mut">選択中: 主人公${armed.actor} の ${esc(armed.card)} ― 置き先をクリック（Esc で解除）</div>` : '')
     + `<div class="hand"><span class="who">脚本家</span><span class="mut">使用済み: ${esc((S.used?.M || []).join('・') || 'なし')}</span></div>`;
   $('inc').innerHTML = (S.incidents || []).map(i => `<tr class="${i.day === S.day ? 'today' : ''}"><td>${i.day}日</td><td>${esc(i.name)}</td><td>${esc(i.result || '')}</td></tr>`).join('');
@@ -415,7 +475,15 @@ const sentCards = () => sent.filter(x => x.game === S.game && x.phaseId === S.ph
   .map(p => ({ owner: p.actor, target: p.target, card: p.card, sent: true }));
 const allCards = () => [...(S.cards || []), ...sentCards(), ...pending.map(p => ({ owner: p.actor, target: p.target, card: p.card, pending: true }))];
 function cardTag(c) {
-  return `<img class="card ${c.owner === 'M' ? 'mm' : 'pc'} ${c.nullified ? 'nul' : ''} ${c.pending ? 'pend' : ''} ${c.sent ? 'sent' : ''}" title="${esc(c.owner === 'M' ? '脚本家' : '主人公' + c.owner)}${c.card ? '：' + esc(c.card) : '（伏せ）'}" src="${cardImg(c.owner, c.card)}">`;
+  return cardEl(c.owner, c.card, `${c.owner === 'M' ? 'mm' : 'pc'} ${c.nullified ? 'nul' : ''} ${c.pending ? 'pend' : ''} ${c.sent ? 'sent' : ''}`,
+    `title="${esc(c.owner === 'M' ? '脚本家' : '主人公' + c.owner)}${c.card ? '：' + esc(c.card) : '（伏せ）'}"`);
+}
+// 札1枚: 画像（ふつう）か、色と短い名前の札（画像なしの表示）。owner は 'M' か 'A'〜'C'、name が無ければ伏せ札
+const SHORT = {'不安+1':'不+1','不安-1':'不−1','不安禁止':'不禁','友好+1':'友+1','友好+2':'友+2','友好禁止':'友禁','暗躍+1':'暗+1','暗躍+2':'暗+2',
+  '暗躍禁止':'暗禁','移動↑↓':'移↕','移動←→':'移↔','移動斜め':'移斜','移動禁止':'移禁'};
+function cardEl(owner, name, cls, attrs) {
+  if (noimg()) return `<span class="card ${cls} o-${owner} ${name ? '' : 'back'}" ${attrs}>${name ? (SHORT[name] || esc(name)) : '伏'}</span>`;
+  return `<img class="card ${cls}" ${attrs} src="${cardImg(owner, name)}">`;
 }
 function charTag(c) {
   const crit = c.paranoia >= c.limit ? 'crit' : '';
@@ -426,8 +494,8 @@ function charTag(c) {
   const cp = CHARPUB[c.name] || {};
   const tip = [`${c.name} 不安臨界${c.limit}`, cp.forbidden?.length ? '禁止エリア: ' + cp.forbidden.map(a => ({ HOS: '病院', SHR: '神社', CIT: '都市', SCH: '学校' })[a]).join('・') : '',
     (cp.tags || []).join('・'), cp.traits ? '特性: ' + cp.traits : '', ...(cp.abilities || []).map(a => `友好${a.need}${a.once ? '★' : ''}: ${a.text}`)].filter(Boolean).join('\n');
-  return `<div class="ch ${c.alive === false ? 'dead' : ''} ${hasM ? 'hasm' : ''}" data-char="${esc(c.name)}" tabindex="0" aria-label="${esc(c.name)}" title="${esc(tip)}${c.role ? ' / 役職:' + esc(c.role) : ''}">
-    <div class="ccards">${cards}</div><img class="st" src="${IMG}chara_stand/chara_stand_${c.card}.png">
+  return `<div class="ch ${c.alive === false ? 'dead' : ''} ${hasM ? 'hasm' : ''} ${CHG.has(c.name) ? 'chg' : ''}" data-char="${esc(c.name)}" tabindex="0" aria-label="${esc(c.name)}" title="${esc(tip)}${c.role ? ' / 役職:' + esc(c.role) : ''}">
+    <div class="ccards">${cards}</div>${noimg() ? '' : `<img class="st" src="${IMG}chara_stand/chara_stand_${c.card}.png">`}
     <span class="lim" title="不安臨界">臨<b>${c.limit}</b></span><div class="nm">${esc(c.name)}</div><div class="cnt">${cnt}</div></div>`;
 }
 let logFollow = true;
@@ -530,7 +598,7 @@ function placeArmed(target) {
   armed = null; document.body.classList.remove('arming'); render();
 }
 document.addEventListener('click', e => {
-  const hc = e.target.closest('img.card[data-armp]');
+  const hc = e.target.closest('.card[data-armp]');
   if (hc) {
     const same = armed && armed.actor === hc.dataset.armp && armed.card === hc.dataset.armc;
     armed = same ? null : { actor: hc.dataset.armp, card: hc.dataset.armc };
@@ -547,7 +615,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { if (armed) { armed = null; document.body.classList.remove('arming'); render(); } hide(); return; }
   if (e.key !== 'Enter' && e.key !== ' ') return;
   const el = document.activeElement; if (!el) return;
-  if (el.matches('img.card[data-armp]')) { e.preventDefault(); el.click(); return; }
+  if (el.matches('.card[data-armp]')) { e.preventDefault(); el.click(); return; }
   if (el.matches('#board [data-char], #board [data-area]')) {
     e.preventDefault();
     const target = el.dataset.char || 'board:' + el.dataset.area;
@@ -585,7 +653,7 @@ function renderSent() {
 async function post(a) {
   // 返事を待つ前に送信済みとして描く（待つ間に置いた札が盤面から消えていた。ユーザー指摘）
   const rec = { game: S.game, phaseId: S.phaseId, seq: '…', text: describeAction(a), placements: a.type === 'cards' ? a.placements : null };
-  sent.push(rec); render();
+  sent.push(rec); awaiting = Date.now(); render();
   try {
     const r = await fetch('/action', { method: 'POST', body: JSON.stringify({ phaseId: S.phaseId, ...a }) });
     const { seq } = await r.json();
@@ -603,20 +671,27 @@ $('abil').onclick = e => { e.stopPropagation(); if (e.target.id === 'abilmore') 
   ability(r.left - 200, r.bottom, b.dataset.ch, +b.dataset.abil, label, arg); };
 // ---- 過去の盤面 ----
 // ログの行をクリックすると、その行の処理が反映された直後の盤面を表示する（右クリックは異議）
-let viewing = null, liveS = null;
+let viewing = null, liveS = null, CHG = new Set();
+let awaiting = 0;  // 送信した時刻。状態が変わるまで「処理を待っています」（その間は自分の番と出さない）
+const snapshots = async () => (await (await fetch('/snapshots')).text()).split('\n').filter(Boolean).map(x => JSON.parse(x));
+// prev_n < n <= log_n のスナップショット＝ログ #n の処理が反映された直後の盤面（範囲が分からない行＝機能より前の記録は無い）
+const snapAt = (snaps, n) => snaps.find(x => x.prev_n != null && x.prev_n < n && n <= x.log_n);
+function viewSnapshot(snap, label, chg) {
+  if (!viewing) liveS = S;
+  viewing = label; CHG = chg || new Set();
+  S = { ...liveS, ...snap.state, waiting: { text: `${label} を表示中 ― 帯の『いまに戻る』で戻る` }, reply: liveS.reply };
+  render();
+  $('band').insertAdjacentHTML('afterbegin', '<button class="go" id="back">いまに戻る</button>');
+  $('back').onclick = backToLive;
+}
+function backToLive() { if (!viewing) return; viewing = null; CHG = new Set(); S = liveS; render(); renderOptions(); }
 $('log').onclick = async e => {
   const d = e.target.closest('[data-log]'); if (!d) return;
   const n = +d.dataset.log;
   try {
-    const snaps = (await (await fetch('/snapshots')).text()).split('\n').filter(Boolean).map(x => JSON.parse(x));
-    // prev_n < n <= log_n のスナップショットだけを使う。範囲が分からない行（機能より前の記録）は出さない
-    const snap = snaps.find(x => x.prev_n != null && x.prev_n < n && n <= x.log_n);
+    const snap = snapAt(await snapshots(), n);
     if (!snap) return alert(`#${n} の時点の盤面は残っていない（この機能より前の記録）`);
-    if (!viewing) liveS = S;
-    viewing = n; S = { ...liveS, ...snap.state, waiting: { text: `過去の盤面 #${n} を表示中 ― 帯の『いまに戻る』で戻る` }, reply: liveS.reply };
-    render();
-    $('band').insertAdjacentHTML('afterbegin', '<button class="go" id="back">いまに戻る</button>');
-    $('back').onclick = () => { viewing = null; S = liveS; render(); renderOptions(); };
+    viewSnapshot(snap, `過去の盤面 #${n}`);
     document.querySelectorAll('#log [data-log]').forEach(x => x.classList.toggle('sel', +x.dataset.log === n));
   } catch { alert('盤面の履歴を読めなかった'); }
 };
@@ -628,7 +703,7 @@ let lastState = '', lastLog = '', lastDed = '';
 async function poll() {
   try {
     const s = await (await fetch('/state')).text();
-    if (s !== lastState) { const v = JSON.parse(s); lastState = s; if (viewing) liveS = v; else { S = v; render(); renderOptions(); } }
+    if (s !== lastState) { const v = JSON.parse(s); lastState = s; awaiting = 0; if (viewing) liveS = v; else { S = v; render(); renderOptions(); } sceneOnState(v); }
   } catch {}
   try {
     const t = await (await fetch('/deduce')).text();
@@ -636,7 +711,7 @@ async function poll() {
   } catch {}
   try {
     const l = await (await fetch('/log')).text();
-    if (l !== lastLog) { LOG = l.split('\n').filter(Boolean).map(x => JSON.parse(x)); lastLog = l; renderLog(); }
+    if (l !== lastLog) { LOG = l.split('\n').filter(Boolean).map(x => JSON.parse(x)); lastLog = l; renderLog(); sceneOnLog(); }
   } catch {}
 }
 // 札にマウスを乗せると大きく表示する
@@ -645,6 +720,116 @@ document.addEventListener('mouseover', e => { const c = e.target.closest('img.ca
 document.addEventListener('mousemove', e => { if (zoom.style.display === 'block') { zoom.style.left = Math.min(e.clientX + 16, innerWidth - 230) + 'px'; zoom.style.top = Math.min(e.clientY + 16, innerHeight - 320) + 'px'; } });
 document.addEventListener('mouseout', e => { if (e.target.closest('img.card')) zoom.style.display = 'none'; });
 { const box = $('log').closest('.body'); box.addEventListener('scroll', () => { logFollow = box.scrollTop + box.clientHeight >= box.scrollHeight - 30; }); }
+// ---- 人が遊ぶための表示（設定・考え中・自分の番・場面カード・画像なし）----
+// 設定はこの端末に保存。URL の ?ux=off（演出を全部切る＝試験用）・?ux=fast・?img=off|on は保存した設定より優先（そのページだけ）
+const UXDEF = { scene: true, speed: 'normal', autoclose: 5, think: true, img: 'auto' };
+let UX = { ...UXDEF }; try { Object.assign(UX, JSON.parse(localStorage.getItem('ux') || '{}')); } catch {}
+const UXQ = {}; { const q = new URLSearchParams(location.search);
+  if (q.get('ux') === 'off') Object.assign(UXQ, { scene: false, speed: 'none', think: false });
+  if (q.get('ux') === 'fast') UXQ.speed = 'fast';
+  if (q.get('img')) UXQ.img = q.get('img') === 'off' ? 'off' : 'on'; }
+const ux = k => (k in UXQ ? UXQ[k] : UX[k]);
+let imgOK = null;  // 画像が読めるか（自動のとき、1枚読んでみる）
+const noimg = () => ux('img') === 'off' || (ux('img') === 'auto' && imgOK === false);
+function applyUX() {
+  document.body.classList.toggle('ux-fast', ux('speed') === 'fast');
+  document.body.classList.toggle('ux-noanim', ux('speed') === 'none');
+  document.body.classList.toggle('noimg', noimg());
+}
+{ const pr = new Image(); pr.onload = () => { imgOK = true; applyUX(); render(); }; pr.onerror = () => { imgOK = false; applyUX(); render(); }; pr.src = IMG + 'board/city.png'; }
+function openUX() {
+  const pnl = $('uxpanel'); pnl.classList.toggle('on');
+  pnl.querySelectorAll('[data-ux]').forEach(el => { const k = el.dataset.ux; el.disabled = k in UXQ;
+    if (el.type === 'checkbox') el.checked = !!ux(k); else el.value = ux(k); });
+  $('ux-q').textContent = Object.keys(UXQ).length ? '（URL の指定が優先: ' + Object.keys(UXQ).join('・') + '）' : '';
+}
+$('uxpanel').addEventListener('change', e => { const el = e.target, k = el.dataset.ux; if (!k) return;
+  UX[k] = el.type === 'checkbox' ? el.checked : el.type === 'number' ? +el.value : el.value;
+  try { localStorage.setItem('ux', JSON.stringify(UX)); } catch {}
+  applyUX(); render(); });
+document.addEventListener('click', e => { if (e.target.id === 'uxbtn') { e.stopPropagation(); openUX(); }
+  else if (!e.target.closest('#uxpanel')) $('uxpanel').classList.remove('on'); });
+
+// 自分の番（帯を緑に、タブの題名に★）と、考え中（脚本家の番・送信の後）
+const myTurn = () => { const w = S.waiting || {}; return !viewing && !awaiting && (['cards', 'ability', 'final'].includes(w.kind) || (w.options || []).length > 0); };
+function renderThink() {
+  const w = S.waiting || {};
+  const on = ux('think') && !viewing && (w.kind === 'thinking' || (awaiting && Date.now() - awaiting < 120000));
+  document.body.classList.toggle('thinking', !!on);
+  if (on) {
+    const since = w.kind === 'thinking' && w.since ? w.since * 1000 : awaiting;
+    $('thinktxt').textContent = w.kind === 'thinking' ? (w.text || '脚本家が考えています') : '送信しました。処理を待っています';
+    $('thinksec').textContent = since ? Math.max(0, Math.round((Date.now() - since) / 1000)) + '秒' : '';
+  }
+  const ended = (S.phaseName || '').startsWith('ゲーム終了');
+  document.title = ended ? '終了 ― 惨劇RoopeR' : myTurn() ? '★あなたの番 ― 惨劇RoopeR' : on ? '考え中… ― 惨劇RoopeR' : '惨劇RoopeR 盤面';
+}
+setInterval(renderThink, 1000);
+
+// 場面カード: 公開ログをフェイズの区切り（── L?D? 名前 ──）でまとめ、区切りが変わったら1枚にして順に出す
+let seenN = null, group = null, sceneQ = [], scene = null, sceneTimer = null, lastLD = null;
+const SPEED = { slow: 1.6, normal: 1, fast: 0.5, none: 0 };
+function flushGroup() { if (group && group.lines.length) sceneQ.push(group); group = null; }
+function sceneOnLog() {
+  if (seenN == null) { seenN = LOG.length ? LOG[LOG.length - 1].n : 0; return; }  // 開いた時点より前はさかのぼらない
+  for (const l of LOG.filter(x => x.n > seenN)) {
+    seenN = l.n;
+    const m = /^── (L(\d+)D(\d+)) (.+?) ──(.*)$/.exec(l.text || '');
+    if (m) {
+      flushGroup();
+      const ld = m[1], fresh = lastLD && ld !== lastLD ? (+m[2] !== +lastLD.slice(1).split('D')[0] ? `ループ${m[2]} 開始` : `${m[3]}日目`) : '';
+      lastLD = ld;
+      group = { title: m[4], sub: `ループ${m[2]} ・ ${m[3]}日目${fresh ? ' ・ ' + fresh : ''}${m[5] ? ' ・ ' + m[5].trim() : ''}`, lines: [], first: l.n + 1, last: l.n };
+    } else {
+      if (!group) group = { title: 'お知らせ', sub: '', lines: [], first: l.n, last: l.n };
+      group.lines.push(l.text); group.last = l.n;
+    }
+  }
+  if (myTurn() || /ゲーム終了/.test((LOG[LOG.length - 1] || {}).text || '')) flushGroup();
+  nextScene();
+}
+function sceneOnState() { if (myTurn()) { flushGroup(); nextScene(); } }
+function nextScene(force) {
+  if (!ux('scene')) { sceneQ = []; return closeScene(); }
+  if (scene && !force) return;
+  clearTimeout(sceneTimer);
+  scene = sceneQ.shift() || null;
+  const el = $('scene');
+  if (!scene) return closeScene();
+  el.classList.add('on'); el.classList.remove('mini');
+  $('sc-t').textContent = scene.title; $('sc-s').textContent = scene.sub;
+  const k = SPEED[ux('speed')] ?? 1;
+  $('sc-l').innerHTML = scene.lines.map((x, i) => `<li style="animation-delay:${(i * 0.18 * k).toFixed(2)}s">${esc(x)}</li>`).join('');
+  $('sc-n').textContent = sceneQ.length ? `あと ${sceneQ.length} 件` : '';
+  $('sc-next').textContent = sceneQ.length ? '次へ' : '閉じる';
+  $('sc-ba').innerHTML = scene.first <= scene.last ? '<button data-ba="before">解決前</button> <button data-ba="after">解決後</button>' : '';
+  // 自動で閉じる: 自分の番で最後の1枚なら閉じない（見落とさないように、閉じるまで操作できない）
+  const sec = ux('autoclose') * (k || 1);
+  if (sec > 0 && !(myTurn() && !sceneQ.length)) sceneTimer = setTimeout(() => { if ($('scene').classList.contains('mini')) return; scene = null; nextScene(); }, sec * 1000);
+}
+function closeScene() { scene = null; clearTimeout(sceneTimer); $('scene').classList.remove('on', 'mini'); }
+$('sc-next').onclick = () => { backToLive(); scene = null; nextScene(); };
+$('sc-look').onclick = () => { const el = $('scene'); clearTimeout(sceneTimer); el.classList.toggle('mini');
+  $('sc-look').textContent = el.classList.contains('mini') ? '場面に戻る' : '盤面を見る'; if (!el.classList.contains('mini')) backToLive(); };
+$('sc-ba').onclick = async e => {
+  const b = e.target.closest('[data-ba]'); if (!b || !scene) return;
+  clearTimeout(sceneTimer);
+  try {
+    const snaps = await snapshots();
+    const before = [...snaps].reverse().find(x => x.log_n != null && x.log_n < scene.first) , after = snapAt(snaps, scene.last);
+    const pick = b.dataset.ba === 'before' ? before : after;
+    if (!pick) return alert('この場面の盤面は残っていない');
+    const chg = new Set();
+    if (before && after) for (const c of after.state.characters || []) {
+      const o = (before.state.characters || []).find(x => x.name === c.name);
+      if (!o || ['paranoia', 'goodwill', 'intrigue', 'guard', 'area', 'alive'].some(f => o[f] !== c[f])) chg.add(c.name);
+    }
+    $('scene').classList.add('mini'); $('sc-look').textContent = '場面に戻る';
+    viewSnapshot(pick, `${scene.title}の${b.dataset.ba === 'before' ? '解決前' : '解決後'}`, b.dataset.ba === 'after' ? chg : new Set());
+    $('sc-ba').querySelectorAll('[data-ba]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  } catch { alert('盤面の履歴を読めなかった'); }
+};
+applyUX();
 render(); poll(); setInterval(poll, 2000);
 addEventListener('resize', () => document.documentElement.style.setProperty('--bandh', $('band').offsetHeight + 'px'));
 </script>

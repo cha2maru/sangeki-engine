@@ -78,7 +78,9 @@ def _make(kind, rng, script=None):
     if kind.startswith('lock'):  # lockB1・lockP2・lockBP: 調整した主人公（tuned/pc_r2）＋脚本家の逆算を主人公の側から（B: 確定を許す応手を減点、P: 確定したループは情報に）
         p = make('tuned-pc_r2', rng, script)
         rest = kind[4:]
-        if rest == 'QC':
+        if rest.startswith('A'):  # lockA0.5: 仮定ごとに世界を枝分かれ（足す世界の割合 0.5。ユーザーの案）
+            p.assume = float(rest[1:] or 0.5)
+        elif rest == 'QC':
             p.prio, p.card_lr = 0.02, 3.0
         elif rest == 'KC':  # lockKC: 知っている筋だけ守る（0.3・0.4）＋脚本家が置いたカウンターで推理を更新（card_lr 3）
             p.split, p.split_known, p.card_lr = 0.3, 0.4, 3.0
