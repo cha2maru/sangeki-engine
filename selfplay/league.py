@@ -265,6 +265,14 @@ def _make(kind, rng, script=None):
         p = make('calcA' if kind == 'calcAD' else 'calcG', rng, script)
         p.double = True
         return p
+    if kind == 'calcGf0':  # 比較用: 何も起きない札の置き換え（fill）を外したもの
+        p = make('calcG', rng, script)
+        p.fill = False
+        return p
+    if kind == 'calcGs0':  # 比較用: calcG から暗躍の上乗せの罰（surplus）を外したもの
+        p = make('calcG', rng, script)
+        p.surplus = 0.0
+        return p
     if kind == 'calcP':  # calcG＋位置の筋（同じエリア・2人きり・病院にいる）を逆算に入れる（route_calc v2.1）
         p = make('calcG', rng, script)
         p.calc_pos = True
@@ -354,6 +362,35 @@ def _make(kind, rng, script=None):
             'deduce': P.DeductiveProtagonist, 'random': RandomPlayer}[kind](rng)
 
 
+def card_use(before, mm_cards, events):
+    """脚本家の札1枚ごとの使われ方（ユーザー「無駄な札を数える」2026-10-11）: 'effect'（カウンター・移動・主人公の札を打ち消した）、
+    'drew'（暗躍禁止・移動禁止で止められた＝止め札を使わせた）、'surplus'（暗躍が乗ったが、要る数を満たし取り除かれもしない所）、
+    'guard'（友好禁止・不安禁止で何も打ち消さなかった＝保険・ブラフ。ユーザー「不安禁止は負け筋を確定させる保険にもブラフにもなる、
+    友好禁止は友好無視のキャラに置いて誤認させるブラフにもなる」）、'idle'（何も起きなかった）。before: 行動解決の前の盤面。"""
+    from selfplay.search_mm import SearchMastermind
+    try:
+        wasted = SearchMastermind._wasted_int(None, before)
+    except Exception:
+        wasted = set()
+    out = []
+    for x in mm_cards:
+        t, c = x['target'], x['card']
+        hit = lambda k, **kw: any(e.get('kind') == k and all(e.get(a) == b for a, b in kw.items()) for e in events)  # noqa: E731
+        if c in ('PAR+', 'PAR-'):
+            u = 'effect' if hit('par', target=t, card=c) else 'idle'
+        elif c in ('INT1', 'INT2'):
+            u = ('surplus' if t in wasted else 'effect') if hit('int', target=t, card=c) else 'drew' if hit('nullified', target=t, by='INTX') else 'idle'
+        elif c in ('GWX', 'PARX'):
+            u = 'effect' if hit('nullified', target=t, by=c) else 'guard' if not t.startswith('B:') else 'idle'
+        elif c.startswith('MV_'):
+            moved = any(e.get('kind') == 'move' and e.get('char') == t and c in (e.get('cards') or []) for e in events)
+            u = 'effect' if moved else 'drew' if any(e.get('kind') == 'move_blocked' and e.get('char') == t for e in events) else 'idle'
+        else:
+            u = 'idle'
+        out.append(u)
+    return out
+
+
 def one_game(script, mm, pc, seed, g):
     """乱数は陣営ごと・試合ごとに分ける（敵対的レビュー4: 片方の探索を変えても、相手の手と他の試合が変わらないように）。"""
     rm, rp = random.Random(f'{seed}:{g}:mm'), random.Random(f'{seed}:{g}:pc')
@@ -361,8 +398,18 @@ def one_game(script, mm, pc, seed, g):
     fb = {}
 
     loops_won = {}
+    use = {'effect': 0, 'drew': 0, 'guard': 0, 'surplus': 0, 'idle': 0}
+    pending = {}
 
     def log(kind, rec):
+        if kind == 'decisions' and rec.get('kind') == 'place_cards' and rec.get('who') == 'M' and rec.get('state'):
+            pending[(rec['loop'], rec['day'])] = (rec['state'], rec['choice'])
+        if kind == 'events' and rec.get('phase') == 'actions' and (rec.get('loop'), rec.get('day')) in pending:
+            st, ch = pending.pop((rec['loop'], rec['day']))
+            before = dict(st, script={**script, 'days': script['days']}, loop=rec['loop'], day=rec['day'],
+                          ability_used_loop=[], ability_used_today=[], incident_log=[], leader='A')
+            for u in card_use(before, ch, rec.get('events') or []):
+                use[u] += 1
         if rec.get('phase') == 'final_battle':
             fb.update(rec)
         if kind == 'events' and rec.get('phase') in ('loop_end', 'loop_end_check'):
@@ -392,7 +439,7 @@ def one_game(script, mm, pc, seed, g):
     finally:
         Deduction.WATCH = None
     out = {'game': g, 'result': r, 'sec': round(time.time() - t0, 1), 'truth': obs.snaps,
-           'loops_won': {str(k): v for k, v in loops_won.items()}}
+           'loops_won': {str(k): v for k, v in loops_won.items()}, 'card_use': use}
     # 推理の健全性（主人公自身の推理・脚本家が持つ公開情報の推理）: 仮説が全部消えた／真の脚本を消した最初の観測
     for side, ded in (('pc', getattr(pcp, 'ded', None)), ('mm', getattr(getattr(mmp, 'pub', None), 'ded', None))):
         if ded is None:
@@ -466,6 +513,10 @@ def summarize(games):
         'declared_ok': avg([g['declared_ok'] for g in fin]),
         'missed_confirmed': sum(bool(g.get('missed_confirmed')) for g in fin),
         'sec_per_game': avg([g['sec'] for g in games]),
+        # 脚本家の札の使われ方（card_use）: 無駄（上乗せ＋何も起きなかった）の割合
+        'mm_waste': (lambda u: round((u['surplus'] + u['idle']) / max(1, sum(u.values())), 3))(
+            {k: sum(g.get('card_use', {}).get(k, 0) for g in games) for k in ('effect', 'drew', 'guard', 'surplus', 'idle')}),
+        'card_use': {k: sum(g.get('card_use', {}).get(k, 0) for g in games) for k in ('effect', 'drew', 'guard', 'surplus', 'idle')},
         # ループ k の終わりの値（そのループまで進んだ全試合。最後の戦いに届いたかで選ばない＝敵対的レビュー3）
         'by_loop': {k: {'n': len(v), 'confirmed': avg([x['confirmed'] for x in v]),
                         'confirmed_key_roles': avg([x['confirmed_key_roles'] for x in v]),

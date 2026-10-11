@@ -139,3 +139,18 @@ def test_wasted_intrigue_caps_bluff_targets():
          'used': {p: [] for p in 'MABC'}, 'ability_used_loop': [], 'ability_used_today': [], 'incident_log': []}
     w = mm._wasted_int(s)
     assert {'B:SHR', 'C01'} <= w and not {'B:CIT', 'C02'} & w
+
+
+def test_fill_idle_replaces_noop_card_on_character():
+    """何も起きない札（人物への不安−1、主人公の札も無い）は、置き場所はそのままに友好禁止か不安禁止へ替える。押す札は替えない。"""
+    import random
+    from selfplay.search_mm import SearchMastermind
+    mm = SearchMastermind(random.Random(0), days=5, loops=3)
+    ch = lambda a, **k: dict({'area': a, 'alive': True, 'par': 0, 'gw': 0, 'int': 0, 'guard': 0}, **k)  # noqa: E731
+    s = {'loop': 1, 'day': 1, 'leader': 'A', 'script': {'rules': ['Y_MURDER', 'X_CIRCLE', 'X_LOVE'], 'roles': {}, 'days': 5, 'incidents': []},
+         'chars': {'C01': ch('SCH'), 'C02': ch('SCH'), 'C05': ch('CIT')}, 'boards': {'HOS': 0, 'SHR': 0, 'CIT': 0, 'SCH': 0},
+         'used': {p: [] for p in 'MABC'}, 'ability_used_loop': [], 'ability_used_today': [], 'incident_log': []}
+    mm._reply_of = {}
+    out = mm._fill_idle(s, [{'by': 'M', 'target': 'C01', 'card': 'PAR-'}, {'by': 'M', 'target': 'C02', 'card': 'PAR+'},
+                            {'by': 'M', 'target': 'B:CIT', 'card': 'INT1'}])
+    assert out[0]['target'] == 'C01' and out[0]['card'] in ('GWX', 'PARX') and out[1]['card'] == 'PAR+' and out[2]['card'] == 'INT1'

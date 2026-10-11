@@ -98,7 +98,7 @@ def surplus(state):
 
 class SearchMastermind(RouteMastermind):
     def __init__(self, rng, triples=16, cards=8, replies=16, lam=0.1, hold=0.25, days=8, loops=3, lam_choices=None,
-                 explore=0.0, move_log=False, stop_replies=False, opp=0, urgency=1.0, force=1.0, stuck=0.3, v3=True, bluff=0.0, conceal=0.0, fit=True, bait=0.0, look=0, gamma=0.5, consp=0.0, stand=0.0, early=2.0, margin=0.0, hide=0.0, chain_ab=1.0, gate=None, enable=0.0, plan=0.0, plan_rank=0, recall=0.0, tempo=None, known=1.0, guide=None, worst=0.5, joseki=False, gwx_eve=0.0, hide_culprit=0.0, persist=0.0, joseki_top=6, cut_mm=0.0, lookday=False, calc=False, gamble=0.0, double=False, align=False, dg=0.0, surplus=1.0):
+                 explore=0.0, move_log=False, stop_replies=False, opp=0, urgency=1.0, force=1.0, stuck=0.3, v3=True, bluff=0.0, conceal=0.0, fit=True, bait=0.0, look=0, gamma=0.5, consp=0.0, stand=0.0, early=2.0, margin=0.0, hide=0.0, chain_ab=1.0, gate=None, enable=0.0, plan=0.0, plan_rank=0, recall=0.0, tempo=None, known=1.0, guide=None, worst=0.5, joseki=False, gwx_eve=0.0, hide_culprit=0.0, persist=0.0, joseki_top=6, cut_mm=0.0, lookday=False, calc=False, gamble=0.0, double=False, align=False, dg=0.0, surplus=1.0, fill=True):
         super().__init__(rng)
         # force: 止め手の枠を超える脅威（暗躍禁止は1日1枚、不安-1・移動禁止は各主人公1ループ1回）に加点。
         # stuck: このループで止められ続けている (対象, 種類) にまた置く手を減点（ユーザーの観点: 選択を迫りパワープレイを作る）
@@ -188,6 +188,7 @@ class SearchMastermind(RouteMastermind):
         self.align = align  # 位置の筋を揃える移動（キラーをキーパーソンの所へ等）を候補に必ず入れる（d24: calcD が4日目の移動斜めを逃した）
         self.dg = dg  # calcD と calcG の合成: 賭けが閾値に届かない日も、賭けの手を候補に入れ、評価に dg×確率を足す
         self._gbonus = {}
+        self.fill = fill  # 何も起きない札（予想した応手で）を、無作為のままにせず保険・妨害・ブラフに替える（_fill_idle）
         self.surplus = surplus  # 負け筋に要る数を満たし、主人公が取り除けない暗躍への上乗せの罰（バグの試合: 病院の暗躍 3 → 4）
         self.double = double  # 二重の脅威（同じ日に2か所を押す手）を候補に必ず入れる（d07: 暗躍禁止は1日1か所しか効かない）
         self.gamble, self.intx_seen, self.int_reached = gamble, {}, set()  # 取れないループでも、今日の賭けでこの確率以上なら賭ける（0 で使わない）
@@ -829,6 +830,8 @@ class SearchMastermind(RouteMastermind):
                     if r <= acc:
                         break
                 mm = self._calc_merge(s, self._bluff_cards(s, mv), scored)
+        if self.fill:
+            mm = self._fill_idle(s, mm)
         self._last_mm = list(mm)  # 止められたかを行動解決の後に数える（stuck）
         for x in mm:
             self.tcount[(s['loop'], x['target'])] = self.tcount.get((s['loop'], x['target']), 0) + 1
@@ -898,6 +901,57 @@ class SearchMastermind(RouteMastermind):
                     hand.remove(x['card'])
                     out.append(x)
         return out if len(out) == 3 or not skip else SearchMastermind._calc_merge(s, [(o['target'], o['card']) for o in out], scored)
+
+    def _fill_idle(self, s, mm):
+        """予想した主人公の応手で何も起きない（または上乗せの）札を、置き場所はそのままに役目のある札へ替える（ユーザー「無作為はよくない、
+        隠す意味でも友好禁止などの妨害にあてるべき」2026-10-11）。人物には、不安が負け筋に要るなら不安禁止（不安−1 からの保険）、
+        それ以外は友好禁止（閾値の前日なら妨害、友好無視の役職ならブラフ）。押す札（不安+1・暗躍・移動）には替えない＝賭けの混ぜ方を崩さない。"""
+        from engine.resolve import CHARS as RCHARS, combine_moves, destination
+        reply = self._reply_of.get(id(mm), []) if hasattr(self, '_reply_of') else []
+        theirs = {}
+        for p in reply:
+            if p.get('by') != 'M':
+                theirs.setdefault(p['target'], []).append(p['card'])
+        wasted = self._wasted_int(s)
+        il = s['chars'].get('C20')
+        il_board = 'B:' + il['area'] if il and il['alive'] and il.get('present', True) and il.get('area') else None
+
+        def use(x):  # 予想した応手のもとで、この札が何かを起こすか（league.card_use と同じ分け方を、行動解決なしで）
+            t, c = x['target'], x['card']
+            if t.startswith('B:') and c not in ('INT1', 'INT2'):
+                return 'guard' if t == il_board else 'idle'  # 幻想のいるボードの札は幻想に効く
+            if c in ('INT1', 'INT2'):
+                return 'drew' if 'INTX' in theirs.get(t, []) else 'surplus' if t in wasted else 'effect'
+            ch = s['chars'].get(t)
+            if c == 'PAR+':
+                return 'effect'
+            if c == 'PAR-':
+                return 'effect' if ch and ch['par'] > 0 else 'idle'
+            if c.startswith('MV_'):
+                if 'MVX' in theirs.get(t, []):
+                    return 'drew'
+                mv = [c] + [k for k in theirs.get(t, []) if k.startswith('MV_')]
+                to = destination(ch['area'], combine_moves(mv)) if ch else None
+                return 'idle' if not ch or (to in RCHARS[t]['forbidden'] and t not in s.get('unbound', [])) else 'effect'
+            return 'guard'  # 友好禁止・不安禁止
+        uses = [use(x) for x in mm]
+        hand = [c for c in CARDS['mastermind_hand'] if not (c in ONCE['M'] and c in s['used']['M'])]
+        for x in mm:
+            if x['card'] in hand:
+                hand.remove(x['card'])
+        par_need = {d[0] for r_ in enumerate_routes(s) for c in r_['conds'] if c['kind'] == 'counter' and (d := c['detail'])[1] == 'par'}
+        out = []
+        for x, u in zip(mm, uses):
+            t = x['target']
+            if u in ('idle', 'surplus') and not t.startswith('B:') and t in s['chars']:
+                for c in (('PARX', 'GWX') if t in par_need else ('GWX', 'PARX')):
+                    if c in hand:
+                        hand.append(x['card']) if x['card'] in CARDS['mastermind_hand'] else None
+                        hand.remove(c)
+                        x = dict(x, card=c)
+                        break
+            out.append(x)
+        return out
 
     def _wasted_int(self, s):
         """暗躍を足しても意味の無い置き先: 負け筋に要る暗躍の数（筋ごとの最大）をもう満たし、主人公の友好能力でも取り除けないもの。
