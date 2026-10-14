@@ -16,6 +16,7 @@ import copy
 import random
 
 from engine import phases as ph
+from engine import sets
 from engine.resolve import CARDS, ONCE, IllegalPlacement, copy_state, resolve_actions
 from engine.features import state_features
 from engine.route_calc import forced_plan
@@ -41,7 +42,8 @@ def urgent_targets(s, days, top=6):
 
 
 # ループの終わりに負けが決まる筋（止められなくてもループは最後まで続き、主人公は情報を取り続けられる）。それ以外はループの途中で終わる（情報も断たれる）
-LOOP_END_ROUTES = {'Y_SEAL', 'Y_CONTRACT', 'Y_FUTURE', 'Y_BOMB', 'FRIEND', 'TT_LOSS'}
+LOOP_END_ROUTES = {'Y_SEAL', 'Y_CONTRACT', 'Y_FUTURE', 'Y_BOMB', 'FRIEND', 'TT_LOSS'} | {
+    r for sid in sets.ids() for r, v in sets.load(sid)['rules'].items() if v.get('loop_end_loss')}  # ほかのセットのルールY（守るべき場所など）
 
 
 def is_loop_end(r):

@@ -42,3 +42,24 @@ def test_first_steps_no_final_battle():
     env.close()
     assert d['kind'] == 'end' and d['result'] == {'winner': 'mastermind', 'loop': by_id('s09_first_steps')['loops']}
     assert 'final_guess' not in kinds
+
+
+def test_first_steps_deduction_keeps_truth():
+    """推理の仮説の表は First Steps のもの（ルールX1つ・最低の却本のマイナス0〜2人）。真の脚本を消さない。"""
+    from engine.deduce import Deduction, table
+    from selfplay.league import make
+    from selfplay.players import PublicObserver
+    from selfplay.run import Combo, play_game
+    T = table('FS')
+    assert all(len(cb) == 2 for cb in T.combos) and T.variants[('Y_PROTECT', 'X_WORST')] == 3
+    base = by_id('s09_first_steps')
+    for rules, roles in ((['Y_PROTECT', 'X_RIPPER'], base['roles']),
+                         (['Y_REVENGE', 'X_WORST'], {'C04': 'KUROMAKU', 'C05': 'MISLEADER', 'C03': 'FRIEND', 'C01': 'MINUS'})):
+        sc = dict(copy.deepcopy(base), rules=rules, roles=roles)
+        Deduction.WATCH = {'rules': rules, 'roles': roles}
+        obs = PublicObserver()
+        try:
+            play_game(sc, Combo(make('route', random.Random(1), sc), make('read', random.Random(1), sc)), lambda k, rec: None, observers=[obs])
+        finally:
+            Deduction.WATCH = None
+        assert obs.ded.T.id == 'FS' and obs.ded.truth_lost_by is None and obs.ded.empty_by is None and obs.ded.n_hyp() > 0

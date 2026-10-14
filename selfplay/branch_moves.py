@@ -34,7 +34,7 @@ def knowledge_features(s, mm, cards, script):
     - 勝ち筋: 近い勝ち筋（上位3）の要（経由するキャラクターの真の役職、無ければ筋のルール）を主人公が見抜いている確率
     - 手: 伏せ札の対象が役職持ちに見える確率（主人公から見た目立ち方）"""
     import numpy as np
-    from engine.deduce import COMBOS, RC, ROLES, truth_metrics
+    from engine.deduce import RC, ROLES, truth_metrics
     from engine.routes import enumerate_routes
     ded = mm.pub.ded
     tm = truth_metrics(ded, script)
@@ -45,7 +45,7 @@ def knowledge_features(s, mm, cards, script):
     idx = {c: j for j, c in enumerate(ded.chars)}
 
     def p_rule(rule):
-        ci = [i for i, cb in enumerate(COMBOS) if rule in cb]
+        ci = [i for i, cb in enumerate(ded.T.combos) if rule in cb]
         return float(w[np.isin(C, ci)].sum() / tot)
 
     def p_role(c, role):

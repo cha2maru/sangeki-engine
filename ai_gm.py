@@ -552,7 +552,7 @@ class Narrator:
     def deduce(self, s):
         """推理エンジンの候補の割合（役職・ルール・犯人）を deduce.json に書く。"""
         import numpy as np
-        from engine.deduce import COMBOS, incident_candidates
+        from engine.deduce import incident_candidates
         ded = self.pub.ded
         if ded is None:
             return
@@ -561,8 +561,8 @@ class Narrator:
         w = ded._w(C)
         wt = float(w.sum()) or 1.0
         rules = {}
-        for rid in RULE_JA:
-            idx = [i for i, cb in enumerate(COMBOS) if rid in cb]
+        for rid in [x for x in RULE_JA if ded.T.has(x).any()]:  # そのセットのルール
+            idx = [i for i, cb in enumerate(ded.T.combos) if rid in cb]
             rules[RULE_JA[rid]] = round(float(w[np.isin(C, idx)].sum()) / wt, 3)
         roles = {name(c): {ROLE_JA[r]: round(float(v) / tot, 3) for r, v in d.items() if v > 0} for c, d in m.items()} if tot else {}
         cands = incident_candidates(list(s['chars']), self.pub.inc_history, self.pub.culprits)

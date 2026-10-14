@@ -15,7 +15,8 @@ v2.0 の範囲（下限＝「取れる」と出たら、主人公がどう止め
 from functools import lru_cache
 from itertools import combinations
 
-from .routes import EFFECTS, INF, enumerate_routes
+from . import sets
+from .routes import INF, enumerate_routes
 
 MAX_TARGETS = 5
 MAX_ROUTES = 8
@@ -55,7 +56,7 @@ def _route_spec(r, state, days, positional=True, pos_mode=False):
                 return None  # 位置がまだ揃っていない筋は数えない（下限）
         else:
             return None  # incident_par・counter_max など v2.0 では扱わない
-    if r['id'] in EFFECTS['rules'] and when is None:
+    if sets.rule(state, r['id']).get('loop_end_loss') and when is None:
         when = days  # ループ終了時
     if when is None:
         when = 'turn_end'  # 役職の能力（メインラバーズ・キラーなど）は毎日

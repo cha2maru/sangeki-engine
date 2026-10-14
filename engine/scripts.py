@@ -95,21 +95,6 @@ def init_areas(sc):
     return {c: sc.get('init', {}).get(c) or sc.get('start', {}).get(c) or CHARS[c]['start'] for c in sc['characters']}
 
 
-def need_roles(st, rules):
-    """ルールの組が追加する役職の員数 (最小, 最大)。[最小, 最大] は幅（最低の却本のマイナス）。人数上限で切る（友情サークル2つのフレンドなど）。"""
-    lo, hi = Counter(), Counter()
-    for r in rules:
-        for role, n in st['rules'][r]['roles'].items():
-            a, b = n if isinstance(n, list) else (n, n)
-            lo[role] += a
-            hi[role] += b
-    for role in hi:
-        cap = st['roles'].get(role, {}).get('max')
-        if cap:
-            lo[role], hi[role] = min(lo[role], cap), min(hi[role], cap)
-    return lo, dict(hi)
-
-
 def check(sc):
     """(誤り, 注意) のリスト。"""
     err, warn = [], []
@@ -128,7 +113,7 @@ def check(sc):
         err.append('同じキャラクターが2度登場している')
     if any(c not in chars for c in sc['roles']):
         err.append('登場しないキャラクターに役職がある')
-    lo, need = need_roles(st, sc['rules']) if not err else ({}, {})
+    lo, need = sets.need_roles(st, sc['rules']) if not err else ({}, {})
     # イレギュラー・コピーキャットはルールの役職の枠に数えない（カードの特性「ルールより追加された役職とすることができない」）
     special = {'C11', 'C28'}
     have = Counter(r for c, r in sc['roles'].items() if c not in special)

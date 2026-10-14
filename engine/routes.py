@@ -8,6 +8,7 @@ data/effects.json（早見表の文面を条件と効果に構造化したもの
 import json
 import os
 
+from . import sets
 from .phases import base_role, role
 from .resolve import CHARS, GRID
 
@@ -67,6 +68,18 @@ def _cond(kind, detail, deficit):
     return {'kind': kind, 'detail': detail, 'deficit': deficit}
 
 
+def _loss_conds(state, rid):
+    """ルールのループ終了時の敗北条件（セットのデータ loop_end_loss）を、列挙の条件の形に。"""
+    c = sets.rule(state, rid).get('loop_end_loss') or {}
+    if c.get('do') == 'board_int':
+        return [('board', c['board'], c['min'])]
+    if c.get('do') == 'start_area_int':
+        return [('board', ('START', c['role']), c['min'])]
+    if c.get('do') == 'role_counter':
+        return [('counter', c['role'], c['counter'], c['min'])]
+    return []
+
+
 def enumerate_routes(state, days_in_loop=None):
     """主人公の敗北への道筋を列挙する。返り値は道筋のリスト（total が小さいほど近い）。"""
     sc = state['script']
@@ -80,6 +93,8 @@ def enumerate_routes(state, days_in_loop=None):
 
     # フレンドの死亡はループ終了時の敗北（早見表 フレンド）。殺す筋はキーパーソンと同じ形で数える（ループ中ならいつ死んでもよい）
     friends = [c for c in chars if br[c] == 'FRIEND']
+    occ_loss = {c['incident']: rid for rid in sc['rules'] for c in [sets.rule(state, rid).get('loop_end_loss') or {}]
+                if c.get('do') == 'incident_occurred'}  # 未来改変プラン: 蝶の羽ばたきの発生でループ終了時に敗北
     # ラバーズの死亡でメインラバーズに不安6（早見表 恋愛風景）→ メインラバーズに暗躍1でターン終了フェイズに主人公死亡（ML_PROT）。
     # ラバーズを殺す筋も負け筋として数える（d24: 従者＝ラバーズの自殺・身代わりから男子学生の暴発。以前は数えていなかった）
     mls = [c for c in chars if c in alive and br[c] == 'MAIN_LOVERS']
@@ -175,8 +190,8 @@ def enumerate_routes(state, days_in_loop=None):
             for g in guarded:
                 add('REMOTE', cul, f'C34 死亡（{g} の身代わり）', base + [_cond('counter', (g, 'int', 2), max(0, 2 - chars[g]['int'])), sub(g)] + vcond('C34'),
                     end=is_end('C34'))
-        elif inc['id'] == 'BUTTERFLY' and 'Y_FUTURE' in sc['rules']:
-            add('Y_FUTURE', cul, 'ループ終了時の敗北（蝶の羽ばたき）', base)
+        elif inc['id'] in occ_loss:
+            add(occ_loss[inc['id']], cul, 'ループ終了時の敗北（蝶の羽ばたき）', base)
         elif inc['id'] == 'HOSPITAL':
             add('HOSPITAL_PROT', cul, '主人公死亡', base + [_cond('board', ('HOS', 2), max(0, 2 - state['boards']['HOS']))])
             # 病院に暗躍1以上→病院にいる全員死亡（キーが病院にいればキーの死亡）
@@ -198,20 +213,17 @@ def enumerate_routes(state, days_in_loop=None):
     for f in friends:
         if f not in alive:
             add('FRIEND', f, 'ループ終了時の敗北（フレンド死亡）', [])
-    if 'Y_FUTURE' in sc['rules'] and any(i['loop'] == state['loop'] and i['id'] == 'BUTTERFLY' and i['occurred']
-                                         for i in state.get('incident_log', [])):
-        add('Y_FUTURE', None, 'ループ終了時の敗北（蝶の羽ばたき）', [])
+    for iid, rid in occ_loss.items():
+        if any(i['loop'] == state['loop'] and i['id'] == iid and i['occurred'] for i in state.get('incident_log', [])):
+            add(rid, None, 'ループ終了時の敗北（蝶の羽ばたき）', [])
     # ルールYのループ終了時の敗北条件
     init = state.get('init') or {}
     for rid in sc['rules']:
-        e = EFFECTS['rules'].get(rid)
-        if not e:
-            continue
-        for c in e['conds']:
+        for c in _loss_conds(state, rid):
             if c[0] == 'board':
                 areas = [c[1]]
-                if c[1] == 'WITCH_START':  # 巨大時限爆弾X: ウィッチの初期エリア（生死を問わない＝ユーザー裁定）
-                    areas = [init[w] for w in chars if br[w] == 'WITCH' and init.get(w)]
+                if isinstance(c[1], tuple):  # 役職の初期エリア（巨大時限爆弾X のウィッチ・復讐者の灯火のクロマク。生死を問わない＝ユーザー裁定）
+                    areas = [init[w] for w in chars if br[w] == c[1][1] and init.get(w)]
                 for a in areas:
                     add(rid, None, 'ループ終了時の敗北', [_cond('board', (a, c[2]), max(0, c[2] - state['boards'].get(a, 0)))])
                     # 事件（邪気の汚染・行方不明）でボードに暗躍を置く筋。暗躍禁止では止まらず、犯人の不安で止める（目隠し4本目:
@@ -224,9 +236,9 @@ def enumerate_routes(state, days_in_loop=None):
                             add(rid, cul, 'ループ終了時の敗北（事件）', [
                                 _cond('days', ('事件', inc['id'], inc['day']), inc['day'] - state['day']),
                                 _cond('counter', (cul, 'par', CHARS[cul]['limit']), max(0, CHARS[cul]['limit'] - chars[cul]['par'])), rest])
-            elif c[0] == 'counter' and c[1] == 'KEY':
-                for k in [k for k in keys if br[k] == 'KEY']:  # 契約: 役職キーパーソンだけ（ファクターは数えない＝ユーザー裁定）
-                    add(rid, None, 'ループ終了時の敗北', [_cond('counter', (k, 'int', c[3]), max(0, c[3] - chars[k]['int']))])
+            elif c[0] == 'counter':
+                for k in [k for k in chars if br[k] == c[1]]:  # 契約: 役職キーパーソンだけ（ファクターは数えない＝ユーザー裁定）
+                    add(rid, None, 'ループ終了時の敗北', [_cond('counter', (k, c[2], c[3]), max(0, c[3] - chars[k][c[2]]))])
     _apply_unstoppable(state, routes, days_in_loop or sc.get('days'))
     return sorted(routes, key=lambda r: r['total'])
 

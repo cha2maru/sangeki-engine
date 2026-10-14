@@ -298,7 +298,7 @@ class PublicObserver:
     def _ensure(self, s):
         if self.ded is None:
             from engine.deduce import Deduction
-            self.ded = Deduction(list(s['chars']))
+            self.ded = Deduction(list(s['chars']), set_id=s.get('script', {}).get('set'))
 
     def observe(self, s, phase, events):
         """公開される出来事だけを観測として取り込む（役職や理由は見ない）。"""

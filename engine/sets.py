@@ -1,6 +1,7 @@
 """惨劇セットのデータ（engine/data/sets/<id>.json。plan/engine-api.md 4章）。エンジンは役職・ルールの性質と能力をここから引き、部品を実行する。"""
 import json
 import os
+from collections import Counter
 from functools import lru_cache
 
 _DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'sets')
@@ -61,3 +62,18 @@ def has_trait(state, r, t):
 def meets(v, mins=None, maxs=None):
     """カウンターの下限・上限（{'int': 2} など）を満たすか。"""
     return all(v.get(k, 0) >= n for k, n in (mins or {}).items()) and all(v.get(k, 0) <= n for k, n in (maxs or {}).items())
+
+
+def need_roles(st, rules):
+    """ルールの組が追加する役職の員数 (最小, 最大)。[最小, 最大] は幅（最低の却本のマイナス）。人数上限で切る（友情サークル2つのフレンドなど）。"""
+    lo, hi = Counter(), Counter()
+    for r in rules:
+        for role, n in st['rules'][r]['roles'].items():
+            a, b = n if isinstance(n, list) else (n, n)
+            lo[role] += a
+            hi[role] += b
+    for role in hi:
+        cap = st['roles'].get(role, {}).get('max')
+        if cap:
+            lo[role], hi[role] = min(lo[role], cap), min(hi[role], cap)
+    return lo, dict(hi)

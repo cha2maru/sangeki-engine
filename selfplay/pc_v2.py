@@ -696,7 +696,8 @@ class ReadingBlocker(DeductiveBlocker):
         """[(block_rates, 重み)]: 伏せ札の人物 t ごとに、t が取り返せない役職（キーパーソン・フレンド）の世界を k 個引き、
         応手ごとの「確定される割合」を返す。重みは q = pL/(pL+1-p)（p は推理の確率、L は脚本家がそこに札を置いた尤度比）。"""
         import numpy as np
-        from engine.deduce import COMBOS, ROLES
+        from engine.deduce import ROLES
+        COMBOS = self.ded.T.combos
         from engine.route_calc import block_rates
         self._ensure(s)
         R, C = self.ded._sync()
@@ -861,10 +862,10 @@ class ReadingBlocker(DeductiveBlocker):
         cands = []
         # 情報屋は最も確からしいルールXを宣言する（入っていれば、もう1つが公開される）
         R, C = self.ded._sync()
-        from engine.deduce import COMBOS
         import numpy as np
+        COMBOS = self.ded.T.combos
         w = self.ded._w(C)
-        xs = ('X_CIRCLE', 'X_LOVE', 'X_KILLER', 'X_RUMOR', 'X_VIRUS', 'X_THREAD', 'X_FACTOR')
+        xs = self.ded.T.xs
         pres = {x: float(w[np.isin(C, [i for i, cb in enumerate(COMBOS) if x in cb])].sum()) for x in xs}
         best_x = max(pres, key=pres.get)
         refused = getattr(self, 'refused_chars', set())

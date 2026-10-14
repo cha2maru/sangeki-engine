@@ -22,37 +22,81 @@ import os
 
 import numpy as np
 
+from . import sets
+
 from .resolve import CHARS
 
 RULES = json.load(open(os.path.join(os.path.dirname(__file__), 'data', 'rules.json'), encoding='utf-8'))['rules']
+ROLES = ['PERSON', 'KEY', 'KILLER', 'KUROMAKU', 'CULTIST', 'TT', 'WITCH', 'FRIEND', 'MISLEADER', 'LOVERS', 'MAIN_LOVERS', 'SK', 'FACTOR',
+         'MINUS']  # 役職の番号（仮説の行列の値）。セットをまたいで共通。First Steps のマイナスは後ろに足した（BTX の番号は変えない）
+RC = {r: i for i, r in enumerate(ROLES)}
+
+
+class _Table:
+    """惨劇セットごとの仮説の表（engine/data/sets）: ルールの組（Y1つ＋X が rule_x 個）と、その組が追加する役職の員数。
+    員数に幅のある役職（最低の却本のマイナス 0〜2）は、員数ごとに別の組として並べる（combos[i] はルールの組、needs[i] は員数）。"""
+
+    def __init__(self, set_id):
+        st = sets.load(set_id)
+        self.id, self.roles = st['id'], list(st['roles'])
+        rules = st['rules']
+        ys = [r for r, v in rules.items() if v['type'] == 'Y']
+        xs = [r for r, v in rules.items() if v['type'] == 'X']
+        self.combos, self.needs = [], []
+        for y in ys:
+            for xc in itertools.combinations(xs, st.get('rule_x', 2)):
+                lo, hi = sets.need_roles(st, (y,) + xc)
+                var = [k for k in hi if lo[k] != hi[k]]
+                for counts in itertools.product(*[range(lo[k], hi[k] + 1) for k in var]):
+                    need = dict(hi)
+                    need.update(zip(var, counts))
+                    self.combos.append((y,) + xc)
+                    self.needs.append(need)
+        self.variants = {cb: self.combos.count(cb) for cb in self.combos}
+        self.refusers = {r for r, v in st['roles'].items() if v.get('refusal')}
+        self.absolute = {r for r, v in st['roles'].items() if v.get('refusal') == 'absolute'}
+        self.loss = {r: v['loop_end_loss'] for r, v in rules.items() if v.get('loop_end_loss')}  # ルールのループ終了時の敗北条件
+        self.rumor = [r for r, v in rules.items() if v.get('mm_board_once')]
+        self.loop_start_par = [r for r, v in rules.items() if v.get('loop_start')]
+        self.virus = [r for r, v in rules.items() if v.get('role_change')]
+        self.xs = xs
+        self._has = {}
+
+    def has(self, *rules):
+        """ルールのどれかを含む組の印（組の番号ごと）。セットに無いルールは全部 False。"""
+        k = rules
+        if k not in self._has:
+            self._has[k] = np.array([any(x in cb for x in rules) for cb in self.combos], dtype=bool)
+        return self._has[k]
+
+
+_TABLES = {}
+
+
+def table(set_id=None):
+    sid = sets.load(set_id)['id']
+    if sid not in _TABLES:
+        _TABLES[sid] = _Table(sid)
+    return _TABLES[sid]
+
+
+_BTX = table('BTX')
+COMBOS = _BTX.combos  # Basic Tragedy X の表（互換。セットを持つ推理は Deduction.T を使う）
 LIMIT = {'MISLEADER': 1, 'FRIEND': 2}
-REFUSERS = {'KILLER', 'KUROMAKU', 'FACTOR', 'CULTIST', 'WITCH'}
-ABSOLUTE = {'CULTIST', 'WITCH'}
+REFUSERS = _BTX.refusers
+ABSOLUTE = _BTX.absolute
 
 
 def rule_combos(set_rules=None):
-    ys = [r for r, v in RULES.items() if v['type'] == 'Y']
-    xs = [r for r, v in RULES.items() if v['type'] == 'X']
-    for y in ys:
-        for x1, x2 in itertools.combinations(xs, 2):
-            yield (y, x1, x2)
+    yield from dict.fromkeys(_BTX.combos)
 
 
 def roles_for(combo):
-    need = {}
-    for r in combo:
-        for role, n in RULES[r]['roles'].items():
-            need[role] = need.get(role, 0) + n
-    for role, cap in LIMIT.items():
-        if role in need:
-            need[role] = min(need[role], cap)
-    return need
+    """Basic Tragedy X のルールの組が追加する役職の員数（互換）。"""
+    return sets.need_roles(sets.load('BTX'), combo)[1]
 
 
-ROLES = ['PERSON', 'KEY', 'KILLER', 'KUROMAKU', 'CULTIST', 'TT', 'WITCH', 'FRIEND', 'MISLEADER', 'LOVERS', 'MAIN_LOVERS', 'SK', 'FACTOR']
-RC = {r: i for i, r in enumerate(ROLES)}
-COMBOS = list(rule_combos())
-_BASE = {}  # 登場人物の数 → 観測前の全仮説（配役の行列, ルールの組の番号）。観測者どうしで共有する
+_BASE = {}  # (セット, 登場人物の数) → 観測前の全仮説（配役の行列, ルールの組の番号）。観測者どうしで共有する
 
 
 class TooManyHypotheses(Exception):
@@ -88,19 +132,19 @@ class _Rows:
         return np.concatenate(self.chunks), np.concatenate(self.cchunks)
 
 
-def _base_for(chars, cap):
+def _base_for(T, chars, cap):
     """登場人物に合わせた観測前の全仮説。特別なキャラクターがいなければ人数だけで決まる（共有）。
     - イレギュラー C11: ルールの役職の枠を埋めず、選ばれたルールが追加しない役職（パーソン以外）になる
     - コピーキャット C28: ルールの役職の枠を埋めず、他のキャラクター1人と同じ役職（パーソン以外）になる
     - アルバイト C32: 配役を無視してパーソン。アルバイト？ C33 はアルバイトの配役と同じ"""
     if not any(c in chars for c in SPECIAL):
-        return _base(len(chars), cap)
-    key = tuple(chars)
+        return _base(T, len(chars), cap)
+    key = (T.id, tuple(chars))
     if key in _BASE:
         return _BASE[key]
     ix = {c: i for i, c in enumerate(chars)}
     free = [c for c in chars if c not in ('C11', 'C28', 'C33')]  # ルールの枠を埋めうる者
-    R0, C0 = _base(len(free), cap)
+    R0, C0 = _base(T, len(free), cap)
     acc = _Rows(len(chars))
     for row, ci in zip(R0.tolist(), C0.tolist()):
         full = [0] * len(chars)
@@ -113,8 +157,8 @@ def _base_for(chars, cap):
                 full[ix['C33']] = cast
         opts11 = [None]
         if 'C11' in ix:
-            added = set(roles_for(COMBOS[ci]))
-            opts11 = [RC[r] for r in ROLES if r != 'PERSON' and r not in added]
+            added = set(T.needs[ci])
+            opts11 = [RC[r] for r in T.roles if r != 'PERSON' and r not in added]
         for r11 in opts11:
             f2 = list(full)
             if r11 is not None:
@@ -133,12 +177,12 @@ def _base_for(chars, cap):
     return _BASE[key]
 
 
-def _base(n, cap):
-    if n in _BASE:
-        return _BASE[n]
+def _base(T, n, cap):
+    if (T.id, n) in _BASE:
+        return _BASE[T.id, n]
     acc = _Rows(n)
-    for ci, combo in enumerate(COMBOS):
-        need = [(r, k) for r, k in roles_for(combo).items() if k]
+    for ci, combo in enumerate(T.combos):
+        need = [(r, k) for r, k in T.needs[ci].items() if k]
         if sum(k for _, k in need) > n:
             continue
 
@@ -156,15 +200,11 @@ def _base(n, cap):
         rec(0, list(range(n)), [0] * n)
         if acc.n > cap:
             raise TooManyHypotheses(f'{n}人で {acc.n} 件を超えた（上限 {cap}）')
-    _BASE[n] = acc.arrays()
-    return _BASE[n]
+    _BASE[T.id, n] = acc.arrays()
+    return _BASE[T.id, n]
 
 
-def _combo_has(rule):
-    return np.array([rule in cb for cb in COMBOS])
-
-
-HAS = {r: _combo_has(r) for r in RULES}
+HAS = {r: _BTX.has(r) for r in RULES}  # 互換（Basic Tragedy X）
 
 
 class Deduction:
@@ -173,7 +213,8 @@ class Deduction:
     # 試験・対戦表用: 真の脚本 {'rules', 'roles'} を置くと、以後に作る推理はそれが消された観測を記録する（truth_lost_by）
     WATCH = None
 
-    def __init__(self, chars, cap=30_000_000):
+    def __init__(self, chars, cap=30_000_000, set_id=None):
+        self.T = table(set_id)
         self.chars = list(chars)
         self.ix = {c: i for i, c in enumerate(self.chars)}
         self.cap = cap
@@ -191,7 +232,7 @@ class Deduction:
         if 'C22' in self.ix:
             self.obs.append(('not_role', {'char': 'C22', 'roles': ('PERSON',)}))
         if 'C31' in self.ix:
-            self.obs.append(('not_role', {'char': 'C31', 'roles': tuple(sorted(REFUSERS))}))
+            self.obs.append(('not_role', {'char': 'C31', 'roles': tuple(sorted(self.T.refusers))}))
         # 僕と契約しようよ！【強制：脚本作成時】必ず少女がキーパーソンとなる（早見表、wiki/concepts/rule-role-matrix.md）
         # コピーキャットは役職をルールの枠でなく特性で得る（他の1人と同じ役職）ので除く。脚本の検査（scripts.check: 少女のキーパーソンが
         # 1人いればよい）と合わせる（除かないと、コピーキャットがキーパーソンの脚本 d05 で真の脚本を最初から消していた）
@@ -208,9 +249,10 @@ class Deduction:
         return np.isin(self._col(R, c), [RC[r] for r in roles])
 
     def _mask(self, R, C, kind, kw):
-        virus = HAS['X_VIRUS'][C]
+        H = lambda *rs: self.T.has(*rs)[C]  # noqa: E731
+        virus = H(*self.T.virus)
         if kind == 'rule_x_revealed':
-            return HAS[kw['rule']][C]
+            return H(kw['rule'])
         if kind == 'role_revealed':
             r, c = kw['role'], kw['char']
             m = self._is(R, c, r)
@@ -220,14 +262,14 @@ class Deduction:
         if kind == 'contract_girl':
             m = np.ones(len(C), bool)
             for c in kw['nongirls']:
-                m &= ~(HAS['Y_CONTRACT'][C] & self._is(R, c, 'KEY'))
+                m &= ~(H('Y_CONTRACT') & self._is(R, c, 'KEY'))
             return m
         if kind == 'not_role':
             return ~self._is(R, kw['char'], *kw['roles'])
         if kind == 'refused':
-            return self._is(R, kw['char'], *REFUSERS)
+            return self._is(R, kw['char'], *self.T.refusers)
         if kind == 'not_refused':
-            return ~self._is(R, kw['char'], *ABSOLUTE)
+            return ~self._is(R, kw['char'], *self.T.absolute)
         if kind == 'mm_effect':
             present = kw['present']  # そのとき、そのエリアにいた生存キャラクター
             want = {'int': ('KUROMAKU',), 'par': ('MISLEADER',)}[kw['counter']]
@@ -238,10 +280,10 @@ class Deduction:
                 for c in present:
                     m |= self._is(R, c, 'FACTOR')
             if kw['counter'] == 'int' and kw.get('rumor_possible'):
-                m |= HAS['X_RUMOR'][C]  # 不穏な噂（1ループ1回、任意のボード）
+                m |= H(*self.T.rumor)  # 不穏な噂（1ループ1回、任意のボード）
             return m
         if kind == 'loop_start_par':
-            return HAS['X_THREAD'][C]  # ループ開始時に不安が置かれるのは因果の糸だけ（早見表 ルールX）
+            return H(*self.T.loop_start_par)  # ループ開始時に不安が置かれるのは因果の糸だけ（早見表 ルールX）
         if kind == 'turn_end_death':
             # ターン終了フェイズの死亡: 同一エリアにキラー（被害者がキーパーソンで暗躍2以上）か、
             # シリアルキラー（被害者と2人きり。配役、または妄想拡大ウイルスで不安3以上のパーソン）がいた
@@ -295,15 +337,23 @@ class Deduction:
         if kind == 'loop_end_check':
             # ループ終了時の敗北条件（rule-role-matrix.md「追加ルールの文面」、role-abilities.md フレンド）のどれかが成り立つか
             b = kw['boards']
-            cond = HAS['Y_SEAL'][C] & (b['SHR'] >= 2)
-            if kw.get('butterfly'):
-                cond = cond | HAS['Y_FUTURE'][C]
-            for c, i in kw['ints'].items():
-                if i >= 2:
-                    cond = cond | (HAS['Y_CONTRACT'][C] & self._is(R, c, 'KEY'))
-                a = kw.get('init', {}).get(c)
-                if a and b.get(a, 0) >= 2:
-                    cond = cond | (HAS['Y_BOMB'][C] & self._is(R, c, 'WITCH'))
+            # 条件はセットのデータ（loop_end_loss）から: 封印されしモノ・守るべき場所＝ボード、未来改変プラン＝蝶の羽ばたき、
+            # 僕と契約しようよ！＝キーパーソンの暗躍、巨大時限爆弾X・復讐者の灯火＝役職の初期エリア
+            cond = np.zeros(len(C), bool)
+            for rid, x in self.T.loss.items():
+                if x['do'] == 'board_int' and b.get(x['board'], 0) >= x['min']:
+                    cond = cond | H(rid)
+                elif x['do'] == 'incident_occurred' and kw.get('butterfly') and x['incident'] == 'BUTTERFLY':
+                    cond = cond | H(rid)
+                elif x['do'] == 'role_counter':
+                    for c, i in kw['ints'].items():
+                        if i >= x['min']:
+                            cond = cond | (H(rid) & self._is(R, c, x['role']))
+                elif x['do'] == 'start_area_int':
+                    for c in kw['ints']:
+                        a = kw.get('init', {}).get(c)
+                        if a and b.get(a, 0) >= x['min']:
+                            cond = cond | (H(rid) & self._is(R, c, x['role']))
             for c in kw['dead']:
                 cond = cond | self._is(R, c, 'FRIEND')
             m = cond if kw['loss'] else ~cond
@@ -324,7 +374,7 @@ class Deduction:
 
     def _sync(self):
         if self._R is None:
-            self._R, self._C = _base_for(self.chars, self.cap)
+            self._R, self._C = _base_for(self.T, self.chars, self.cap)
             self._lw = None  # 仮説ごとの対数の重み（soft_target）。None なら全て0
             self._seen_obs = 0
             if self._watch is not None:
@@ -360,7 +410,7 @@ class Deduction:
                 return 'PERSON'
             return script['roles'].get('C32' if c == 'C33' else c, 'PERSON')
         true = np.array([RC[true_role(c)] for c in self.chars], dtype=R.dtype)
-        ci = [i for i, cb in enumerate(COMBOS) if set(cb) == set(script['rules'])]
+        ci = [i for i, cb in enumerate(self.T.combos) if set(cb) == set(script['rules'])]
         return (R == true).all(axis=1) & np.isin(C, ci)
 
     def soft_target(self, char, gamma):
@@ -391,15 +441,16 @@ class Deduction:
             if card == 'PAR+':
                 return None
             a = target[2:]
-            rules = lambda r: np.array([r in cb for cb in COMBOS])[C]  # noqa: E731
             m = np.zeros(len(C), bool)
-            if a == 'SHR':
-                m |= rules('Y_SEAL')
+            for rid, x in self.T.loss.items():
+                if x['do'] == 'board_int' and x['board'] == a:
+                    m |= self.T.has(rid)[C]
             if a == 'CIT':
-                m |= rules('X_FACTOR')
+                m |= self.T.has('X_FACTOR')[C]
             ws = [c for c in self.chars if (init or {}).get(c) == a]
-            if ws:
-                m |= rules('Y_BOMB') & np.logical_or.reduce([self._is(R, c, 'WITCH') for c in ws])
+            for rid, x in self.T.loss.items():
+                if ws and x['do'] == 'start_area_int':
+                    m |= self.T.has(rid)[C] & np.logical_or.reduce([self._is(R, c, x['role']) for c in ws])
             return m
         if target in self.ix:
             return self._is(R, target, *(self.PAR_ROLES if card == 'PAR+' else self.INT_ROLES))
@@ -457,7 +508,7 @@ class Deduction:
             return []
         w = self._w(C)[idx]
         pick = rng.choices(idx.tolist(), weights=w.tolist(), k=k)
-        return [(COMBOS[C[i]], {self.chars[j]: ROLES[x] for j, x in enumerate(R[i].tolist()) if x}) for i in pick]
+        return [(self.T.combos[C[i]], {self.chars[j]: ROLES[x] for j, x in enumerate(R[i].tolist()) if x}) for i in pick]
 
 
     # ---- 読み出し ----
@@ -467,12 +518,12 @@ class Deduction:
     def hypotheses(self, cap=None):
         """[(ルールの組, {キャラクター: 役職（パーソン以外）})]。数が多いときは重いので、試験と少数の場合に使う。"""
         R, C = self._sync()
-        return [(COMBOS[ci], {self.chars[j]: ROLES[x] for j, x in enumerate(row) if x}) for row, ci in zip(R.tolist(), C.tolist())]
+        return [(self.T.combos[ci], {self.chars[j]: ROLES[x] for j, x in enumerate(row) if x}) for row, ci in zip(R.tolist(), C.tolist())]
 
-    def weight(self, combo):
-        """事前の重み: ルールの組み合わせは等確率、その中の配役も等確率とする。
-        役職の多い組み合わせは配役の並べ方が多いので、1/(並べ方の数) で割って偏りを消す。"""
-        need = roles_for(combo)
+    def weight(self, ci):
+        """事前の重み（組の番号 ci）: ルールの組み合わせは等確率、その中の配役も等確率とする。
+        役職の多い組み合わせは配役の並べ方が多いので、1/(並べ方の数) で割って偏りを消す。員数に幅のある組は、員数ごとに等分する。"""
+        need = self.T.needs[ci]
         k = sum(need.values())
         n = len(self.chars)
         if k > n:
@@ -480,11 +531,11 @@ class Deduction:
         ways = math.perm(n, k)
         for c in need.values():
             ways //= math.factorial(c)
-        return 1.0 / ways
+        return 1.0 / ways / self.T.variants[self.T.combos[ci]]
 
     def _w(self, C):
         if not hasattr(self, '_cw'):
-            self._cw = np.array([self.weight(cb) for cb in COMBOS])
+            self._cw = np.array([self.weight(i) for i in range(len(self.T.combos))])
         w = self._cw[C]
         lw = getattr(self, '_lw', None)
         if lw is not None and len(lw) == len(C) and C is self._C:  # 全仮説のときだけ soft_target の重みを掛ける
@@ -528,7 +579,7 @@ class Deduction:
         w = self._w(C)
         idx = rng.choices(range(len(C)), weights=w.tolist(), k=k) if len(C) < 200000 else \
             [int(i) for i in np.searchsorted(np.cumsum(w), [rng.random() * w.sum() for _ in range(k)])]
-        return [(COMBOS[C[i]], {self.chars[j]: ROLES[x] for j, x in enumerate(R[i].tolist()) if x}) for i in idx]
+        return [(self.T.combos[C[i]], {self.chars[j]: ROLES[x] for j, x in enumerate(R[i].tolist()) if x}) for i in idx]
 
     def final_guesses(self):
         """最後の戦いの宣言。キャラクターごとに別々に最多の役職を選ぶと、役職の上限（ミスリーダー1など）や
@@ -601,7 +652,7 @@ def truth_metrics(ded, script, inc_history=(), culprits=None):
         return script['roles'].get('C32' if c == 'C33' else c, 'PERSON')
     true = np.array([RC[true_role(c)] for c in ded.chars], dtype=np.int8)
     p_truth = float(w[(R == true).all(axis=1)].sum() / tot) if tot else 0.0
-    true_ci = [i for i, cb in enumerate(COMBOS) if set(cb) == set(script['rules'])]
+    true_ci = [i for i, cb in enumerate(ded.T.combos) if set(cb) == set(script['rules'])]
     p_rules = float(w[np.isin(C, true_ci)].sum() / tot) if tot else 0.0
     pt = M[np.arange(len(ded.chars)), true] / tot if tot else np.zeros(len(ded.chars))
     conf = pt >= 1 - 1e-9
