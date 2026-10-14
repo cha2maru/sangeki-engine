@@ -28,9 +28,10 @@
   "Y_CONTRACT": {"loop_end_loss": {"do": "role_counter", "role": "KEY", "counter": "int", "min": 2}},
   "Y_FUTURE": {"loop_end_loss": {"do": "incident_occurred", "incident": "BUTTERFLY"}},
   "Y_BOMB": {"loop_end_loss": {"do": "start_area_int", "role": "WITCH", "min": 2}},
-  "X_CIRCLE": {}, "X_LOVE": {}, "X_KILLER": {}, "X_FACTOR": {},
+  "X_CIRCLE": {}, "X_LOVE": {}, "X_KILLER": {},
   "X_RUMOR": {"mm_board_once": 1},
   "X_VIRUS": {"role_change": {"from": "PERSON", "to": "SK", "self_min": {"par": 3}}},
-  "X_THREAD": {"loop_start": {"do": "par_to_prev_gw", "n": 2}}
+  "X_THREAD": {"loop_start": {"do": "par_to_prev_gw", "n": 2}},
+  "X_FACTOR": {}
  }
 }

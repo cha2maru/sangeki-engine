@@ -7,7 +7,8 @@
 
 - **選べる手（options）はエンジンが出します。** エージェントはその中から1つ返すだけで、反則の手は作れません。
 - **主人公には公開の情報しか渡りません。** 役職・犯人・脚本家の伏せ札の中身は、主人公の判断には入りません（試合の終わりに `reveal` で明かされます）。
-- 対応しているのは Basic Tragedy X の脚本です（`engine/data/sets/BTX.json`）。
+- 惨劇セットは脚本の `set` で決まります。Basic Tragedy X（`engine/data/sets/BTX.json`）と First Steps（`FS.json`、最後の戦いが無くルールXは1つ。試験用の脚本 `s09_first_steps`）。
+  自動のプレイヤーの推理・負け筋の読みは Basic Tragedy X の表のままなので、First Steps では手は合法でも読みは当てになりません（`notes` に出ます）。
 
 コードは `env.py`、見本は `agents/` にあります。どれも `play/` で実行します（公開版ではリポジトリの根）。
 

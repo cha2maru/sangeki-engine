@@ -1,0 +1,32 @@
+{
+ "_source": "主人公の書 印刷p29〜31（惨劇セット First Steps。wiki/sets/first-steps.md で照合済み）。部品と形は BTX.json の _format と同じ。rules の name・type・roles（員数。[最小, 最大] は幅）・text は公開シートの表",
+ "id": "FS",
+ "name": "First Steps",
+ "final_battle": false,
+ "rule_x": 1,
+ "incidents": ["MURDER", "SPREAD", "SUICIDE", "HOSPITAL", "REMOTE", "MISSING", "RUMOR_SPREAD"],
+ "roles": {
+  "PERSON": {"name": "パーソン"},
+  "KEY": {"name": "キーパーソン", "traits": ["loss_on_death"]},
+  "KILLER": {"name": "キラー", "refusal": "optional",
+             "turn_end_optional": [{"id": "KILLER_KEY", "do": "kill_key_same_area", "key_min": {"int": 2}},
+                                   {"id": "KILLER_PROT", "do": "protagonists_die", "self_min": {"int": 4}, "reason": "キラー"}]},
+  "KUROMAKU": {"name": "クロマク", "refusal": "optional", "mm_ability": {"counter": "int", "board": true}},
+  "CULTIST": {"name": "カルティスト", "refusal": "absolute", "action": "ignore_intx"},
+  "FRIEND": {"name": "フレンド", "max": 2, "loop_end_loss": "dead", "revealed_loop_start_gw": 1},
+  "MISLEADER": {"name": "ミスリーダー", "max": 1, "mm_ability": {"counter": "par", "board": false}},
+  "SK": {"name": "シリアルキラー", "turn_end_forced": [{"do": "kill_alone"}]},
+  "MINUS": {"name": "マイナス", "refusal": "optional"}
+ },
+ "rules": {
+  "Y_MURDER": {"name": "殺人計画", "type": "Y", "roles": {"KEY": 1, "KUROMAKU": 1, "KILLER": 1}, "text": ""},
+  "Y_REVENGE": {"name": "復讐者の灯火", "type": "Y", "roles": {"KUROMAKU": 1}, "text": "ループ終了時にボードX（クロマクの初期エリア）に暗躍カウンターが2つ以上置かれている場合、主人公は敗北する。",
+                "loop_end_loss": {"do": "start_area_int", "role": "KUROMAKU", "min": 2}},
+  "Y_PROTECT": {"name": "守るべき場所", "type": "Y", "roles": {"KEY": 1, "CULTIST": 1}, "text": "ループ終了時に学校に暗躍カウンターが2つ以上置かれている場合、主人公は敗北する。",
+                "loop_end_loss": {"do": "board_int", "board": "SCH", "min": 2}},
+  "X_RIPPER": {"name": "切り裂き魔の影", "type": "X", "roles": {"MISLEADER": 1, "SK": 1}, "text": ""},
+  "X_RUMOR": {"name": "不穏な噂", "type": "X", "roles": {"MISLEADER": 1}, "text": "【任意】脚本家能力フェイズに任意のボード1つに暗躍カウンターを1つ置いても良い。（1ループ1回制限）",
+              "mm_board_once": 1},
+  "X_WORST": {"name": "最低の却本", "type": "X", "roles": {"MISLEADER": 1, "MINUS": [0, 2], "FRIEND": 1}, "text": ""}
+ }
+}

@@ -165,8 +165,7 @@ def check_declaration(state, cid, idx, arg, ignore_gw=False, proxy=False):
         raise IllegalPlacement("医者[2] は 'place'（置く）か 'remove'（取り除く）")
     if kind == 'ruleX':
         # 宣言は、使っている惨劇セットのルールXの名前（印刷p39 情報屋）
-        from .phases import RULES
-        if RULES.get(arg.get('declare'), {}).get('type') != 'X':
+        if sets.rule(state, arg.get('declare')).get('type') != 'X':
             raise IllegalPlacement('情報屋が宣言できるのは惨劇セットのルールXの名前だけ（印刷p39）')
     if kind == 'incident':
         if not any(i['id'] == arg['incident'] and arg.get('day', d) == d for i, d in _occurred_this_loop(state)):
@@ -404,7 +403,7 @@ def _occurred_this_loop(state):
 
 def declaration_options(state):
     """いま合法な宣言 (cid, idx, arg) の一覧（主人公能力フェイズ。公開情報だけで決まる）。自己対戦のプレイヤーが使う。"""
-    from .phases import AREAS, RULES
+    from .phases import AREAS
     out = []
     for (cid, idx), (need, once, kind) in ABILITIES.items():
         ch = state['chars'].get(cid)
@@ -429,7 +428,7 @@ def declaration_options(state):
         elif kind == 'incident':
             args = [{'incident': i['id'], 'day': d} for i, d in _occurred_this_loop(state)]
         elif kind == 'ruleX':
-            args = [{'declare': x} for x, v in RULES.items() if v['type'] == 'X']
+            args = [{'declare': x} for x, v in sets.of(state)['rules'].items() if v['type'] == 'X']
         elif kind == 'card':
             args = [{'card': c} for c in state['used'][state['leader']]]
         elif kind == 'transfer':

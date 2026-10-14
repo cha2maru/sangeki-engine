@@ -1,0 +1,17 @@
+{
+ "id": "s09_first_steps",
+ "title": "守るべき学校（First Steps・試験用）",
+ "set": "FS",
+ "loops": 3,
+ "days": 5,
+ "rules": ["Y_PROTECT", "X_RIPPER"],
+ "roles": {"C02": "KEY", "C08": "CULTIST", "C05": "MISLEADER", "C01": "SK"},
+ "characters": ["C01", "C02", "C03", "C04", "C05", "C08", "C09"],
+ "incidents": [
+  {"day": 2, "id": "SPREAD", "culprit": "C03"},
+  {"day": 3, "id": "HOSPITAL", "culprit": "C09"},
+  {"day": 4, "id": "MURDER", "culprit": "C01"},
+  {"day": 5, "id": "MISSING", "culprit": "C04"}
+ ],
+ "notes": {"cs": "学校の暗躍2（守るべき場所）とキーパーソンの死亡。シリアルキラーは男子学生", "pp": "First Steps の処理（最後の戦いが無い・ルールX1つ）を通す試験用"}
+}

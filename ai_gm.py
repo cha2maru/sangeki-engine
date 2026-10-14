@@ -27,11 +27,17 @@ from engine.scripts import by_id  # noqa: E402
 from selfplay.league import make  # noqa: E402
 from selfplay.players import PublicObserver  # noqa: E402
 from selfplay.run import Combo, play_game  # noqa: E402
+from engine import sets  # noqa: E402
 
 ROLES = json.load(open(os.path.join(HERE, 'engine', 'data', 'roles.json'), encoding='utf-8'))['roles']
 RULES = json.load(open(os.path.join(HERE, 'engine', 'data', 'rules.json'), encoding='utf-8'))['rules']
 ROLE_JA = {k: (v['name'] if isinstance(v, dict) else v) for k, v in ROLES.items()}
 RULE_JA = {k: (v['name'] if isinstance(v, dict) else v) for k, v in RULES.items()}
+for _sid in sets.ids():  # Basic Tragedy X 以外のセットの役職・ルール（First Steps のマイナスなど）
+    for _k, _v in sets.load(_sid)['roles'].items():
+        ROLE_JA.setdefault(_k, _v['name'])
+    for _k, _v in sets.load(_sid)['rules'].items():
+        RULE_JA.setdefault(_k, _v['name'])
 JA2ROLE = {v: k for k, v in ROLE_JA.items()}
 JA2RULE = {v: k for k, v in RULE_JA.items()}
 JA2INC = {v: k for k, v in INC_JA.items()}

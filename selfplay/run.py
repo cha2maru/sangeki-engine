@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from engine.resolve import CARDS, card_targets, ONCE, resolve_actions  # noqa: E402
 from engine import phases as ph  # noqa: E402
 from engine import abilities as ab  # noqa: E402
+from engine import sets  # noqa: E402
 from engine.scripts import by_id  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -202,6 +203,9 @@ def play_game(script, player, log0, observers=(), on_day=None):
         loop_done(loop)
         if not loss and not reasons:
             return {'winner': 'protagonists', 'loop': loop}
+    # 最後の戦いの無い惨劇セット（First Steps: 全てのループで主人公が敗北したら直ちに脚本家の勝利。主人公の書 印刷p29）
+    if sets.load(script.get('set')).get('final_battle') is False:
+        return {'winner': 'mastermind', 'loop': loop}
     # 全ループで敗北 → 最後の戦い（主人公の書 印刷p25 §6）。盤面を初期状態に戻して、1人ずつ役職を宣言する
     setup = player.loop_setup(s, script) if hasattr(player, 'loop_setup') else {}
     s, _ = ph.loop_start(s, script['init'], setup)
@@ -302,6 +306,7 @@ def play_day(s, player, loop, day, log, box, mm_override=None):
     s['leader'] = order[(order.index(s['leader']) + 1) % 3]
     # 【強制】（シリアルキラー・アルバイト）を先に解き、その後の盤面で【任意】の候補を決める
     # （ユーザー裁定 2026-09-27: 処理順は脚本家の自由。シリアルキラーの殺害でメインラバーズに不安6→同じフェイズに主人公死亡、ができる）
+    box['phase'] = 'turn_end'  # 【強制】の殺害でループが終わると、下の記録より先に LoopEnd が来る（どのフェイズで終わったかは公開情報）
     ev = ph.turn_end_mandatory(s)
     opts = ph.killer_options(s)
     pick = player.killer_pick(s) if hasattr(player, 'killer_pick') else [o for o in opts if player.rng.random() < 0.5]

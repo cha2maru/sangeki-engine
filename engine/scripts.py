@@ -14,7 +14,7 @@ import json
 import os
 from collections import Counter
 
-from .deduce import RULES, roles_for
+from . import sets
 from .resolve import CHARS
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -95,14 +95,31 @@ def init_areas(sc):
     return {c: sc.get('init', {}).get(c) or sc.get('start', {}).get(c) or CHARS[c]['start'] for c in sc['characters']}
 
 
+def need_roles(st, rules):
+    """ルールの組が追加する役職の員数 (最小, 最大)。[最小, 最大] は幅（最低の却本のマイナス）。人数上限で切る（友情サークル2つのフレンドなど）。"""
+    lo, hi = Counter(), Counter()
+    for r in rules:
+        for role, n in st['rules'][r]['roles'].items():
+            a, b = n if isinstance(n, list) else (n, n)
+            lo[role] += a
+            hi[role] += b
+    for role in hi:
+        cap = st['roles'].get(role, {}).get('max')
+        if cap:
+            lo[role], hi[role] = min(lo[role], cap), min(hi[role], cap)
+    return lo, dict(hi)
+
+
 def check(sc):
     """(誤り, 注意) のリスト。"""
     err, warn = [], []
     chars = sc['characters']
-    ys = [r for r in sc['rules'] if RULES.get(r, {}).get('type') == 'Y']
-    xs = [r for r in sc['rules'] if RULES.get(r, {}).get('type') == 'X']
-    if len(ys) != 1 or len(xs) != 2 or len(set(xs)) != 2 or len(sc['rules']) != 3:
-        err.append(f"ルールは Y1つと異なる X2つ（Basic Tragedy X）: {sc['rules']}")
+    st = sets.load(sc.get('set'))
+    ys = [r for r in sc['rules'] if st['rules'].get(r, {}).get('type') == 'Y']
+    xs = [r for r in sc['rules'] if st['rules'].get(r, {}).get('type') == 'X']
+    nx = st.get('rule_x', 2)  # First Steps はルールX1つ（主人公の書 印刷p29）
+    if len(ys) != 1 or len(xs) != nx or len(set(xs)) != nx or len(sc['rules']) != 1 + nx:
+        err.append(f"ルールは Y1つと異なる X{nx}つ（{st['name']}）: {sc['rules']}")
     unknown = [c for c in chars if c not in CHARS]
     if unknown:
         err.append(f'未知のキャラクター {unknown}')
@@ -111,7 +128,7 @@ def check(sc):
         err.append('同じキャラクターが2度登場している')
     if any(c not in chars for c in sc['roles']):
         err.append('登場しないキャラクターに役職がある')
-    need = roles_for(tuple(sc['rules'])) if not err else {}
+    lo, need = need_roles(st, sc['rules']) if not err else ({}, {})
     # イレギュラー・コピーキャットはルールの役職の枠に数えない（カードの特性「ルールより追加された役職とすることができない」）
     special = {'C11', 'C28'}
     have = Counter(r for c, r in sc['roles'].items() if c not in special)
@@ -126,14 +143,14 @@ def check(sc):
             err.append('コピーキャットは、他のキャラクター1人と同じ役職になる（パーソン不可・人数上限無視）')
     if 'C16' in chars and sc.get('territory') not in ('HOS', 'SHR', 'CIT', 'SCH'):
         err.append('大物のテリトリー（ボード）を territory で指定する（カードの特性）')
-    if need and dict(have) != {r: n for r, n in need.items() if n}:
-        err.append(f'役職の員数がルールと合わない: 必要 {need} / 脚本 {dict(have)}')
+    if need and (any(r not in need for r in have if r != 'PERSON') or any(not lo[r] <= have[r] <= n for r, n in need.items())):
+        err.append(f'役職の員数がルールと合わない: 必要 {need}（最小 {lo}） / 脚本 {dict(have)}')
     # 事件
     culprits = [i['culprit'] for i in sc['incidents']]
     if len(set(culprits)) != len(culprits) and not sc.get('special_rules_allow_same_culprit'):
         err.append('事件の犯人が重複している（wiki/concepts/script.md 決着済み）')
     for i in sc['incidents']:
-        if i['id'] not in INCIDENTS:
+        if i['id'] not in INCIDENTS or i['id'] not in st.get('incidents', INCIDENTS):
             err.append(f"未知の事件 {i['id']}")
         if i['culprit'] not in chars:
             err.append(f"犯人 {i['culprit']} が登場しない")
@@ -145,7 +162,7 @@ def check(sc):
         err.append('僕と契約しようよ！: キーパーソンは少女（【強制: 脚本作成時】）')
     if 'C22' in chars and role('C22') == 'PERSON':
         err.append('A.I. はパーソンにできない（カードの特性）')
-    if 'C31' in chars and role('C31') in ('KILLER', 'KUROMAKU', 'FACTOR', 'CULTIST', 'WITCH'):
+    if 'C31' in chars and st['roles'].get(role('C31'), {}).get('refusal'):
         err.append('妹は友好無視を持つ役職にできない（カードの特性）')
     if 'C34' in chars and (sc.get('start', {}).get('C34') or sc.get('init', {}).get('C34')) not in CHARS['C34'].get('start_choice', []):
         err.append('従者の初期エリア（都市か学校）を init で指定する（カードの特性）')
@@ -170,15 +187,16 @@ def check(sc):
     if not 5 <= sc['days'] <= 7:
         warn.append(f"日数 {sc['days']}（目安 5〜7）")
     est = loops_estimate(sc)
-    if abs(est - sc['loops']) > 1.0:
+    if st['id'] == 'BTX' and abs(est - sc['loops']) > 1.0:  # 目安の表（印刷p48）は Basic Tragedy X のもの
         warn.append(f"ループ数 {sc['loops']} が目安 {est} から離れている")
     return err, warn
 
 
 def unsupported(sc):
     """エンジンがまだ処理できない要素。空なら自己対戦に使える。"""
-    out = [r for r in sc['rules'] if r not in SUPPORTED_RULES]
-    out += [i['id'] for i in sc['incidents'] if i['id'] not in SUPPORTED_INCIDENTS]
+    st = sets.load(sc.get('set'))
+    out = [r for r in sc['rules'] if r not in st['rules']]
+    out += [i['id'] for i in sc['incidents'] if i['id'] not in st.get('incidents', SUPPORTED_INCIDENTS)]
     out += [c for c in sc['characters'] if not CHARS[c].get('engine')]
     return sorted(set(out))
 

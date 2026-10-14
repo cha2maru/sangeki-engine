@@ -187,6 +187,8 @@ class Env:
         self.record, self.seq, self.notes, self._seen = [], 0, [], 0
         self._log = _Log()
         self._rq = list(self.replay)
+        if (self.script.get('set') or 'BTX') != 'BTX' and any(self.kinds.values()):
+            self._note('自動のプレイヤーの推理・負け筋の読みは Basic Tragedy X の表のまま（手は合法だが読みは当てにならない）')
         side = {k: (_Auto(self, k, make(v, random.Random(f'{seed}:{k}'), self.script)) if v else _Bridge(self, k)) for k, v in self.kinds.items()}
         player = Combo(side['mm'], side['pc'])
 
