@@ -9,6 +9,7 @@ import copy
 import json
 import os
 
+from . import sets
 from .resolve import CHARS, IllegalPlacement, copy_state
 
 RULES = json.load(open(os.path.join(os.path.dirname(__file__), 'data', 'rules.json'), encoding='utf-8'))['rules']
@@ -41,25 +42,23 @@ def mm_areas(state, cid):
 
 
 def role(state, cid):
-    """妄想拡大ウイルス【強制：常時】パーソンは不安3以上の間シリアルキラー（早見表 ルールX）。変更は保存せず毎回導く。"""
+    """いまの役職。ルールの役職の変化（惨劇セットのデータ role_change。BTX: 妄想拡大ウイルス【強制：常時】パーソンは不安3以上の間シリアルキラー）
+    を配役に重ねる。変更は保存せず毎回導く（plan/engine-api.md 4.3）。"""
     r = base_role(state, cid)
-    if r == 'PERSON' and 'X_VIRUS' in state['script']['rules'] and state['chars'][cid]['par'] >= 3:
-        return 'SK'
+    for rid in state['script']['rules']:
+        ch = sets.rule(state, rid).get('role_change')
+        if ch and r == ch['from'] and sets.meets(state['chars'][cid], ch.get('self_min'), ch.get('self_max')):
+            return ch['to']
     return r
 
 
 def has_ability(state, cid, ab):
-    """役職の能力を持つか。ファクターは【強制：常時】学校に暗躍2以上でミスリーダーの能力、
-    都市に暗躍2以上でキーパーソンの能力を得る（役職自体は変化しない。早見表 ファクター）。"""
+    """役職の能力を持つか。ボードの暗躍で他の役職の能力を得る役職（データ gains。BTX: ファクターは【強制：常時】学校に暗躍2以上で
+    ミスリーダーの能力、都市に暗躍2以上でキーパーソンの能力を得る。役職自体は変化しない。早見表 ファクター）。"""
     r = role(state, cid)
     if r == ab:
         return True
-    if r == 'FACTOR':
-        if ab == 'MISLEADER' and state['boards'].get('SCH', 0) >= 2:
-            return True
-        if ab == 'KEY' and state['boards'].get('CIT', 0) >= 2:
-            return True
-    return False
+    return any(g['ability'] == ab and state['boards'].get(g['board'], 0) >= g['min'] for g in sets.role(state, r).get('gains', []))
 
 
 def alive_in(state, area):
@@ -95,7 +94,7 @@ def kill_many(state, cids, cause, events):
         ch = state['chars'][cid]
         if not ch['alive']:
             continue
-        if base_role(state, cid) == 'TT':
+        if sets.has_trait(state, base_role(state, cid), 'immortal'):  # タイムトラベラー【強制：常時】このキャラクターは死亡しない
             events.append({'kind': 'no_death', 'char': cid, 'cause': cause_c})
             continue
         if ch.get('guard', 0) > 0:
@@ -105,13 +104,12 @@ def kill_many(state, cids, cause, events):
         ch['alive'] = False
         died.append(cid)
         events.append({'kind': 'death', 'char': cid, 'cause': cause_c})
-    partner = {'LOVERS': 'MAIN_LOVERS', 'MAIN_LOVERS': 'LOVERS'}
-    for cid in died:
-        want = partner.get(base_role(state, cid))
+    for cid in died:  # 相手の死亡時に不安（データ partner。BTX: ラバーズ・メインラバーズ【強制】相手の死亡時に不安6）
+        pt = sets.role(state, base_role(state, cid)).get('partner')
         for c, v in state['chars'].items():
-            if want and base_role(state, c) == want and v['alive']:
-                v['par'] += 6
-                events.append({'kind': 'par', 'target': c, 'by': want, 'n': 6})
+            if pt and base_role(state, c) == pt['role'] and v['alive']:
+                v['par'] += pt['par']
+                events.append({'kind': 'par', 'target': c, 'by': pt['role'], 'n': pt['par']})
 
 
 def protagonists_die(state, events, why):
@@ -154,7 +152,7 @@ def check_key_death(state, events):
     died = {e['char'] for e in events if isinstance(e, dict) and e.get('kind') == 'death'}
     for cid in died:
         v = state['chars'][cid]
-        if not v['alive'] and has_ability(state, cid, 'KEY'):
+        if not v['alive'] and any(has_ability(state, cid, k) for k in sets.roles_with(state, 'loss_on_death')):  # データ traits（BTX: キーパーソン）
             events.append({'kind': 'loop_end', 'reason': 'キーパーソン死亡', 'loss': True})
             raise LoopEnd('キーパーソン死亡', events=events)
 
@@ -187,25 +185,20 @@ def mm_ability(state, actor, target, ability=None):
     if not has_ability(state, actor, r):
         raise IllegalPlacement(f'{actor} は {r} の能力を持たない')
     events = []
-    if r == 'KUROMAKU':
-        if target.startswith('B:'):
-            if target[2:] not in mm_areas(state, actor):
-                raise IllegalPlacement('クロマクは自身のいるボードにしか置けない')
-            state['boards'][target[2:]] += 1
-        else:
-            t = state['chars'][target]
-            if not t['alive'] or t['area'] not in mm_areas(state, actor):
-                raise IllegalPlacement('クロマクの射程外（同一エリアの生存キャラ）')
-            t['int'] += 1
-        events.append({'kind': 'mm_ability', 'role': 'KUROMAKU', 'actor': actor, 'target': target, 'int': 1})
-    elif r == 'MISLEADER':
+    spec = sets.role(state, r).get('mm_ability')  # データ mm_ability（BTX: クロマク＝暗躍1・ボード可、ミスリーダー＝不安1）
+    if not spec:
+        raise IllegalPlacement(f'{actor}（{r}）は脚本家能力を持たない')
+    k = spec['counter']
+    if target.startswith('B:'):
+        if not spec.get('board') or target[2:] not in mm_areas(state, actor):
+            raise IllegalPlacement(f'{r} は自身のいるボードにしか置けない' if spec.get('board') else f'{r} はボードに置けない')
+        state['boards'][target[2:]] += 1
+    else:
         t = state['chars'][target]
         if not t['alive'] or t['area'] not in mm_areas(state, actor):
-            raise IllegalPlacement('ミスリーダーの射程外（同一エリアの生存キャラ）')
-        t['par'] += 1
-        events.append({'kind': 'mm_ability', 'role': 'MISLEADER', 'actor': actor, 'target': target, 'par': 1})
-    else:
-        raise IllegalPlacement(f'{actor}（{r}）は脚本家能力を持たない')
+            raise IllegalPlacement(f'{r} の射程外（同一エリアの生存キャラ）')
+        t[k] += 1
+    events.append({'kind': 'mm_ability', 'role': r, 'actor': actor, 'target': target, k: 1})
     return events
 
 
@@ -360,7 +353,8 @@ def turn_end(state, optional=None):
     events = []
     victims = []
     for cid, v in state['chars'].items():
-        if v['alive'] and role(state, cid) == 'SK':
+        forced = sets.role(state, role(state, cid)).get('turn_end_forced', []) if v['alive'] else []
+        if any(f['do'] == 'kill_alone' for f in forced):  # データ（BTX: シリアルキラー【強制】同一エリアの生存者が1人だけ→その1人を死亡）
             others = [c for c in alive_in(state, v['area']) if c != cid]
             if len(others) == 1:
                 victims.append((others[0], cid))
@@ -387,55 +381,52 @@ def turn_end_optional(state, optional=None):
         v = state['chars'][cid]
         if not v['alive']:
             raise IllegalPlacement('死亡しており能力を使えない（FAQ Ru06）')
-        if ab == 'TT_LOSS':
-            # タイムトラベラー【任意能力：最終日のターン終了フェイズ】友好2以下→主人公は敗北し、直ちにループを終了
-            if base_role(state, cid) != 'TT':
-                raise IllegalPlacement(f'{cid} はタイムトラベラーではない')
-            if state['day'] != state['script'].get('days'):
-                raise IllegalPlacement('タイムトラベラーの能力は最終日だけ')
-            if v['gw'] > 2:
-                raise IllegalPlacement('タイムトラベラーの友好が3以上')
-            events.append({'kind': 'loop_end', 'reason': '敗北（タイムトラベラー）', 'loss': True})
-            raise LoopEnd('TT_LOSS', events=events)
-        if ab == 'MAIN_LOVERS':
-            # メインラバーズ【任意能力：ターン終了フェイズ】暗躍1以上かつ不安3以上→主人公を死亡
-            if role(state, cid) != 'MAIN_LOVERS':
-                raise IllegalPlacement(f'{cid} はメインラバーズではない')
-            if v['int'] < 1 or v['par'] < 3:
-                raise IllegalPlacement('メインラバーズは暗躍1以上かつ不安3以上')
-            protagonists_die(state, events, 'メインラバーズ')
+        spec = next((x for x in _optionals(state, cid) if x['id'] == ab), None)
+        if spec is None:
+            raise IllegalPlacement(f'{cid} は {ab} の能力を持たない')
+        if not _opt_ok(state, cid, spec):
+            raise IllegalPlacement(f'{ab} の条件を満たしていない')
+        if spec['do'] == 'loss_now':  # 主人公は敗北し、直ちにループを終了（BTX: タイムトラベラー）
+            events.append({'kind': 'loop_end', 'reason': spec['reason'], 'loss': True})
+            raise LoopEnd(ab, events=events)
+        if spec['do'] == 'protagonists_die':  # BTX: キラー（暗躍4）・メインラバーズ（暗躍1・不安3）
+            protagonists_die(state, events, spec['reason'])
             continue
-        if role(state, cid) != 'KILLER':
-            raise IllegalPlacement(f'{cid} はキラーではない')
-        if ab == 'KILLER_KEY':
-            keys = [c for c in alive_in(state, v['area']) if base_role(state, c) == 'KEY' and state['chars'][c]['int'] >= 2]  # テリトリーはターン終了では参照しない（裁定）
-            if not keys:
-                raise IllegalPlacement('同一エリアに暗躍2以上のキーパーソンがいない')
-            kill(state, keys[0], f'KILLER:{cid}', events)
+        if spec['do'] == 'kill_key_same_area':  # BTX: キラー（同一エリアの暗躍2以上のキーパーソン）
+            kill(state, _keys_in_reach(state, cid, spec)[0], f'KILLER:{cid}', events)
             check_key_death(state, events)
-        elif ab == 'KILLER_PROT':
-            if v['int'] < 4:
-                raise IllegalPlacement('キラーの暗躍が4未満')
-            protagonists_die(state, events, 'キラー')
-        else:
-            raise IllegalPlacement(f'未対応の任意能力 {ab}')
+            continue
+        raise IllegalPlacement(f'未対応の部品 {spec["do"]}')
     return events
 
 
+def _opt_ok(state, cid, spec):
+    """任意能力（データ turn_end_optional の1件）の条件を満たすか。"""
+    v = state['chars'][cid]
+    if not sets.meets(v, spec.get('self_min'), spec.get('self_max')):
+        return False
+    if spec.get('last_day') and state['day'] != state['script'].get('days'):
+        return False
+    if spec['do'] == 'kill_key_same_area':
+        return bool(_keys_in_reach(state, cid, spec))
+    return True
+
+
+def _keys_in_reach(state, cid, spec):
+    """同一エリアの、条件を満たすキーパーソン（役職そのもの。テリトリーはターン終了では参照しない＝裁定）。"""
+    return [c for c in alive_in(state, state['chars'][cid]['area']) if base_role(state, c) == 'KEY' and sets.meets(state['chars'][c], spec.get('key_min'))]
+
+
+def _optionals(state, cid):
+    v = state['chars'][cid]
+    if not v['alive']:
+        return []
+    return sets.role(state, role(state, cid)).get('turn_end_optional', [])
+
+
 def killer_options(state):
-    """いま使える任意能力の一覧（プレイヤーが選ぶための候補）。"""
-    out = []
-    for cid, v in state['chars'].items():
-        if v['alive'] and role(state, cid) == 'KILLER':
-            if any(base_role(state, c) == 'KEY' and state['chars'][c]['int'] >= 2 for c in alive_in(state, v['area'])):
-                out.append({'char': cid, 'ability': 'KILLER_KEY'})
-            if v['int'] >= 4:
-                out.append({'char': cid, 'ability': 'KILLER_PROT'})
-        if v['alive'] and role(state, cid) == 'MAIN_LOVERS' and v['int'] >= 1 and v['par'] >= 3:
-            out.append({'char': cid, 'ability': 'MAIN_LOVERS'})
-        if v['alive'] and base_role(state, cid) == 'TT' and state['day'] == state['script'].get('days') and v['gw'] <= 2:
-            out.append({'char': cid, 'ability': 'TT_LOSS'})
-    return out
+    """いま使える【任意】のターン終了の能力の一覧（データ turn_end_optional。BTX: キラー・メインラバーズ・タイムトラベラー）。"""
+    return [{'char': cid, 'ability': o['id']} for cid in state['chars'] for o in _optionals(state, cid) if _opt_ok(state, cid, o)]
 
 
 # ---- ループの準備（印刷p20 §3）とループ開始時 ----
@@ -478,15 +469,18 @@ def loop_start(prev_end_state, init_areas, choice=None):
         s['boards']['SHR'] += 1
         events.append({'kind': 'int', 'target': 'B:SHR', 'by': 'BLACK_CAT', 'n': 1})
     # フレンド【強制：ループ開始時】このキャラクターの役職が公開されたことがある→友好1（早見表 役職。能力で見られた場合も＝FAQ Ch21）
-    for c in s['revealed_roles']:
-        if c in s['chars'] and base_role(s, c) == 'FRIEND':
-            s['chars'][c]['gw'] += 1
-            events.append({'kind': 'gw', 'target': c, 'by': 'FRIEND', 'n': 1})
-    if 'X_THREAD' in s['script']['rules']:
-        for c, v in prev_end_state['chars'].items():
-            if v['gw'] > 0:
-                s['chars'][c]['par'] += 2
-                events.append({'kind': 'par', 'target': c, 'by': 'X_THREAD', 'n': 2})
+    for c in s['revealed_roles']:  # データ revealed_loop_start_gw（BTX: フレンド）
+        n = sets.role(s, base_role(s, c)).get('revealed_loop_start_gw') if c in s['chars'] else None
+        if n:
+            s['chars'][c]['gw'] += n
+            events.append({'kind': 'gw', 'target': c, 'by': base_role(s, c), 'n': n})
+    for rid in s['script']['rules']:  # データ loop_start（BTX: 因果の糸【強制：ループ開始時】前のループ終了時に友好のあった全員に不安2）
+        ls = sets.rule(s, rid).get('loop_start')
+        if ls and ls['do'] == 'par_to_prev_gw':
+            for c, v in prev_end_state['chars'].items():
+                if v['gw'] > 0:
+                    s['chars'][c]['par'] += ls['n']
+                    events.append({'kind': 'par', 'target': c, 'by': rid, 'n': ls['n']})
     return s, events
 
 
@@ -497,26 +491,32 @@ def loop_end_loss(state):
     - 未来改変プラン: このループ中に蝶の羽ばたきが発生 / 巨大時限爆弾X: ウィッチの初期エリアのボードに暗躍2以上（生死を問わない＝ユーザー裁定）
     - フレンド: 死亡している。その場合、役職を公開する（state['revealed_roles'] に書き足す）
     規定日数前にループが終わった場合も呼ぶ（FAQ Ch07・Ch20）。どの条件が成立したかは主人公に告げない（FAQ Ru02）。"""
-    rules = state['script']['rules']
     b = state['boards']
     out = []
-    if 'Y_SEAL' in rules and b['SHR'] >= 2:
-        out.append('Y_SEAL')
-    if 'Y_CONTRACT' in rules and any(base_role(state, c) == 'KEY' and v['int'] >= 2 for c, v in state['chars'].items()):
-        out.append('Y_CONTRACT')
-    if 'Y_FUTURE' in rules and any(i['loop'] == state['loop'] and i['id'] == 'BUTTERFLY' and i['occurred']
-                                   for i in state.get('incident_log', [])):
-        out.append('Y_FUTURE')
-    if 'Y_BOMB' in rules:
-        init = state.get('init') or {}
-        if any(base_role(state, c) == 'WITCH' and b.get(init.get(c), 0) >= 2 for c in state['chars']):
-            out.append('Y_BOMB')
-    dead_friends = [c for c, v in state['chars'].items() if base_role(state, c) == 'FRIEND' and not v['alive']]
-    if dead_friends:
-        out.append('FRIEND')
-        rev = state.setdefault('revealed_roles', {})
-        for c in dead_friends:
-            rev[c] = 'FRIEND'
+    for rid in state['script']['rules']:  # データ loop_end_loss（ルールY）
+        c = sets.rule(state, rid).get('loop_end_loss')
+        if not c:
+            continue
+        if c['do'] == 'board_int':
+            hit = b[c['board']] >= c['min']
+        elif c['do'] == 'role_counter':  # 役職そのもの（ファクターは数えない＝ユーザー裁定）
+            hit = any(base_role(state, x) == c['role'] and v[c['counter']] >= c['min'] for x, v in state['chars'].items())
+        elif c['do'] == 'incident_occurred':
+            hit = any(i['loop'] == state['loop'] and i['id'] == c['incident'] and i['occurred'] for i in state.get('incident_log', []))
+        elif c['do'] == 'start_area_int':  # 生死を問わない＝ユーザー裁定
+            init = state.get('init') or {}
+            hit = any(base_role(state, x) == c['role'] and b.get(init.get(x), 0) >= c['min'] for x in state['chars'])
+        else:
+            raise IllegalPlacement(f'未対応の部品 {c["do"]}')
+        if hit:
+            out.append(rid)
+    for r_, how in sets.roles_with(state, 'loop_end_loss').items():  # 役職の敗北条件（BTX: フレンドが死亡している。役職を公開）
+        dead = [c for c, v in state['chars'].items() if base_role(state, c) == r_ and not v['alive']] if how == 'dead' else []
+        if dead:
+            out.append(r_)
+            rev = state.setdefault('revealed_roles', {})
+            for c in dead:
+                rev[c] = r_
     return out
 
 
@@ -539,7 +539,7 @@ def mm_phase(state, uses):
 def tree_forced(state):
     """ご神木が友好無視を持ち、移せるカウンターと相手がいる（脚本家能力フェイズに特性を使わなければならない）。"""
     tree = state['chars'].get('C30')
-    if not tree or not tree['alive'] or not tree.get('present', True) or role(state, 'C30') not in REFUSERS:
+    if not tree or not tree['alive'] or not tree.get('present', True) or not sets.refusal(state, role(state, 'C30')):
         return False
     return any(tree.get(k, 0) > 0 for k in ('par', 'gw', 'int')) and any(c != 'C30' for c in alive_in(state, tree['area']))
 
@@ -547,14 +547,14 @@ def tree_forced(state):
 def _mm_phase(state, uses, seen, events):
     # ご神木【特性】友好無視を持つ場合、脚本家能力フェイズに脚本家もこの特性を用いる（強制）
     tree = state['chars'].get('C30')
-    if tree and tree['alive'] and tree.get('present', True) and role(state, 'C30') in REFUSERS:
+    if tree and tree['alive'] and tree.get('present', True) and sets.refusal(state, role(state, 'C30')):
         can = any(tree.get(k, 0) > 0 for k in ('par', 'gw', 'int')) and any(c != 'C30' for c in alive_in(state, tree['area']))
         if can and not any(u['ability'] == 'SHINBOKU' for u in uses):
             raise IllegalPlacement('ご神木の強制の特性が使われていない')
     for u in uses:
         if u['ability'] == 'SHINBOKU':
             t, k = u['target'], u.get('counter')
-            if not tree or role(state, 'C30') not in REFUSERS:
+            if not tree or not sets.refusal(state, role(state, 'C30')):
                 raise IllegalPlacement('ご神木が友好無視を持たない')
             tc = state['chars'].get(t)
             if t == 'C30' or tc is None or not tc['alive'] or tc['area'] != tree['area'] or tree.get(k, 0) < 1:
@@ -577,12 +577,12 @@ def _mm_phase(state, uses, seen, events):
     return events
 
 
-REFUSERS = ('KILLER', 'KUROMAKU', 'FACTOR', 'CULTIST', 'WITCH')  # 友好無視・絶対友好無視（早見表 条文能力）
+REFUSERS = tuple(r for r, v in sets.load('BTX')['roles'].items() if v.get('refusal'))  # 友好無視・絶対友好無視（BTX。盤面ごとには sets.refusal）
 
 
 def rumor(state, target):
     """不穏な噂【任意能力：脚本家能力フェイズ】任意のボード1つに暗躍1（1ループ1回制限）（早見表 追加ルール）。"""
-    if 'X_RUMOR' not in state['script']['rules']:
+    if not any(sets.rule(state, x).get('mm_board_once') for x in state['script']['rules']):  # データ mm_board_once（BTX: 不穏な噂）
         raise IllegalPlacement('不穏な噂は使われていない')
     if not (isinstance(target, str) and target.startswith('B:') and target[2:] in AREAS):
         raise IllegalPlacement('不穏な噂の対象はボード')
@@ -598,7 +598,7 @@ def doctor_by_mastermind(state, cid, target, mode):
     d = state['chars'].get(cid)
     if cid != 'C08' or d is None or not d['alive']:
         raise IllegalPlacement('脚本家が使えるのは生存している医者の[友好2]だけ')
-    if role(state, cid) not in REFUSERS:
+    if not sets.refusal(state, role(state, cid)):
         raise IllegalPlacement('医者が友好無視を持たない')
     if d['gw'] < 2:
         raise IllegalPlacement('医者の友好が2未満（FAQ Ch04）')

@@ -164,7 +164,7 @@ def play_game(script, player, log0, observers=(), on_day=None):
     # 第1ループも「ループの準備」を通す（手先の初期エリア・学者・黒猫・登場前のキャラクター）。第0ループの空の盤面から始める
     s = {'loop': 0, 'day': 0, 'leader': 'A',
          'script': {**{k: script[k] for k in ('rules', 'roles', 'incidents')}, 'days': script['days'], 'appear': script.get('appear', {}),
-                    'territory': script.get('territory'), 'start': script.get('start', {})},
+                    'territory': script.get('territory'), 'start': script.get('start', {}), **({'set': script['set']} if script.get('set') else {})},
          'chars': {c: {'area': a, 'alive': True, 'par': 0, 'gw': 0, 'int': 0, 'guard': 0} for c, a in script['init'].items()},
          'boards': {a: 0 for a in ph.AREAS}, 'used': {p: [] for p in 'MABC'}, 'ability_used_loop': [], 'incident_log': []}
     for loop in range(1, script['loops'] + 1):

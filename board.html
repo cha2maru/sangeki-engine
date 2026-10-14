@@ -742,6 +742,11 @@ function ability(x, y, char, idx, label, arg) {
   // 対AIモードでは、エンジンが「いま合法」とした対象だけを出す（同じエリア・本人以外などの条件。手動モードでは全員）
   const legal = S.abilityOptions ? S.abilityOptions[char + '#' + idx] : undefined;
   if (S.abilityOptions && !legal) return menu(x, y, `${label}`, [{ label: 'いまは使えない（友好・場所・対象・回数を確認）', dim: true, go: () => {} }]);
+  // 対AIモード: エンジンが出した合法な宣言（表示名と送る中身）を並べるだけ。種類ごとのメニューの作り方は手動モード用に残す
+  if (legal && legal.choices) {
+    if (legal.choices.length === 1 && !Object.keys(legal.choices[0].send).length) return send({});
+    return menu(x, y, `${label}`, legal.choices.map(c => ({ label: c.label, go: () => send(c.send) })));
+  }
   // ボードも対象になる能力（神格[5] など）は、エンジンの形（B:SHR）で送る
   const BOARD = { '病院': 'B:HOS', '神社': 'B:SHR', '都市': 'B:CIT', '学校': 'B:SCH' };
   const charOpts = go => (S.characters || []).filter(c => !legal || !legal.targets.length || legal.targets.includes(c.name))

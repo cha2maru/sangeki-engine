@@ -38,6 +38,7 @@
 - [はじめての1試合（対AIモード）](#はじめての1試合対aiモード)
 - [遊べる脚本](#遊べる脚本)
 - [コマンドラインで遊ぶ](#コマンドラインで遊ぶ)
+- [自分のエージェントで遊ぶ](#自分のエージェントで遊ぶ)
 - [自動のプレイヤー](#自動のプレイヤー)
 - [AI の研究用の道具](#ai-の研究用の道具)
 - [構成](#構成)
@@ -168,6 +169,21 @@ python -m selfplay.play_cli --side pc --opp calcG --script s03_bomb --seed 1 --f
 書式の全体（能力の宣言、最後の戦い、脚本家の各選択）は `selfplay/play_cli.py` の冒頭にあります。
 主人公側の表示は公開情報だけです。
 
+## 自分のエージェントで遊ぶ
+
+窓口 `env.py` は、判断を1件ずつ渡し、エンジンが出した選べる手から1つ選んでもらう形です。主人公・脚本家のどちらでも外から操作でき、
+残りは自動のプレイヤーに任せられます。Python から直接使うほか、`python env.py --stdio` で JSON を1行ずつやりとりすれば、どの言語からでも遊べます。
+
+```python
+from env import Env
+env = Env('s03_bomb', mm='calcD')   # 脚本家は自動、主人公は外から
+d = env.reset(seed=1)
+while d['kind'] not in ('end', 'error'):
+    d = env.step(d['options'][0])
+```
+
+判断の形・種類・見えるもの・記号は **[`docs/env.md`](docs/env.md)**、見本は `agents/`（Python・Node）にあります。
+
 ## 自動のプレイヤー
 
 名前で指定します（定義は `selfplay/league.py` の `make`）。主人公側の自動のプレイヤーは、脚本の中身を知らず、公開情報だけで推理します。
@@ -238,6 +254,7 @@ PYTHONPATH=../sangeki-engine python -m selfplay.tune positions/*.json --side mm 
 | `engine/data/` | キャラクター・役職・ルール・事件・カードのデータ（[出典](#原作と出典)） |
 | `selfplay/` | 自動のプレイヤー（`search_mm.py`・`pc_v2.py`）、対戦表（`league.py`）、問題（`positions.py`）、調整（`tune.py`） |
 | `ai_gm.py`・`server.mjs`・`board.html`・`sheet.html` | 対AIモード（進行役・盤面サーバー・盤面・推理シート） |
+| `env.py`・`agents/` | 外からエージェントで遊ぶ窓口と見本（[`docs/env.md`](docs/env.md)） |
 | `gm.py` | 手動モード（人やAIエージェントが進行役を務めるときの、記録とハッシュ固定の補助） |
 | `tests/` | 試験 |
 

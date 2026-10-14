@@ -389,16 +389,8 @@ class HumanProtagonist:
 
     @staticmethod
     def _check(s, pc):
-        if sorted(x['by'] for x in pc) != ['A', 'B', 'C']:
-            return '主人公A・B・Cが1枚ずつ置く（主人公の書 印刷p21 4-3）'
-        if len({x['target'] for x in pc}) < 3:
-            return '主人公どうしで同じ場所には置けない'
-        for x in pc:
-            if x['card'] in ONCE[x['by']] and x['card'] in s['used'][x['by']]:
-                return f'{x["by"]} の {CARD_UI[x["card"]]} はこのループで使用済み（1ループ1回）'
-            if x['card'] not in CARDS['protagonist_hand']:
-                return f'{x["card"]} は主人公の札ではない'
-        return None
+        from engine.options import pc_placement_error  # 窓口（env.py）と同じ判定（plan/engine-api.md 3章）
+        return pc_placement_error(s, pc)
 
     def ability_one(self, s):
         """主人公能力フェイズの宣言を1件受け付けて返す（エンジンがその場で解決し、結果を公開ログに書く）。
@@ -446,6 +438,33 @@ class HumanProtagonist:
             m = {'remove': '取り除く', 'place': '置く'}.get(a.get('mode'))
             if m and m not in o['modes']:
                 o['modes'].append(m)
+            # 合法な宣言1件ずつ（表示名と、盤面が送る中身）。盤面はこれを並べるだけ（plan/engine-api.md 3章: 合法な手はエンジンだけが出す）
+            send, lab = {}, []
+            if a.get('target'):
+                send['target'] = name(a['target']) if a['target'] in CHARS else a['target']
+                lab.append(AREA_JA.get(a['target'][2:], a['target']) + '（ボード）' if a['target'].startswith('B:') else name(a['target']))
+            if 'from' in a:
+                send.update({'from': name(a['from']), 'to': name(a['to']), 'counter': COUNTER_JA.get(a.get('counter'))})
+                lab.append(f"{name(a['from'])} → {name(a['to'])}" + (f"（{COUNTER_JA.get(a.get('counter'))}）" if a.get('counter') else ''))
+            if a.get('mode'):
+                send['mode'] = m
+                lab.append(f'不安を{m}')
+            if a.get('board'):
+                send['board'] = a['board']
+                lab.append(f"→ {AREA_JA.get(a['board'], a['board'])}")
+            if a.get('counter') and 'from' not in a:
+                send['counter'] = COUNTER_JA.get(a['counter'], a['counter'])
+                lab.append(f"{COUNTER_JA.get(a['counter'], a['counter'])}を移す")
+            if a.get('declare'):
+                send['declare'] = RULE_JA.get(a['declare'], a['declare'])
+                lab.append(f"ルール「{send['declare']}」を宣言")
+            if a.get('incident'):
+                send.update({'incident': INC_JA.get(a['incident'], a['incident']), **({'day': a['day']} if a.get('day') else {})})
+                lab.append(f"{a.get('day', '')}日 {INC_JA.get(a['incident'], a['incident'])}")
+            if a.get('card'):
+                send['card'] = CARD_UI.get(a['card'], a['card'])
+                lab.append(f"札 {send['card']}")
+            o.setdefault('choices', []).append({'label': '・'.join(lab) or '（対象なし）', 'send': send})
         return out
 
     @staticmethod

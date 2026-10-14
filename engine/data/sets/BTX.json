@@ -1,0 +1,36 @@
+{
+ "_source": "早見表 originals/summary.pdf（Basic Tragedy X の役職表・ルール表。wiki/concepts/role-abilities.md・rule-role-matrix.md で照合済み）。エンジンの部品（do）の名前は engine/phases.py の _DO・_LOSS",
+ "_format": "役職: refusal（optional=友好無視・absolute=絶対友好無視）、max（員数の上限）、traits（loss_on_death=死亡時に敗北／immortal=死亡しない／ignores_gwx=友好禁止を無視）、gains（ボードの暗躍で他の役職の能力を得る）、partner（相手の死亡時に不安 n）、mm_ability（脚本家能力フェイズ）、turn_end_forced・turn_end_optional（ターン終了フェイズ）、loop_end_loss（ループ終了時の敗北条件）、revealed_loop_start_gw（役職が公開されたことがあればループ開始時に友好）、action（行動解決フェイズの任意能力）。ルール: role_change（役職の変化）、loop_start（ループ開始時の効果）、loop_end_loss、mm_board_once（脚本家能力フェイズにボード1つへ暗躍1、1ループ1回）",
+ "id": "BTX",
+ "name": "Basic Tragedy X",
+ "roles": {
+  "PERSON": {},
+  "KEY": {"traits": ["loss_on_death"]},
+  "KILLER": {"refusal": "optional",
+             "turn_end_optional": [{"id": "KILLER_KEY", "do": "kill_key_same_area", "key_min": {"int": 2}},
+                                   {"id": "KILLER_PROT", "do": "protagonists_die", "self_min": {"int": 4}, "reason": "キラー"}]},
+  "KUROMAKU": {"refusal": "optional", "mm_ability": {"counter": "int", "board": true}},
+  "CULTIST": {"refusal": "absolute", "action": "ignore_intx"},
+  "TT": {"traits": ["immortal", "ignores_gwx"],
+         "turn_end_optional": [{"id": "TT_LOSS", "do": "loss_now", "last_day": true, "self_max": {"gw": 2}, "reason": "敗北（タイムトラベラー）"}]},
+  "WITCH": {"refusal": "absolute"},
+  "FRIEND": {"max": 2, "loop_end_loss": "dead", "revealed_loop_start_gw": 1},
+  "MISLEADER": {"max": 1, "mm_ability": {"counter": "par", "board": false}},
+  "LOVERS": {"partner": {"role": "MAIN_LOVERS", "par": 6}},
+  "MAIN_LOVERS": {"partner": {"role": "LOVERS", "par": 6},
+                  "turn_end_optional": [{"id": "MAIN_LOVERS", "do": "protagonists_die", "self_min": {"int": 1, "par": 3}, "reason": "メインラバーズ"}]},
+  "SK": {"turn_end_forced": [{"do": "kill_alone"}]},
+  "FACTOR": {"refusal": "optional", "gains": [{"ability": "MISLEADER", "board": "SCH", "min": 2}, {"ability": "KEY", "board": "CIT", "min": 2}]}
+ },
+ "rules": {
+  "Y_MURDER": {},
+  "Y_SEAL": {"loop_end_loss": {"do": "board_int", "board": "SHR", "min": 2}},
+  "Y_CONTRACT": {"loop_end_loss": {"do": "role_counter", "role": "KEY", "counter": "int", "min": 2}},
+  "Y_FUTURE": {"loop_end_loss": {"do": "incident_occurred", "incident": "BUTTERFLY"}},
+  "Y_BOMB": {"loop_end_loss": {"do": "start_area_int", "role": "WITCH", "min": 2}},
+  "X_CIRCLE": {}, "X_LOVE": {}, "X_KILLER": {}, "X_FACTOR": {},
+  "X_RUMOR": {"mm_board_once": 1},
+  "X_VIRUS": {"role_change": {"from": "PERSON", "to": "SK", "self_min": {"par": 3}}},
+  "X_THREAD": {"loop_start": {"do": "par_to_prev_gw", "n": 2}}
+ }
+}

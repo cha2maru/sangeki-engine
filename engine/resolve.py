@@ -8,6 +8,8 @@ import copy
 import json
 import os
 
+from . import sets
+
 _DATA = os.path.join(os.path.dirname(__file__), 'data')
 CARDS = json.load(open(os.path.join(_DATA, 'cards.json'), encoding='utf-8'))
 CHARS = json.load(open(os.path.join(_DATA, 'characters.json'), encoding='utf-8'))['characters']
@@ -186,7 +188,7 @@ def resolve_actions(state, placements, optional=None, follow=None):
             raise IllegalPlacement(f'未対応の任意能力 {o}')
         cid, t = o['char'], o['target']
         cu = s['chars'].get(cid)
-        if cu is None or not cu['alive'] or _role(s, cid) != 'CULTIST':
+        if cu is None or not cu['alive'] or sets.role(s, _role(s, cid)).get('action') != 'ignore_intx':
             raise IllegalPlacement(f'{cid} は生存しているカルティストではない')
         in_range = (t == 'B:' + cu['area']) if t.startswith('B:') else (t in s['chars'] and s['chars'][t]['area'] == cu['area'])
         if not in_range:
@@ -213,7 +215,7 @@ def resolve_actions(state, placements, optional=None, follow=None):
         gw = [c for c in cards if c in ('GW1', 'GW2')]
         if gw and not is_board:
             # タイムトラベラー【強制：行動解決フェイズ】このキャラクターへの友好禁止を無視する（早見表）
-            if 'GWX' in cards and _role(s, t) != 'TT':
+            if 'GWX' in cards and not sets.has_trait(s, _role(s, t), 'ignores_gwx'):
                 events.append({'kind': 'nullified', 'target': t, 'cards': gw, 'by': 'GWX'})
             else:
                 if 'GWX' in cards:  # 公開: 友好禁止がセットされていたのに友好が置かれた（札は解決後に公開される）

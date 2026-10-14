@@ -6,6 +6,7 @@
 - 役職を明かす能力は、変更後の役職を返す（公式FAQ XY01）。死体は能力の対象にならない（公式FAQ）
 - 同一エリアは自身を含む。含まない場合はカードに「自身以外」と書かれる（公式FAQ Ch01）
 """
+from . import sets
 from .phases import alive_in, role, base_role
 from .resolve import CHARS, IllegalPlacement, copy_state
 
@@ -47,7 +48,7 @@ NOT_SELF = {('C01', 0), ('C02', 0), ('C08', 0), ('C12', 0), ('C14', 0), ('C14', 
 UNREFUSABLE = {('C17', 0), ('C31', 0), ('C11', 0), ('C28', 0), ('C30', 0)}  # 妹[5] の代理の使用も拒否されない  # ナース「この能力は友好無視や絶対友好無視で拒否されない」
 ADJ = {'HOS': {'SHR', 'CIT'}, 'SHR': {'HOS', 'SCH'}, 'CIT': {'HOS', 'SCH'}, 'SCH': {'SHR', 'CIT'}}  # 縦横で隣り合うボード（盤面 印刷p19）
 COUNTERS = ('gw', 'par', 'int', 'guard')
-REFUSAL = {'KILLER': 'optional', 'KUROMAKU': 'optional', 'FACTOR': 'optional', 'CULTIST': 'absolute', 'WITCH': 'absolute'}
+REFUSAL = {r: v['refusal'] for r, v in sets.load('BTX')['roles'].items() if v.get('refusal')}  # BTX（盤面ごとには sets.refusal）
 
 
 def check_declaration(state, cid, idx, arg, ignore_gw=False, proxy=False):
@@ -198,7 +199,7 @@ def _use_ability(state, cid, idx, arg, refuse=False, proxy=False):
         refuse = False
     # 拒否の可否は、状態を変える前に確かめる（誤った宣言では状態を変えない）
     r = role(state, cid)
-    mode = REFUSAL.get(r)
+    mode = sets.refusal(state, r)
     if (cid, idx) in UNREFUSABLE or proxy:
         if refuse:
             raise IllegalPlacement('この能力は友好無視や絶対友好無視で拒否されない')
