@@ -21,7 +21,7 @@ fs.mkdirSync(GAME, { recursive: true });
 // SANGEKI_PYTHON: 使う Python（既定 python3。仮想環境なら .venv/bin/python を渡す）
 const AI = process.env.SANGEKI_AI === '1';
 const PY = process.env.SANGEKI_PYTHON || 'python3';
-const MMS = ['calcG', 'searchL', 'search', 'route'];  // 先頭が既定（最強）  // 開始画面で選べる自動の脚本家（ほかの型は ai_gm.py を直接起動）
+const MMS = ['calcD', 'calcG', 'searchL', 'search', 'route'];  // 先頭が既定（最強）  // 開始画面で選べる自動の脚本家（ほかの型は ai_gm.py を直接起動）
 let child = null, scriptList = null;
 function listScripts() {
   if (!scriptList) scriptList = JSON.parse(execFileSync(PY, [path.join(HERE, 'ai_gm.py'), '--list'], { cwd: HERE }).toString());
