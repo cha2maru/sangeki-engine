@@ -27,6 +27,34 @@ async function init() {
 }
 const booted = init();
 
+// 補助の Worker（helper.js）: 自動の脚本家が主人公の応手を読む計算を分ける（search_mm.SearchMastermind._par_browser）。
+// メインの準備が終わってから裏で読み込み、読み込み中・失敗したときはメインだけで計算する。数は ?helpers=N（既定2、0で使わない、最大4）
+const HELP_N = Math.max(0, Math.min(4, Number(new URL(self.location.href).searchParams.get('helpers') ?? 2)));
+const helpers = [];
+let parWaits = [];
+booted.then(() => {
+  const q = new URL(self.location.href).searchParams.get('pyodide') === 'local' ? '?pyodide=local' : '';
+  for (let i = 0; i < HELP_N; i++) {
+    const h = { w: new Worker(new URL('helper.js' + q, self.location.href), { type: 'module' }), ready: false, done: null, fail: null };
+    h.w.onmessage = e => {
+      const m = e.data;
+      if (m.type === 'ready') h.ready = true;
+      else if (m.type === 'out' && h.done) { const r = h.done; h.done = h.fail = null; r(m.out); }
+      else if (m.type === 'error') { h.ready = false; if (h.fail) { const r = h.fail; h.done = h.fail = null; r(new Error(m.e)); } }
+    };
+    h.w.onerror = () => { h.ready = false; if (h.fail) { const r = h.fail; h.done = h.fail = null; r(new Error('helper error')); } };
+    helpers.push(h);
+  }
+});
+self.par_helpers_ready = () => helpers.filter(h => h.ready).length;
+self.par_start = (payload, k) => {  // payload: 脚本家・盤面・組の pickle（Uint8Array）。補助 j は i % k == j+1 の組を計算する
+  parWaits = helpers.filter(h => h.ready).slice(0, k - 1).map((h, j) => new Promise((done, fail) => {
+    h.done = done; h.fail = fail;
+    h.w.postMessage({ type: 'run', payload, idx: j + 1, k });
+  }));
+};
+self.par_wait = () => Promise.all(parWaits);
+
 onmessage = async e => {
   const m = e.data;
   if (m.type === 'action') {

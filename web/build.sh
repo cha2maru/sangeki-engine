@@ -14,7 +14,7 @@ t = t.replace('<script>\nconst IMG', '<script src="shim.js"></script>\n<script>\
 assert 'shim.js' in t and "IMG = 'img/'" in t, '差し込む場所が見つからない（board.html が変わった）'
 open(sys.argv[2], 'w', encoding='utf-8').write(t)
 PY
-cp "$WEB/shim.js" "$WEB/worker.js" "$OUT/"
+cp "$WEB/shim.js" "$WEB/worker.js" "$WEB/helper.js" "$OUT/"
 cp "$PLAY/engine/data/characters_public.json" "$OUT/data/chars.json"
 cp "$PLAY/engine/data/rules.json" "$PLAY/engine/data/roles.json" "$PLAY/engine/data/incidents.json" "$OUT/data/"
 # シナリオエディタ: shim.js（検証は Worker の Python）を先に読み込ませる

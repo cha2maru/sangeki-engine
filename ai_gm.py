@@ -706,12 +706,15 @@ def short_id(sid):
     return (head + '/' if head else '') + base.rsplit('_', 1)[0]
 
 
-# おすすめの脚本: 「優秀な脚本の選定」（plan/mastermind_algorithm_evolution_plan.md、2026-10-16）で選んだ23本のうち、公開できる設計の脚本。
+# おすすめの脚本: selfplay/select_scripts の選定（2026-10-17、脚本家 calcGBxhd × 主人公 read2 × seed 1〜3、エントロピーの上限 12）を通った設計の脚本。
 # 要素が脚本家にとって意味がある・日数5〜7・主人公が情報を取る手立てがある・脚本家がループを取りきる・最後の戦いがもつれる、で選んだ。
-# 選んだ残り（投稿シナリオ p001・p006、有志サイトの b071・b072・b180・b208）は非公開なので入れない（tools/export_public.py の FORBID）
-RECOMMENDED = ('designed/d02_traits', 'designed/d05_contract', 'designed/d06', 'designed/d07', 'designed/d10', 'designed/d11',
-               'designed/d12', 'designed/d14', 'designed/d15', 'designed/d18', 'designed/d19', 'designed/d23', 'designed/d26',
-               'designed/d27', 'designed/d30', 'designed/d31', 'designed/d33')
+# 前回（2026-10-16、calcGB）の17本のうち d02（割れすぎ）・d26（最後の戦いに届かない）は外れ、14本が加わった。
+# 非公開の脚本（投稿シナリオ・有志サイト）は入れない（tools/export_public.py の FORBID）
+RECOMMENDED = ('designed/d05_contract', 'designed/d06', 'designed/d07', 'designed/d10', 'designed/d11', 'designed/d12',
+               'designed/d14', 'designed/d15', 'designed/d18', 'designed/d19', 'designed/d23', 'designed/d27',
+               'designed/d30', 'designed/d31', 'designed/d33', 'designed/d01_seal', 'designed/d03_future', 'designed/d08',
+               'designed/d09', 'designed/d13', 'designed/d16', 'designed/d17', 'designed/d22', 'designed/d25',
+               'designed/d28', 'designed/d29', 'designed/d32', 'designed/d34', 'designed/d35')
 
 
 def list_scripts():

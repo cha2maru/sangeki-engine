@@ -296,6 +296,8 @@ def normalize(sc):
     if not strs(sc.get('rules')) or not strs(sc.get('characters')):
         raise ValueError('rules・characters は文字列のリスト')
     roles, init, appear = sc.get('roles', {}), sc.get('init', {}), sc.get('appear', {})
+    if isinstance(sc.get('start'), dict) and isinstance(init, dict):  # 従者の初期エリアは start に書く脚本もある（設計の脚本）。init に取り込む
+        init = {**sc['start'], **init}
     if not (isinstance(roles, dict) and all(isinstance(k, str) and isinstance(v, str) for k, v in roles.items())):
         raise ValueError('roles は {キャラクター: 役職}')
     if not (isinstance(init, dict) and all(isinstance(k, str) and isinstance(v, str) for k, v in init.items())):

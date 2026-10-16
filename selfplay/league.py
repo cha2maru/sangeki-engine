@@ -304,6 +304,9 @@ def _make(kind, rng, script=None):
         p = make('calcGBx', rng, script)
         p.human_block = (0.25, 0.4)
         p.last_day_now = kind == 'calcGBxhd'  # d: 最終日は今日成り立つ筋を最優先（人間の模型と組で）
+        if kind == 'calcGBxhd':  # 脚本家の中の主人公の模型を軽く（世界4・無作為の候補20）。2手目以降が約4倍速く、
+            # 23本×seed4〜6 で最後の戦いへの到達 61→63/68（強さは落ちない。2026-10-17）。前の重さは世界16・候補40（ReadingBlocker の既定）
+            p.shadow.nh, p.shadow.min_worlds, p.shadow.samples = 4, 4, 20
         return p
     if kind.startswith('calcGBxn'):  # calcGBx＋応手なしの値を混ぜる（課題 D、例 calcGBxn0.25）
         p = make('calcGBx', rng, script)

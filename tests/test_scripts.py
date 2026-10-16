@@ -70,3 +70,10 @@ def test_user_code_roundtrip_and_bad_input():
         with pytest.raises(ValueError):
             S.decode(bad)
     assert S.report({'loops': 3})['errors'] and S.report(dict(sc, roles={}))['errors']
+
+
+def test_code_keeps_servant_start_area():
+    """従者の初期エリアを start に書いた脚本（設計の脚本）も、コードにしてエリアが残る（2026-10-17。落ちると従者のエリアが空で試合が止まった）。"""
+    from engine.scripts import decode, encode, find, load, to_game
+    g = to_game(decode(encode(load(find('designed/d07.json')))))
+    assert g['init']['C34'] == 'SCH'

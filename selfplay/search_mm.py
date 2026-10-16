@@ -14,6 +14,7 @@
 """
 import copy
 import os
+import sys
 import random
 
 from engine import phases as ph
@@ -119,6 +120,14 @@ def _wins_today(s, days):
             continue  # ループ終了時に決まる筋は、最終日でなければまだ崩されうる
         return True
     return False
+
+
+def par_compute(payload, idx, k):
+    """補助の Web Worker（web/helper.js）が呼ぶ: 脚本家・盤面・置き場所の組（pickle）を受け、i % k == idx の組を計算して pickle で返す
+    （SearchMastermind._par_browser の相手）。"""
+    import pickle
+    mm, s, order, jobs = pickle.loads(bytes(payload))
+    return pickle.dumps({i: mm._par_one(s, order, jobs[i]) for i in range(idx, len(jobs), k)}, protocol=5)
 
 
 class SearchMastermind(RouteMastermind):
@@ -763,8 +772,8 @@ class SearchMastermind(RouteMastermind):
         rest_cards = [c for c in hand if c not in ('INT2', 'INT1')]
         for i, a in enumerate(ints):
             for b in ints[i + 1:]:
+                third = self.rng.choice([u for u in allt if u not in (a, b)])  # 両方の向きで同じ3枚目（置き場所の集合が同じになり、応手を1回で読める）
                 for x, y in ((a, b), (b, a)):
-                    third = self.rng.choice([u for u in allt if u not in (x, y)])
                     ts = (x, y, third)
                     out.setdefault(ts, []).append([{'by': 'M', 'target': x, 'card': 'INT2'}, {'by': 'M', 'target': y, 'card': 'INT1'},
                                                    {'by': 'M', 'target': third, 'card': self.rng.choice(rest_cards)}])
@@ -1439,8 +1448,16 @@ class SearchMastermind(RouteMastermind):
         culprits_today = {i['culprit'] for i in s['script']['incidents'] if i['day'] >= s['day']} if locked else set()
         tss = self._triples(s) + [list(k) for k in forced]
         jobs = []  # 置き場所の組ごとの候補（乱数を引く順は並列にしても変えない）
+        # 主人公の模型が見るのは置き場所だけ（中身は見ない）。置き場所の集合が同じ組は1つにまとめ、応手を1回だけ読む
+        # （1日目は定石の候補で最大56組に増え、最初の1手が後の手の3〜4倍かかっていた。2026-10-17 高速化）
+        seen_ts = {}
         for ts in tss:
+            key = frozenset(ts)
+            if key in seen_ts:
+                seen_ts[key][1].extend(forced.get(tuple(ts), []))
+                continue
             cands = list(forced.get(tuple(ts), []))
+            seen_ts[key] = (ts, cands)
             for _ in range(self.nc):
                 cards = self._deal(hand, ts)
                 cands.append([{'by': 'M', 'target': t, 'card': c} for t, c in zip(ts, cards)])
@@ -1541,11 +1558,11 @@ class SearchMastermind(RouteMastermind):
         環境変数 SANGEKI_WORKERS（既定 1）が 2 以上なら fork したプロセスで並べる（常駐モードの待ち時間向け。対戦表は試合ごとに
         プロセスが分かれ、メモリが足りなくなるので使わない）。模型が無い脚本家は応手に self.rng を使うので並べない。"""
         def one(job):
-            ts, cands = job
-            replies = self._replies(s, ts, order)
-            if getattr(self, 'naive_w', 0) or getattr(self, 'human_block', None):  # 最後の列は「応手なし」（人間が止め損なう場合）
-                replies = replies + [DUMMY_PC]
-            return replies, [[self._val(s, mm, pc) for pc in replies] for mm in cands]
+            return self._par_one(s, order, job)
+        if sys.platform == 'emscripten' and self.shadow is not None and len(jobs) >= 2:
+            r = self._par_browser(s, order, jobs)
+            if r is not None:
+                return r
         workers = int(os.environ.get('SANGEKI_WORKERS', '1'))
         import multiprocessing
         if workers < 2 or self.shadow is None or len(jobs) < 2 or 'fork' not in multiprocessing.get_all_start_methods():
@@ -1557,6 +1574,46 @@ class SearchMastermind(RouteMastermind):
                 return pool.map(_par_job, range(len(jobs)))
         finally:
             _PAR = None
+
+    def _par_one(self, s, order, job):
+        """置き場所の組1つ分の（応手, 評価の表）。並列のときは別のプロセス・Worker でも同じ結果になる（模型の乱数は呼ぶたびに戻す）。"""
+        ts, cands = job
+        replies = self._replies(s, ts, order)
+        if getattr(self, 'naive_w', 0) or getattr(self, 'human_block', None):  # 最後の列は「応手なし」（人間が止め損なう場合）
+            replies = replies + [DUMMY_PC]
+        return replies, [[self._val(s, mm, pc) for pc in replies] for mm in cands]
+
+    def _picklable(self):
+        """自分の写しから、あとで差し込まれた関数（進行役の「考えています」の表示の包みなど）を除いたもの。pickle で補助に渡す用。"""
+        import types
+        c = object.__new__(type(self))
+        c.__dict__ = {k: v for k, v in self.__dict__.items() if not isinstance(v, (types.FunctionType, types.MethodType))}
+        return c
+
+    def _par_browser(self, s, order, jobs):
+        """ブラウザ版（Pyodide）: 補助の Web Worker（web/helper.js）に組を分けて計算する。補助が読み込み中・無いときは None（1つで計算）。
+        脚本家と盤面を pickle で渡し、組の番号 i を i % k で分ける（0 は自分、1.. は補助）。自分の分を計算してから補助の結果を待つ。"""
+        try:
+            import js
+            from pyodide.ffi import run_sync, to_js
+            n = int(js.par_helpers_ready())
+        except Exception:
+            return None
+        if n < 1:
+            return None
+        import pickle
+        k = n + 1
+        js.par_start(to_js(pickle.dumps((self._picklable(), s, order, jobs), protocol=5)), k)
+        out = {i: self._par_one(s, order, jobs[i]) for i in range(0, len(jobs), k)}
+        try:
+            for b in run_sync(js.par_wait()):
+                out.update(pickle.loads(bytes(b.to_py())))
+        except Exception:  # 補助が落ちた: 受け取れなかった組はここで計算する（止まらない）
+            pass
+        for i in range(len(jobs)):
+            if i not in out:
+                out[i] = self._par_one(s, order, jobs[i])
+        return [out[i] for i in range(len(jobs))]
 
     def _close_move(self, s):
         """直前の手の結果（次の日の始めの盤面）を書き込む。ループが変わっていれば、結果はループの終わりで決まる（league が埋める）。"""

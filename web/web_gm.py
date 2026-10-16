@@ -56,3 +56,4 @@ def decode_json(code):
 
 def list_json():
     return json.dumps({'scripts': ai_gm.list_scripts(), 'blind': ai_gm.blind_count()}, ensure_ascii=False)
+
