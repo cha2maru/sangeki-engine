@@ -815,6 +815,8 @@ def run(a, table_cls=None):
     rng = random.Random(a.seed)
     # 自動の主人公は専用の乱数（脚本家と共有すると、再生で脚本家を記録に置き換えたときに主人公の手がずれる）
     pc = make(auto_pc, random.Random(f'pc:{a.seed}:{auto_pc}'), script) if auto_pc else HumanProtagonist(t, rng)
+    if auto_pc == 'oread':
+        pc.final_truth = True  # 脚本を知っている主人公は、最後の戦いも本当の配役で答える
     if a.mm == 'claude' and not rp:  # Claude が脚本家（問いは private/ に書くので盤面からは見えない）
         from selfplay.play_cli import BlockingMastermind
         mm = BlockingMastermind(os.path.join(a.dir, 'private', 'mm_question.txt'), os.path.join(a.dir, 'private', 'mm_decisions.jsonl'),

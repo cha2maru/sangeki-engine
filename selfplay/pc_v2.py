@@ -926,3 +926,10 @@ class OracleReader(ReadingBlocker):
     伏せ札の中身は知らない。"""
     def _worlds(self, s):
         return [s['script']] * 8
+
+    def final_guesses(self, s):
+        # final_truth: 最後の戦いも本当の配役で答える（Web の自動同士で「脚本を知っている主人公」として選ぶとき。2026-10-17）。
+        # 既定は推理で答える（gen_filter の「盤面で勝つ手があるか」の目安を変えない）
+        if getattr(self, 'final_truth', False):
+            return [{'char': c, 'role': s['script']['roles'].get(c, 'PERSON')} for c in s['chars']]
+        return super().final_guesses(s)
