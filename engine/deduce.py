@@ -177,30 +177,42 @@ def _base_for(T, chars, cap):
     return _BASE[key]
 
 
+def _assign_rows(n, need):
+    """役職の組 need [(役職, 人数)] を n 人の席に割り当てる全通り（int8 の行列）。numpy でまとめて作る。
+    行の順は以前の再帰（役職を順に、空いた席の組み合わせを辞書順に）と同じ（推理から仮説を引く順が変わらないように）。"""
+    rows = np.zeros((1, n), dtype=np.int8)
+    for r, k in need:
+        P = np.array(list(itertools.combinations(range(n), k)), dtype=np.intp).reshape(-1, k)
+        ok = (rows[:, P] == 0).all(axis=2)          # 行 i の空き席に組み合わせ j が収まるか（親の行の順 × 組み合わせの辞書順）
+        ii, jj = np.nonzero(ok)
+        new = rows[ii].copy()
+        new[np.arange(len(ii))[:, None], P[jj]] = RC[r]
+        rows = new
+    return rows
+
+
 def _base(T, n, cap):
     if (T.id, n) in _BASE:
         return _BASE[T.id, n]
-    acc = _Rows(n)
+    # 以前は再帰で1行ずつ作っていた（10人の脚本で700万回の呼び出し、ネイティブ15秒・ブラウザ47秒。2026-10-17 に numpy へ）
+    rs, cs, total, same = [], [], 0, {}
     for ci, combo in enumerate(T.combos):
         need = [(r, k) for r, k in T.needs[ci].items() if k]
         if sum(k for _, k in need) > n:
             continue
-
-        def rec(i, avail, cur):
-            if i == len(need):
-                acc.append(cur.copy(), ci)
-                return
-            r, k = need[i]
-            for pos in itertools.combinations(avail, k):
-                for p in pos:
-                    cur[p] = RC[r]
-                rec(i + 1, [a for a in avail if a not in pos], cur)
-                for p in pos:
-                    cur[p] = 0
-        rec(0, list(range(n)), [0] * n)
-        if acc.n > cap:
-            raise TooManyHypotheses(f'{n}人で {acc.n} 件を超えた（上限 {cap}）')
-    _BASE[T.id, n] = acc.arrays()
+        key = tuple(need)
+        if key not in same:
+            same[key] = _assign_rows(n, need)   # 役職の組が同じルールの組は、行も同じ
+        rows = same[key]
+        total += len(rows)
+        if total > cap:
+            raise TooManyHypotheses(f'{n}人で {total} 件を超えた（上限 {cap}）')
+        rs.append(rows)
+        cs.append(np.full(len(rows), ci, dtype=np.int16))
+    if not rs:
+        _BASE[T.id, n] = (np.zeros((0, n), dtype=np.int8), np.zeros(0, dtype=np.int16))
+    else:
+        _BASE[T.id, n] = (np.concatenate(rs), np.concatenate(cs))
     return _BASE[T.id, n]
 
 
@@ -221,6 +233,7 @@ class Deduction:
         self.obs = []
         self._R = self._C = None
         self._seen_obs = 0
+        self._lw_ver = 0  # soft_target などの重みを書き換えた版（周辺分布の覚え書き _mc の鍵）
         # 仮説が全部消えた最初の観測（推理の矛盾。ふつうは起きない＝推理かエンジンの不具合）と、真の脚本を消した最初の観測
         self.empty_by = None
         self.truth_lost_by = None
@@ -376,6 +389,7 @@ class Deduction:
         if self._R is None:
             self._R, self._C = _base_for(self.T, self.chars, self.cap)
             self._lw = None  # 仮説ごとの対数の重み（soft_target）。None なら全て0
+            self._lw_ver = getattr(self, '_lw_ver', 0) + 1
             self._seen_obs = 0
             if self._watch is not None:
                 self._truth = self._truth_mask(self._R, self._C, self._watch)
@@ -386,6 +400,7 @@ class Deduction:
             self._R, self._C = self._R[keep], self._C[keep]
             if self._lw is not None:
                 self._lw = self._lw[keep]
+                self._lw_ver = getattr(self, '_lw_ver', 0) + 1
             if self._truth is not None:
                 had = self._truth.any()
                 self._truth = self._truth[keep]
@@ -423,6 +438,7 @@ class Deduction:
             self._lw = np.zeros(len(C), dtype=np.float32)
         self._lw += gamma * (R[:, self.ix[char]] != 0)
         self._lw -= self._lw.max()
+        self._lw_ver = getattr(self, '_lw_ver', 0) + 1
 
     INT_ROLES = ('KEY', 'FRIEND', 'KILLER', 'MAIN_LOVERS')
     # 自分の不安が負け筋になる役職（メインラバーズ: 暗躍1・不安3 で主人公の死）。事件の犯人も不安で動くが、犯人は仮説の外なので数えない
@@ -467,6 +483,7 @@ class Deduction:
             self._lw = np.zeros(len(self._C), dtype=np.float32)
         self._lw += math.log(lr) * m
         self._lw -= self._lw.max()
+        self._lw_ver = getattr(self, '_lw_ver', 0) + 1
 
     # ---- 仮定（ユーザーの案 2026-10-10: 仮定を置いて推理を分岐させ、合う仮説が0になった仮定は誤りだったとする）----
     def assume_card(self, target, card, init, basis):
@@ -543,8 +560,16 @@ class Deduction:
         return w
 
     def _marg(self, R, C):
+        # 覚え書き: 表 R・C が同じオブジェクトで重みの版も同じなら前の結果（1手の中で同じ表を百回以上数え直していた。
+        # 仮説の多い脚本 d07 で1手の4割。2026-10-17）。表そのものを持つので、別の表が同じ id を使い回す取り違えは起きない
+        ver = getattr(self, '_lw_ver', 0) if C is self._C else -1
+        mc = getattr(self, '_mc', None)
+        if mc is not None and mc[0] is R and mc[1] is C and mc[2] == ver:
+            return mc[3]
         w = self._w(C)
-        return np.stack([np.bincount(R[:, j], weights=w, minlength=len(ROLES)) for j in range(len(self.chars))]), w.sum()
+        res = np.stack([np.bincount(R[:, j], weights=w, minlength=len(ROLES)) for j in range(len(self.chars))]), w.sum()
+        self._mc = (R, C, ver, res)
+        return res
 
     def marginals(self, hyps=None):
         M, tot = self._marg(*self._sync())
