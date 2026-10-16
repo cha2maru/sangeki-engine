@@ -55,5 +55,4 @@ def decode_json(code):
 
 
 def list_json():
-    from engine.scripts import glob_scripts
-    return json.dumps({'scripts': ai_gm.list_scripts(), 'blind': len(glob_scripts('generated/*.json'))}, ensure_ascii=False)
+    return json.dumps({'scripts': ai_gm.list_scripts(), 'blind': ai_gm.blind_count()}, ensure_ascii=False)

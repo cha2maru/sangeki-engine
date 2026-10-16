@@ -338,7 +338,7 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
 <div id="start"><form id="startf">
   <h2>新しいゲーム</h2>
   <div class="row"><input type="checkbox" id="st-blind" checked><label for="st-blind" style="margin:0">脚本を伏せて遊ぶ（おすすめ）</label></div>
-  <div class="note" id="st-blind-note">自動生成の脚本から、遊んだことのない組を選びます。</div>
+  <div class="note" id="st-blind-note">おすすめの脚本から、遊んだことのないものを選びます（遊び尽くしたら自動生成の脚本から）。</div>
   <div id="st-pick" style="display:none"><label for="st-script">脚本を選ぶ</label><select id="st-script"></select>
   <div class="note">脚本のタイトルから脚本の内容が分かる可能性があります。</div></div>
   <label for="st-code">シナリオのコード（任意。シナリオエディタで作ったシナリオで遊ぶ）</label>
@@ -1281,7 +1281,7 @@ fetch('/scripts').then(r => r.ok ? r.json() : null).then(d => {
   $('st-seed').value = Math.floor(Math.random() * 10000);
   if (!d.blind) {  // 伏せて選べる脚本（自動生成。sangeki-scripts）が無い: 一覧から選ぶ
     $('st-blind').checked = false; $('st-blind').disabled = true; syncPick();
-    $('st-blind-note').textContent = '伏せて選べる脚本（自動生成）がありません（sangeki-scripts を隣に置くと使えます）。';
+    $('st-blind-note').textContent = '伏せて選べる脚本（おすすめ・自動生成）がありません（sangeki-scripts を隣に置くと使えます）。';
   }
   openWelcome();
 }).catch(() => {});

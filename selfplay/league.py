@@ -295,6 +295,11 @@ def _make(kind, rng, script=None):
         p = make('calcGB', rng, script)
         p.push_check, p.inc_guard = True, True
         return p
+    if kind.startswith('calcGBxhd_L'):  # 速さの比較: 脚本家の中の主人公の模型を軽くした calcGBxhd（例 calcGBxhd_L8: 世界8・無作為の候補20。既定は16・40）
+        p = make('calcGBxhd', rng, script)
+        w = int(kind[len('calcGBxhd_L'):] or 8)
+        p.shadow.nh, p.shadow.min_worlds, p.shadow.samples = w, w, 20
+        return p
     if kind.startswith('calcGBxh'):  # calcGBx＋人間の止め方の模型（止める確率 0.25+0.4·vis。threat_table の Claude・read2 の表から）
         p = make('calcGBx', rng, script)
         p.human_block = (0.25, 0.4)

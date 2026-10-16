@@ -303,7 +303,7 @@ class ReadingBlocker(DeductiveBlocker):
         # 脚本家の評価を上げる札ほど選ばれやすいとする（点検の試合で、キラーへの移動札を読めずに自分の移動札と重ねていた）
         # 世界が少ない（脚本を知る OracleReader は1つ）と、1回引いた中身で手の良し悪しが決まってしまう。
         # 世界の数が 16 に満たなければ、世界ごとに中身を複数回引いて重みを分ける（点検: oread が病院の暗躍+2 を止めなかった）
-        reps = max(1, -(-16 // max(1, len(scripts))))
+        reps = max(1, -(-getattr(self, 'min_worlds', 16) // max(1, len(scripts))))  # min_worlds: 脚本家の中の模型を軽くするとき減らす
         worlds = []
         for sc, wt in zip(scripts, ws):
             for _ in range(reps):

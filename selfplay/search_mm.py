@@ -1547,9 +1547,9 @@ class SearchMastermind(RouteMastermind):
                 replies = replies + [DUMMY_PC]
             return replies, [[self._val(s, mm, pc) for pc in replies] for mm in cands]
         workers = int(os.environ.get('SANGEKI_WORKERS', '1'))
-        if workers < 2 or self.shadow is None or len(jobs) < 2:
-            return [one(j) for j in jobs]
         import multiprocessing
+        if workers < 2 or self.shadow is None or len(jobs) < 2 or 'fork' not in multiprocessing.get_all_start_methods():
+            return [one(j) for j in jobs]  # fork の無い環境（Windows）は並べない
         global _PAR
         _PAR = (one, jobs)
         try:

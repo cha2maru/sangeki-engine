@@ -273,6 +273,10 @@ cd play && SANGEKI_WORKERS=8 python -m selfplay.play_cli --side pc --opp calcGB 
 
 対戦表のように試合を何本も並べて回すときは、メモリが足りなくなるので使わないでください（既定は 1＝並べない）。
 
+**ブラウザの対AIモード（サーバー版 `server.mjs`）は、既定で並べます**（コア数−1、最大6）。`SANGEKI_WORKERS=1` で止められます。
+calcGBxhd の1手は、並べないと4秒前後、6並列で1秒前後でした（2手目以降、ネイティブ）。fork の無い環境（Windows）では並べません。
+公開ページのブラウザ版（Pyodide）は、まだ並べません。
+
 ### 終局
 
 question.txt の1行目が `{"end": true, "result": {...}}` になり、`result.txt` に結果と全公開ログが書かれて、プロセスが終わります。

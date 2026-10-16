@@ -345,7 +345,8 @@ def describe(e):
             extra += f" → {name(t)} 不安{'+1' if mode == 'place' else '-1'}"
         if isinstance(e.get('transfer'), (list, tuple)) and len(e['transfer']) == 3:  # 鑑識官[2]: (元, 先, カウンター)
             a, b, cnt = e['transfer']
-            extra += f" → {name(a)} から {name(b)} へ{COUNTER_JA.get(cnt, cnt)}を1つ移動"
+            extra += (f" → {name(a)} から {name(b)} へ{COUNTER_JA.get(cnt, cnt)}を1つ移動" if cnt else
+                      f" → {name(a)} と {name(b)} に動かせるカウンターが無かった（何も起きない）")
         for key, ja in eff.items():
             if key in e and not (key == 'transfer' and isinstance(e[key], (list, tuple)) and len(e[key]) == 3):
                 v = e[key]
@@ -629,8 +630,11 @@ HISTORY = os.path.join(HERE, 'records', 'blind_history.jsonl')  # 目隠しで�
 SEEN_PREFIX = ('gen_s21', 'gen_s22', 'gen_s23', 'gen_s24', 'gen_s25')  # Claude が一覧でルールを見てしまった生成脚本
 
 
-def pick_blind(rng):
-    """Claude が中身を知らない生成脚本を、進行役が選ぶ（ユーザーの方針、2026-09-24）。
+def pick_blind(rng, pool='recommended'):
+    """脚本を伏せて選ぶ。pool='recommended'（既定。開始画面の「脚本を伏せて遊ぶ」）: おすすめ（RECOMMENDED）のうち遊んだことのない
+    脚本から一様に選ぶ（ユーザー 2026-10-17）。遊び尽くしたら自動生成の脚本から選ぶ。
+    pool='generated'（Claude の目隠し対戦。おすすめの設計の脚本は Claude が中身を知っているので使わない）: 以下の選び方。
+    Claude が中身を知らない生成脚本を、進行役が選ぶ（ユーザーの方針、2026-09-24）。
     - 遊んだことのあるルールの組（Y＋X2つ）は選ばない（同じルールは出てよいが、組み合わせは変える）。
     - 遊んだ回数が少ないルールほど少し選ばれやすい（重み＝各ルールの 1/(1+回数) の積の平方根）。確実に選ばれるルールは作らない。
     - 選んだ脚本の id もルールも表示しない。"""
@@ -640,8 +644,12 @@ def pick_blind(rng):
     played_ids = {h['id'] for h in hist}
     played_combos = {tuple(sorted(h['rules'])) for h in hist}
     count = Counter(r for h in hist for r in h['rules'])
-    cands, ws = [], []
     from engine.scripts import glob_scripts
+    if pool == 'recommended':
+        rec = [i for i in RECOMMENDED if i.split('/')[-1] not in played_ids and glob_scripts(i + '.json')]
+        if rec:
+            return rng.choice(rec), len(rec)
+    cands, ws = [], []
     for f in glob_scripts('generated/*.json'):
         sc = json.load(open(f, encoding='utf-8'))
         if sc['id'] in played_ids or sc['id'].startswith(SEEN_PREFIX) or tuple(sorted(sc['rules'])) in played_combos:
@@ -659,6 +667,12 @@ def pick_blind(rng):
     if not cands:
         raise SystemExit('目隠しで選べる脚本が無い（生成で補充する）')
     return rng.choices(cands, weights=ws)[0], len(cands)
+
+
+def blind_count():
+    """伏せて選べる脚本の数（おすすめ＋自動生成）。開始画面で「伏せて遊ぶ」を出すかの判定に使う。"""
+    from engine.scripts import glob_scripts
+    return sum(1 for i in RECOMMENDED if glob_scripts(i + '.json')) + len(glob_scripts('generated/*.json'))
 
 
 THINK = {'loop_setup': 'ループの準備', 'mm_cards': '伏せ札', 'mm_ability': '脚本家能力', 'incident_choice': '事件の対象',
@@ -721,6 +735,8 @@ def list_scripts():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--script', default='s03_bomb')
+    ap.add_argument('--blind-pool', default='recommended', choices=['recommended', 'generated'],
+                    help='--blind の選び先: おすすめ（遊び尽くしたら自動生成）か、自動生成（Claude の目隠し対戦）')
     ap.add_argument('--blind', action='store_true', help='脚本を進行役が目隠しで選ぶ（id もルールも表示しない。遊んだ組は選ばない）')
     ap.add_argument('--mm', default='search', help='自動の脚本家（selfplay.league.make の種類）')
     ap.add_argument('--seed', type=int, default=1)
@@ -752,7 +768,7 @@ def main():
         return
     if a.list:  # 開始画面用: 選べる脚本と、伏せて選べる脚本（自動生成）の数
         from engine.scripts import glob_scripts
-        print(json.dumps({'scripts': list_scripts(), 'blind': len(glob_scripts('generated/*.json'))}, ensure_ascii=False))
+        print(json.dumps({'scripts': list_scripts(), 'blind': blind_count()}, ensure_ascii=False))
         return
     a.replay = json.load(open(a.replay, encoding='utf-8')) if a.replay else None
     run(a)
@@ -768,7 +784,7 @@ def run(a, table_cls=None):
         _V2[0] = rp.get('v') == 2
         a.script, a.code, a.mm, a.blind = rp.get('s') or '', rp.get('c') or '', rp.get('mm') or 'calcG', False
     if a.blind:
-        a.script, n = pick_blind(random.Random(f'blind:{a.seed}:{time.time()}'))
+        a.script, n = pick_blind(random.Random(f'blind:{a.seed}:{time.time()}'), pool=getattr(a, 'blind_pool', 'recommended'))
         os.makedirs(os.path.join(a.dir, 'private'), exist_ok=True)
         json.dump({'script': a.script}, open(os.path.join(a.dir, 'private', 'pick.json'), 'w'))  # Claude は試合中に読まない
         print(f'目隠しで脚本を選んだ（候補 {n} 本）')
@@ -817,6 +833,11 @@ def run(a, table_cls=None):
     def log0(kind, rec):
         if rec.get('phase') in PHASE_JA and rec.get('phase') != 'ability':  # 主人公能力フェイズは宣言の受付の前に出す
             t.phase(rec.get('loop'), rec.get('day'), rec['phase'])
+        if rec.get('phase') == 'loop_end':  # ループが途中で終わったフェイズの見出しを、その出来事（死亡など）より前に出す
+            # （ターン終了フェイズのシリアルキラーの殺しが、見出しなしで事件フェイズの死亡に続いて見えた。d02_traits の報告 2026-10-17）
+            at = next((e.get('at_phase') for e in rec.get('events', []) if e.get('kind') == 'loop_end'), None)
+            if at in PHASE_JA:
+                t.phase(rec.get('loop'), rec.get('day'), at)
         # 行動解決では、脚本家の伏せ札も表向きになる（効果の無かった札も公開される＝推理の材料）
         if kind == 'decisions' and rec.get('kind') == 'place_cards' and rec.get('who') == 'M':
             t.log('脚本家の札が公開された: ' + '、'.join(f'{name(x["target"])}={CARD_UI.get(x["card"], x["card"])}' for x in rec['choice']))

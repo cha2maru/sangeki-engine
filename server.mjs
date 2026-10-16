@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn, execFileSync } from 'node:child_process';
+import os from 'node:os';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 // SANGEKI_GAME: ゲームの置き場所（既定は手動モードの play/game。対AIモードは play/game_ai を使う＝ai_gm.py）
@@ -21,6 +22,9 @@ fs.mkdirSync(GAME, { recursive: true });
 // SANGEKI_PYTHON: 使う Python（既定 python3。仮想環境なら .venv/bin/python を渡す）
 const AI = process.env.SANGEKI_AI === '1';
 const PY = process.env.SANGEKI_PYTHON || 'python3';
+// SANGEKI_WORKERS: 自動の脚本家が主人公の応手を読むときの並列の数（fork。既定はコア数−1、最大6。1 で並列なし）
+const WORKERS = process.env.SANGEKI_WORKERS || String(Math.max(1, Math.min(6, os.cpus().length - 1)));
+const ENV = { ...process.env, SANGEKI_WORKERS: WORKERS };
 const MMS = ['calcGBxhd', 'calcD', 'calcG', 'searchL', 'search', 'route'];  // 先頭が既定（最強）  // 開始画面で選べる自動の脚本家（ほかの型は ai_gm.py を直接起動）
 let child = null, scriptList = null;
 function listScripts() {
@@ -34,7 +38,7 @@ function startGame({ script, mm, seed, blind, code, replay, resume }) {
     fs.writeFileSync(f, JSON.stringify(replay));
     if (child && child.exitCode === null) child.kill('SIGTERM');
     const out = fs.openSync(path.join(GAME, 'ai_gm.log'), 'w');
-    child = spawn(PY, [path.join(HERE, 'ai_gm.py'), '--replay', f, ...(resume ? ['--resume'] : []), '--dir', GAME], { cwd: HERE, stdio: ['ignore', out, out] });
+    child = spawn(PY, [path.join(HERE, 'ai_gm.py'), '--replay', f, ...(resume ? ['--resume'] : []), '--dir', GAME], { cwd: HERE, env: ENV, stdio: ['ignore', out, out] });
     return;
   }
   if (!MMS.includes(mm)) throw new Error('脚本家の型が不正');
@@ -48,7 +52,7 @@ function startGame({ script, mm, seed, blind, code, replay, resume }) {
   for (const f of ['notes.json', 'state.json']) fs.rmSync(path.join(GAME, f), { force: true });  // 前の試合の推理の書き込み・盤面を残さない
   const out = fs.openSync(path.join(GAME, 'ai_gm.log'), 'w');
   const args = [path.join(HERE, 'ai_gm.py'), '--mm', mm, '--seed', seed, '--dir', GAME, ...(code ? ['--code', code] : blind ? ['--blind'] : ['--script', script])];
-  child = spawn(PY, args, { cwd: HERE, stdio: ['ignore', out, out] });
+  child = spawn(PY, args, { cwd: HERE, env: ENV, stdio: ['ignore', out, out] });
   console.log('開始:', args.slice(1).join(' '));
 }
 const INBOX = path.join(GAME, 'inbox.jsonl');

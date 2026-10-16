@@ -202,3 +202,45 @@ def test_list_scripts_puts_recommended_first_without_private():
     assert rec == [i for i in ai_gm.RECOMMENDED if i in {r['id'] for r in rows}] and rows[0]['group'] == 'おすすめ'
     assert len(rec) == len({r['id'] for r in rows})  - len([r for r in rows if r['group'] != 'おすすめ'])  # 二重に出ない
     assert not any(r['id'].startswith(('posted/', 'bgw/')) for r in rows)
+
+
+def test_loop_end_phase_header_comes_before_the_death(tmp_path):
+    """ループがターン終了フェイズで終わったとき、その見出しを死亡より前に出す（報告 2026-10-17、d02_traits:
+    遠隔殺人で従者がお嬢様の身代わりに死に、ターン終了に教師＝シリアルキラーがお嬢様を殺した。見出しが無く、同時に死んだように見えた）。"""
+    import json
+    import os
+    import pytest
+    import ai_gm
+    from engine.scripts import glob_scripts
+    if not glob_scripts('designed/d02_traits.json'):
+        pytest.skip('設計した脚本（sangeki-scripts）が無い')
+    rec = os.path.join(os.path.dirname(__file__), 'cases', 'replay_d02_servant_sk.json')
+    argv = sys.argv
+    try:
+        sys.argv = ['ai_gm.py', '--replay', rec, '--dir', str(tmp_path)]
+        ai_gm.main()
+    finally:
+        sys.argv = argv
+    log = [json.loads(x)['text'] for x in open(tmp_path / 'log.jsonl', encoding='utf-8')]
+    i = log.index('従者 が死亡した')
+    assert log[i + 1] == '── L1D5 ターン終了フェイズ ──' and log[i + 2] == 'お嬢様 が死亡した'
+
+
+def test_pick_blind_prefers_unplayed_recommended(tmp_path, monkeypatch):
+    """伏せて選ぶ（開始画面）は、おすすめのうち遊んでいない脚本から。遊び尽くしたら自動生成から（ユーザー 2026-10-17）。"""
+    import json
+    import random
+    import pytest
+    import ai_gm
+    from engine.scripts import glob_scripts
+    rec = [i for i in ai_gm.RECOMMENDED if glob_scripts(i + '.json')]
+    if not rec or not glob_scripts('generated/*.json'):
+        pytest.skip('設計・生成した脚本（sangeki-scripts）が無い')
+    hist = tmp_path / 'h.jsonl'
+    monkeypatch.setattr(ai_gm, 'HISTORY', str(hist))
+    hist.write_text(''.join(json.dumps({'id': i.split('/')[-1], 'rules': []}) + '\n' for i in rec[1:]))
+    assert ai_gm.pick_blind(random.Random(0)) == (rec[0], 1)          # 遊んでいないおすすめは1本だけ
+    with open(hist, 'a') as f:
+        f.write(json.dumps({'id': rec[0].split('/')[-1], 'rules': []}) + '\n')
+    assert ai_gm.pick_blind(random.Random(0))[0].startswith('generated/')  # 遊び尽くしたら自動生成
+    assert ai_gm.pick_blind(random.Random(0), pool='generated')[0].startswith('generated/')
