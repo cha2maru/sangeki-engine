@@ -323,6 +323,7 @@ UNSTOPPABLE = os.environ.get('SANGEKI_NO_SUPPLY') != '1'  # 比較用: 1 なら�
 def _apply_unstoppable(state, routes, days):
     if not days or not UNSTOPPABLE:
         return
+    memo = {}  # 同じ盤面の中では (対象, 種類, 日数, 期限) の補いは同じ（筋ごと・条件ごとに呼び直していた。2026-10-17）
     for r in routes:
         dl = next((c['deficit'] for c in r['conds'] if c['kind'] == 'days' and c['detail'][0] != '登場'), days - state['day'])
         extra = []
@@ -335,7 +336,10 @@ def _apply_unstoppable(state, routes, days):
                 target, counter = 'B:' + c['detail'][0], 'int'
             else:
                 continue
-            ab, incs = _unstoppable_supply(state, target, counter, dl + 1, state['day'] + dl)
+            mk = (target, counter, dl)
+            if mk not in memo:
+                memo[mk] = _unstoppable_supply(state, target, counter, dl + 1, state['day'] + dl)
+            ab, incs = memo[mk]
             # 見込みの供給は半分だけ効くとする（能力は1日1つの対象にしか使えず、駒も動かされうる）。
             # 満額で差し引くと、今日能力を使っても距離が縮まらず、脚本家が能力を先送りする
             d = c['deficit']
