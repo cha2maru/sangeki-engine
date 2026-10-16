@@ -244,3 +244,23 @@ def test_pick_blind_prefers_unplayed_recommended(tmp_path, monkeypatch):
         f.write(json.dumps({'id': rec[0].split('/')[-1], 'rules': []}) + '\n')
     assert ai_gm.pick_blind(random.Random(0))[0].startswith('generated/')  # 遊び尽くしたら自動生成
     assert ai_gm.pick_blind(random.Random(0), pool='generated')[0].startswith('generated/')
+
+
+def test_auto_protagonist_game_and_replay(tmp_path):
+    """自動同士（--pc）で最後まで進み、記録（主人公の種類と乱数の種）から同じ試合を作り直せる（ユーザー 2026-10-17）。"""
+    import json
+    import ai_gm
+    argv = sys.argv
+
+    def run(*args):
+        try:
+            sys.argv = ['ai_gm.py', *args]
+            ai_gm.main()
+        finally:
+            sys.argv = argv
+    run('--pc', 'read', '--mm', 'search', '--script', 's03_bomb', '--seed', '5', '--dir', str(tmp_path / 'a'))
+    rec = json.load(open(tmp_path / 'a' / 'record.json'))
+    assert rec['pc'] == 'read' and rec['seed'] == 5 and rec['h'] == []
+    run('--replay', str(tmp_path / 'a' / 'record.json'), '--dir', str(tmp_path / 'b'))
+    log = lambda d: [json.loads(x)['text'] for x in open(tmp_path / d / 'log.jsonl', encoding='utf-8')]  # noqa: E731
+    assert log('a') == log('b') and any(t.startswith('ゲーム終了') for t in log('a'))

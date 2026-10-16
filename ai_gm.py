@@ -742,6 +742,7 @@ def main():
                     help='--blind の選び先: おすすめ（遊び尽くしたら自動生成）か、自動生成（Claude の目隠し対戦）')
     ap.add_argument('--blind', action='store_true', help='脚本を進行役が目隠しで選ぶ（id もルールも表示しない。遊んだ組は選ばない）')
     ap.add_argument('--mm', default='search', help='自動の脚本家（selfplay.league.make の種類）')
+    ap.add_argument('--pc', default='', help='自動の主人公（league の種類。read2・read・脚本を知る oread など）。指定すると自動同士で最後まで進める')
     ap.add_argument('--seed', type=int, default=1)
     ap.add_argument('--dir', default=os.path.join(HERE, 'game_ai'))
     ap.add_argument('--list', action='store_true', help='開始画面の脚本の一覧（題名・ループ数・日数だけ。役職・犯人は出さない）を JSON で出して終わる')
@@ -786,6 +787,8 @@ def run(a, table_cls=None):
             raise ValueError('リプレイの記録の形が違う')
         _V2[0] = rp.get('v') == 2
         a.script, a.code, a.mm, a.blind = rp.get('s') or '', rp.get('c') or '', rp.get('mm') or 'calcG', False
+        if rp.get('pc'):  # 自動同士の試合の記録: 主人公の種類と乱数の種で、主人公の手を作り直す
+            a.pc, a.seed = rp['pc'], rp.get('seed', a.seed)
     if a.blind:
         a.script, n = pick_blind(random.Random(f'blind:{a.seed}:{time.time()}'), pool=getattr(a, 'blind_pool', 'recommended'))
         os.makedirs(os.path.join(a.dir, 'private'), exist_ok=True)
@@ -804,10 +807,14 @@ def run(a, table_cls=None):
     if a.blind:
         t.record_file = os.path.join('private', 'record.json')
     t.record.update({'s': '' if a.script == 'user' else a.script, 'c': getattr(a, 'code', '') or '', 'mm': a.mm})
+    auto_pc = getattr(a, 'pc', '') or ''
+    if auto_pc:  # 自動同士（ユーザー 2026-10-17）: 主人公も自動。記録に種類と乱数の種を残し、再生で作り直す
+        t.record.update({'pc': auto_pc, 'seed': a.seed})
     if rp:
         t.replay = {'h': [{k: v for k, v in x.items() if k != 'n'} for x in rp.get('h', [])], 'resume': bool(getattr(a, 'resume', False))}
     rng = random.Random(a.seed)
-    pc = HumanProtagonist(t, rng)
+    # 自動の主人公は専用の乱数（脚本家と共有すると、再生で脚本家を記録に置き換えたときに主人公の手がずれる）
+    pc = make(auto_pc, random.Random(f'pc:{a.seed}:{auto_pc}'), script) if auto_pc else HumanProtagonist(t, rng)
     if a.mm == 'claude' and not rp:  # Claude が脚本家（問いは private/ に書くので盤面からは見えない）
         from selfplay.play_cli import BlockingMastermind
         mm = BlockingMastermind(os.path.join(a.dir, 'private', 'mm_question.txt'), os.path.join(a.dir, 'private', 'mm_decisions.jsonl'),
@@ -831,7 +838,8 @@ def run(a, table_cls=None):
     # 題名は内容の手がかりになるので、開始時は ID だけ出す（題名はゲーム終了時の非公開シートの公開で出す）
     shown = f'「{script["title"]}」（ユーザーのシナリオ）' if a.script == 'user' else short_id(a.script)
     t.log(f'対AIモード開始。脚本 {shown}（ループ {script["loops"]} 回・1ループ {script["days"]} 日・'
-          f'{script.get("set", "BTX")}）。脚本家は' + ('Claude' if a.mm == 'claude' else f'自動（{a.mm}）'))
+          f'{script.get("set", "BTX")}）。脚本家は' + ('Claude' if a.mm == 'claude' else f'自動（{a.mm}）')
+          + (f'、主人公は自動（{auto_pc}）' if auto_pc else ''))
 
     def log0(kind, rec):
         if rec.get('phase') in PHASE_JA and rec.get('phase') != 'ability':  # 主人公能力フェイズは宣言の受付の前に出す

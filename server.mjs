@@ -25,13 +25,14 @@ const PY = process.env.SANGEKI_PYTHON || 'python3';
 // SANGEKI_WORKERS: 自動の脚本家が主人公の応手を読むときの並列の数（fork。既定はコア数−1、最大6。1 で並列なし）
 const WORKERS = process.env.SANGEKI_WORKERS || String(Math.max(1, Math.min(6, os.cpus().length - 1)));
 const ENV = { ...process.env, SANGEKI_WORKERS: WORKERS };
+const PCS = ['read2', 'read', 'oread'];  // 自動の主人公（自動同士で観る。oread は脚本を知る）。空なら人が主人公
 const MMS = ['calcGBxhd', 'calcD', 'calcG', 'searchL', 'search', 'route'];  // 先頭が既定（最強）  // 開始画面で選べる自動の脚本家（ほかの型は ai_gm.py を直接起動）
 let child = null, scriptList = null;
 function listScripts() {
   if (!scriptList) scriptList = JSON.parse(execFileSync(PY, [path.join(HERE, 'ai_gm.py'), '--list'], { cwd: HERE }).toString());
   return scriptList;
 }
-function startGame({ script, mm, seed, blind, code, replay, resume }) {
+function startGame({ script, mm, pc, seed, blind, code, replay, resume }) {
   if (replay) {  // リプレイの記録を再生する（URL の #p=）。中身の検証は ai_gm.py がする
     if (typeof replay !== 'object' || JSON.stringify(replay).length > 200000) throw new Error('リプレイの記録が不正');
     const f = path.join(GAME, 'replay_in.json');
@@ -42,6 +43,7 @@ function startGame({ script, mm, seed, blind, code, replay, resume }) {
     return;
   }
   if (!MMS.includes(mm)) throw new Error('脚本家の型が不正');
+  if (pc && !PCS.includes(pc)) throw new Error('主人公の型が不正');
   // code: シナリオエディタのコード（s1.＋base64url）。中身の検証は ai_gm.py がする
   if (code && !/^s1\.[A-Za-z0-9_-]{1,20000}$/.test(code)) throw new Error('シナリオのコードが不正');
   if (code) blind = false;
@@ -51,7 +53,7 @@ function startGame({ script, mm, seed, blind, code, replay, resume }) {
   if (child && child.exitCode === null) child.kill('SIGTERM');
   for (const f of ['notes.json', 'state.json']) fs.rmSync(path.join(GAME, f), { force: true });  // 前の試合の推理の書き込み・盤面を残さない
   const out = fs.openSync(path.join(GAME, 'ai_gm.log'), 'w');
-  const args = [path.join(HERE, 'ai_gm.py'), '--mm', mm, '--seed', seed, '--dir', GAME, ...(code ? ['--code', code] : blind ? ['--blind'] : ['--script', script])];
+  const args = [path.join(HERE, 'ai_gm.py'), '--mm', mm, ...(pc ? ['--pc', pc] : []), '--seed', seed, '--dir', GAME, ...(code ? ['--code', code] : blind ? ['--blind'] : ['--script', script])];
   child = spawn(PY, args, { cwd: HERE, env: ENV, stdio: ['ignore', out, out] });
   console.log('開始:', args.slice(1).join(' '));
 }
