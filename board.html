@@ -820,7 +820,19 @@ function renderOptions() {
   const box = $('pending').parentElement;
   box.querySelectorAll('.optbtn').forEach(b => b.remove());
   o.forEach(label => { const b = document.createElement('button'); b.className = 'optbtn go'; b.title = '押すとすぐ送信される'; b.textContent = label;
-    b.style.margin = '6px 6px 0 0'; b.onclick = () => post({ type: 'option', choice: label }); box.appendChild(b); });
+    b.style.margin = '6px 6px 0 0'; b.onclick = () => { if (confirmEndFinal(label)) post({ type: 'option', choice: label }); }; box.appendChild(b); });
+}
+// 最後の戦い: パーソン以外の指摘が1つも無いまま『指摘を終える』を押したら、確かめと指摘のやり方を出す（ユーザー 2026-10-17）。
+// 指摘していない人物はパーソンとして判定されるので、うっかり押すと全員パーソンで答えたことになる
+function confirmEndFinal(label) {
+  if ((S.waiting || {}).kind !== 'final' || label !== '指摘を終える') return true;
+  const picks = LOG.filter(l => /^指摘: /.test(l.text || ''));
+  const named = picks.filter(l => !/ は パーソン$/.test(l.text));
+  if (named.length) return true;
+  return confirm((picks.length ? 'パーソン以外の役職がまだ指摘されていません。' : '役職がまだ1人も指摘されていません。')
+    + '\nこのまま送ると、全員をパーソンとして判定します。確定して送りますか？'
+    + '\n\n指摘のしかた: 盤面のキャラクターを右クリック →『役職を指摘する（最後の戦い）…』→ 役職を選ぶ。'
+    + '\n宣言した順に判定し、外れた時点で脚本家の勝ちです。');
 }
 
 // ---- 送信 ----
