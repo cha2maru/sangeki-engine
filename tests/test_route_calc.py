@@ -154,3 +154,76 @@ def test_fill_idle_replaces_noop_card_on_character():
     out = mm._fill_idle(s, [{'by': 'M', 'target': 'C01', 'card': 'PAR-'}, {'by': 'M', 'target': 'C02', 'card': 'PAR+'},
                             {'by': 'M', 'target': 'B:CIT', 'card': 'INT1'}])
     assert out[0]['target'] == 'C01' and out[0]['card'] in ('GWX', 'PARX') and out[1]['card'] == 'PAR+' and out[2]['card'] == 'INT1'
+
+
+def test_forced_plan_skips_routes_held_only_by_position():
+    """位置の条件が今揃っているだけの筋（殺人事件の犯人と被害者が同じエリア）は、必勝の計算に入れない（主人公は移動札で崩せる。gen_b31_002）。"""
+    from engine.route_calc import forced_plan
+    from engine.scripts import by_id
+    from selfplay.script_routes import start_state
+    s = start_state(by_id('generated/gen_b31_002'))
+    assert s['chars']['C14']['area'] == s['chars']['C07']['area']  # 犯人アイドルとフレンド情報屋が同じ都市
+    assert not any(r.startswith('MURDER:') for r in forced_plan(s, 7)['routes'])
+
+
+def test_friend_not_yet_appeared_is_not_dead():
+    """登場前のフレンド（転校生、3日目に登場）を死亡したフレンドと数えない（gen_b31_033: ループ1日目に確定と誤った）。"""
+    from engine.routes import enumerate_routes
+    from engine.scripts import by_id
+    from selfplay.script_routes import start_state
+    s = start_state(by_id('generated/gen_b31_033'))
+    assert s['chars']['C24']['present'] is False
+    assert not any(r['id'] == 'FRIEND' and r['total'] == 0 for r in enumerate_routes(s))
+
+
+def test_routes_count_transfer_student_before_appearance():
+    """登場前の転校生（フレンド）を殺す筋も、登場までの待ちを足して数える。逆算（必勝）には入れない（gen_b31_033）。"""
+    from engine.route_calc import forced_plan
+    from engine.routes import enumerate_routes
+    from engine.scripts import by_id
+    from selfplay.script_routes import start_state
+    s = start_state(by_id('generated/gen_b31_033'))  # 転校生は3日目に登場
+    pre = [r for r in enumerate_routes(s) if '登場前' in r['note']]
+    assert pre and all(any(c['detail'][:2] == ('登場', 'C24') and c['deficit'] == 2 for c in r['conds']) for r in pre)
+    assert not any('C24' in r for r in forced_plan(s, 6)['routes'])
+
+
+def test_route_richness_counts_godlike_from_its_loop():
+    """神格が2ループ目に登場する脚本は、登場ループの盤面の筋も数える（designed/d30、神格＝シリアルキラー）。"""
+    from engine.routes import enumerate_routes
+    from engine.scripts import by_id
+    from selfplay.script_routes import route_richness, start_state
+    sc = by_id('designed/d30')
+    s1, s2 = start_state(sc), start_state(sc, 2)
+    assert s1['chars']['C13']['present'] is False and s2['chars']['C13'].get('present', True)
+    assert not any(r['via'] == 'C13' for r in enumerate_routes(s1)) and any(r['via'] == 'C13' for r in enumerate_routes(s2))
+    assert route_richness(sc)['n_via'] > len({r['via'] for r in enumerate_routes(s1) if r['total'] <= 6})
+
+
+def test_kuromaku_takes_the_loop_today_over_leak():
+    """クロマクの能力で今日ループが取れる（メインラバーズに暗躍1で主人公死亡）なら、漏れと比べずに使う（目隠し7戦目 gen_s11_027 L1D5）。"""
+    import random
+    from engine.scripts import by_id
+    from selfplay.league import make
+    from selfplay.script_routes import start_state
+    sc = by_id('generated/gen_s11_027')
+    s = start_state(sc)
+    s['day'] = 5
+    s['chars']['C18'].update(par=3)  # 手先＝メインラバーズ。クロマク（鑑識官）と同じ都市
+    assert s['chars']['C18']['area'] == s['chars']['C21']['area']
+    assert make('calcGBx@0.3', random.Random(61), sc).mm_ability(s, 'C21') == 'C18'
+
+
+def test_rule_leak_shrinks_with_remaining_loops():
+    """ルールの組の漏れは残りのループに比例して数える（最終ループの最終日は配役の漏れだけ）。ユーザー 2026-10-16。"""
+    import random
+    from engine.scripts import by_id
+    from selfplay.league import make
+    from selfplay.script_routes import start_state
+    sc = by_id('generated/gen_s11_027')
+    mm = make('calcGBxr0.5', random.Random(0), sc)
+    s = start_state(sc)
+    obs = [('rule_x_revealed', {'rule': 'X_LOVE'})]
+    first = mm._leak(dict(s, loop=1, day=1), obs)
+    last = mm._leak(dict(s, loop=sc['loops'], day=sc['days']), obs)
+    assert mm.pub.ded.trial_rules(obs) > 0 and first > last == mm.pub.ded.trial(obs)

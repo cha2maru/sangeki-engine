@@ -113,10 +113,10 @@ def _fc(v):
     t = type(v)
     if t in _SCALAR:
         return v
-    if t is dict:
-        return {k: _fc(x) for k, x in v.items()}
+    if t is dict:  # 数・文字はその場で返す（値ごとの関数呼び出しが複製の時間の大半だった）
+        return {k: x if type(x) in _SCALAR else _fc(x) for k, x in v.items()}
     if t is list:
-        return [_fc(x) for x in v]
+        return [x if type(x) in _SCALAR else _fc(x) for x in v]
     if t is tuple:
         return tuple(_fc(x) for x in v)
     return copy.deepcopy(v)

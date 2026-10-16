@@ -14,8 +14,9 @@ from engine.routes import enumerate_routes  # noqa: E402
 from engine.scripts import by_id  # noqa: E402
 
 
-def start_state(script):
-    s = {'loop': 0, 'day': 0, 'leader': 'A',
+def start_state(script, loop=1):
+    """ループ loop（既定 1）の1日目の盤面。神格は登場ループから盤面にいる（phases.loop_start）。"""
+    s = {'loop': loop - 1, 'day': 0, 'leader': 'A',
          'script': {**{k: script[k] for k in ('rules', 'roles', 'incidents')}, 'days': script['days'], 'appear': script.get('appear', {}),
                     'territory': script.get('territory'), 'start': script.get('start', {})},
          'chars': {c: {'area': a, 'alive': True, 'par': 0, 'gw': 0, 'int': 0, 'guard': 0} for c, a in script['init'].items()},
@@ -32,7 +33,10 @@ def route_richness(script, max_dist=6):
     # 事件の日までの待ち日数（条件 'days'）は主人公が止められる手数ではないので、距離から外す
     # （遅い日の事件・未来改変プランの脚本を低く見ていた。設計のサブエージェントの指摘）
     rs = []
-    for r in enumerate_routes(start_state(script)):
+    # 神格があとのループで登場する脚本は、その筋が1ループ目に無い。登場ループの盤面でも数える（転校生は enumerate_routes が登場前も数える）
+    lp = script.get('appear', {}).get('C13', {}).get('loop', 1)
+    states = [start_state(script)] + ([start_state(script, lp)] if 1 < lp <= script.get('loops', lp) else [])
+    for r in (r for st in states for r in enumerate_routes(st)):
         d = r['total'] - sum(min(c['deficit'], 99) for c in r['conds'] if c['kind'] == 'days')
         if d <= max_dist:
             rs.append(dict(r, total=d))

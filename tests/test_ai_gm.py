@@ -150,6 +150,8 @@ def test_record_replays_to_the_same_game(tmp_path):
     assert log(d1) == log(d2) and json.load(open(d2 + '/state.json'))['waiting']['ok'] is True
     rej = lambda d: json.load(open(d + '/rejected.json'))  # noqa: E731
     assert len(rej(d1)) == 1 and rej(d1) == rej(d2) and rej(d1)[0]['what'].startswith('札:')
+    bel = [json.loads(x) for x in open(d1 + '/beliefs.jsonl')]  # ループ終了ごとに推理エンジンの割合を残す（主人公の印は notes.json があれば）
+    assert [b['loop'] for b in bel] == list(range(1, len(bel) + 1)) and all(b['deduce'] for b in bel)
 
 
 def test_resume_from_the_middle(tmp_path):
@@ -179,3 +181,24 @@ def test_resume_from_the_middle(tmp_path):
     log = lambda d: [json.loads(x)['text'] for x in open(d + '/log.jsonl')]  # noqa: E731
     assert log(d1)[:cut] == log(d2)[:cut] and 'ゲーム終了' in json.load(open(d2 + '/state.json'))['phaseName']
     assert len(json.load(open(d2 + '/record.json'))['h']) > len(part['h'])  # 再開した後の操作も記録に続く
+
+
+def test_class_rep_returns_the_chosen_card():
+    """委員長[2]: 盤面で選んだ札（表示名）が戻る。使用済みが2枚のとき、以前は先頭の札（移動禁止）が戻っていた。"""
+    s = _state()
+    s['chars']['C10'] = {'area': 'SCH', 'alive': True, 'par': 0, 'gw': 2, 'int': 0, 'guard': 0}
+    s['used']['A'] = ['MVX', 'PAR-']
+    rec = {'type': 'ability', 'char': '委員長', 'ability': 0, 'card': '不安-1'}
+    assert ai_gm.HumanProtagonist._match(s, rec) == ('C10', 0, {'card': 'PAR-'})
+    assert ai_gm.HumanProtagonist._match(s, dict(rec, card='移動禁止')) == ('C10', 0, {'card': 'MVX'})
+    assert '不安-1 を手札に戻した' in ai_gm.describe({'kind': 'ability', 'char': 'C10', 'ability': 0, 'returned': 'PAR-'})
+
+
+def test_list_scripts_puts_recommended_first_without_private():
+    """開始画面の一覧: おすすめ（選定した設計の脚本）が先頭のまとまり。非公開の脚本（投稿・有志サイト）は出さない。"""
+    import ai_gm
+    rows = ai_gm.list_scripts()
+    rec = [r['id'] for r in rows if r['group'] == 'おすすめ']
+    assert rec == [i for i in ai_gm.RECOMMENDED if i in {r['id'] for r in rows}] and rows[0]['group'] == 'おすすめ'
+    assert len(rec) == len({r['id'] for r in rows})  - len([r for r in rows if r['group'] != 'おすすめ'])  # 二重に出ない
+    assert not any(r['id'].startswith(('posted/', 'bgw/')) for r in rows)

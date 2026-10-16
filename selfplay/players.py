@@ -37,6 +37,17 @@ def _score(state):
     return sum(_weight(state, r) / (1 + r['total']) for r in rs)
 
 
+def has_won_route(state):
+    """事件を解いた後の盤面に、成り立った負け筋（残り0）があるか。今日の事件の筋は解き終わったので数えない
+    （事件の後の盤面には、同じ日の事件の筋が残り0として残る）。"""
+    try:
+        rs = enumerate_routes(state)
+    except Exception:
+        return False
+    return any(r['total'] == 0 and not any(c['kind'] == 'days' and c['detail'][0] == '事件' and c['detail'][2] == state['day']
+                                           for c in r['conds']) for r in rs)
+
+
 def _weight(state, r):
     """筋の重み。タイムトラベラーの最終日の敗北は、友好が3に近づくほど止めやすいので軽くする（友好0→1→2 にも価値を付ける。
     そうしないと、友好3に届くまで評価が変わらず、主人公が友好を積み始めない＝s05 の全敗の原因）。"""
@@ -88,10 +99,6 @@ class RouteMastermind:
     def incident_choice(self, s, inc):
         cul = inc['culprit']
         alive = [c for c, v in s['chars'].items() if v['alive'] and v.get('present', True)]
-        if inc['id'] == 'MURDER':
-            cand = [c for c in ph.alive_in(s, s['chars'][cul]['area']) if c != cul]
-            keys = [c for c in cand if ph.has_ability(s, c, 'KEY')]
-            return {'target': (keys or cand)[0]} if cand else None
         if inc['id'] == 'SPREAD':
             best, best_sc = None, -1
             for p in alive:
@@ -105,7 +112,8 @@ class RouteMastermind:
                     if sc > best_sc:
                         best, best_sc = {'par_target': p, 'int_target': i}, sc
             return best
-        # 遠隔殺人・行方不明・流布・蝶の羽ばたき: 合法な選択のうち、勝ち筋の評価が最も上がるもの
+        # 殺人事件・遠隔殺人・行方不明・流布・蝶の羽ばたき: 合法な選択のうち、ループが終わるもの、なければ勝ち筋の評価が最も上がるもの
+        # （殺人事件は以前「キーパーソン、いなければ候補の先頭」で、フレンドがいるのにキラーを殺していた。runs/inc_help_2026-10-16）
         from engine.resolve import IllegalPlacement as _IP
         from selfplay.run import incident_options
         opts = incident_options(s, inc)
@@ -120,7 +128,9 @@ class RouteMastermind:
                 return o  # その場でループを取れる
             except _IP:
                 continue
-            sc = score(trial)
+            # 成り立った負け筋（残り0）があるかを先に比べる。和の評価だけだと、フレンドを殺せばループ終了時の負けが確定するのに、
+            # フレンドに関わる他の筋が消える分で低く出た（d12）
+            sc = (has_won_route(trial), score(trial))
             if best_sc is None or sc > best_sc:
                 best, best_sc = o, sc
         return best

@@ -93,12 +93,14 @@ class RandomPlayer:
 
 
 def incident_options(s, inc, rng=None):
-    """遠隔殺人・行方不明・流布・蝶の羽ばたきの合法な選択の一覧（rng があれば1つ引いて返す）。"""
+    """殺人事件・遠隔殺人・行方不明・流布・蝶の羽ばたきの合法な選択の一覧（rng があれば1つ引いて返す）。"""
     cul = inc['culprit']
     alive = [c for c, v in s['chars'].items() if v['alive'] and v.get('present', True)]
     area = s['chars'][cul]['area']
     if inc['id'] == 'REMOTE':
         opts = [{'target': c} for c in alive if s['chars'][c]['int'] >= 2]
+    elif inc['id'] == 'MURDER':
+        opts = [{'target': c} for c in ph.alive_in(s, area) if c != cul]
     elif inc['id'] == 'MISSING':
         from engine.resolve import CHARS
         opts = [{'board': a} for a in ph.AREAS if a not in CHARS[cul].get('forbidden', []) or cul in s.get('unbound', [])]
@@ -274,9 +276,11 @@ def play_day(s, player, loop, day, log, box, mm_override=None):
             log('events', {'loop': loop, 'day': day, 'phase': 'ability', 'events': _use(s, player, cid, idx, arg, ref)})
     elif hasattr(player, 'abilities_for_day'):  # 宣言の一覧を返すプレイヤー（Claude など）
         for cid, idx, arg in player.abilities_for_day(s):
-            try:  # 先の宣言で状況が変わり、合法でなくなった宣言は行わない
+            try:  # 先の宣言で状況が変わり、合法でなくなった宣言は行わない（行わなかったことは記録に残す。宣言した側に知らせる）
                 ab.check_declaration(copy.deepcopy(s), cid, idx, arg)
-            except ph.IllegalPlacement:
+            except ph.IllegalPlacement as e:
+                log('decisions', {'loop': loop, 'day': day, 'phase': 'ability', 'who': s['leader'], 'kind': 'ability_rejected',
+                                  'choice': {'char': cid, 'ability': idx, 'arg': arg}, 'why': str(e)})
                 continue
             ref = _ask_refuse(player, s, cid, idx)
             log('decisions', {'loop': loop, 'day': day, 'phase': 'ability', 'who': s['leader'], 'kind': 'ability',
@@ -314,6 +318,9 @@ def play_day(s, player, loop, day, log, box, mm_override=None):
     snap = copy.deepcopy(s)
     try:
         ev += ph.turn_end_optional(s, pick)
+    except ph.LoopEnd as e:  # 【任意】でループが終わっても、先に解決した【強制】の出来事（死亡・ラバーズの不安6）は公開する
+        e.events = ev + list(e.events or [])
+        raise
     except ph.IllegalPlacement:
         s = snap
         box['s'] = s

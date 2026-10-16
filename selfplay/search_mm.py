@@ -13,17 +13,24 @@
   - 主人公の推理そのものではなく近似である（主人公の乱数や仮説の引き方までは再現しない）。
 """
 import copy
+import os
 import random
 
 from engine import phases as ph
 from engine import sets
-from engine.resolve import CARDS, ONCE, IllegalPlacement, copy_state, resolve_actions
+from engine.resolve import CARDS, ONCE, IllegalPlacement, card_targets, copy_state, resolve_actions
 from engine.features import state_features
 from engine.route_calc import forced_plan
 from engine.routes import enumerate_routes
 from selfplay.players import DUMMY_PC, PublicObserver, RouteMastermind, score
 
 STOP = ('MVX', 'PAR-', 'INTX', 'MV_V', 'MV_H')
+_PAR = None  # 並列の計算（SearchMastermind._par_tables）に fork で渡す（関数, 組の一覧）
+
+
+def _par_job(i):
+    one, jobs = _PAR
+    return one(jobs[i])
 
 
 def urgent_targets(s, days, top=6):
@@ -32,7 +39,7 @@ def urgent_targets(s, days, top=6):
     脚本家は ここに置く札に加点し（searchurg）、主人公は ここを止める札に加点する（readurg）。"""
     out = set()
     for r in enumerate_routes(s)[:top]:
-        dl = next((c['deficit'] for c in r['conds'] if c['kind'] == 'days'), days - s['day'])
+        dl = next((c['deficit'] for c in r['conds'] if c['kind'] == 'days' and c['detail'][0] != '登場'), days - s['day'])
         for c in r['conds']:
             if c['kind'] == 'counter' and c['detail'][1] in ('par', 'int') and 0 < c['deficit'] >= dl + 1:
                 out.add((c['detail'][0], c['detail'][1]))
@@ -59,7 +66,7 @@ def reachable_targets(s, days, top=6, crit=False, chain=False, only=None):
     for r in enumerate_routes(s)[:top]:
         if only == 'cut' and is_loop_end(r) or only == 'end' and not is_loop_end(r):
             continue
-        dl = next((c['deficit'] for c in r['conds'] if c['kind'] == 'days'), days - s['day'])
+        dl = next((c['deficit'] for c in r['conds'] if c['kind'] == 'days' and c['detail'][0] != '登場'), days - s['day'])
         for c in r['conds']:
             if c['kind'] == 'counter' and c['detail'][1] in ('par', 'int') and 0 < c['deficit'] <= dl + 1:
                 out.add((c['detail'][0], c['detail'][1]))
@@ -96,6 +103,22 @@ def surplus(state):
         if sp:
             best = max(best, min(sp))
     return best
+
+
+ALL_IN_CRACK = 0.5  # 全力モード: 本当の配役の重みがこれ以上なら、最後の戦いで外させる見込みが無いとみなす
+
+
+def _wins_today(s, days):
+    """今日のターン終了まで（最終日ならループ終了時も）に成り立つ負け筋があるか: 残り0で、待ちの日数（事件の日など）も0。"""
+    for r in enumerate_routes(s):
+        if r['total'] > 0:
+            return False
+        if any(c['kind'] == 'days' and c['deficit'] > 0 for c in r['conds']):
+            continue
+        if (r.get('end') or 'ループ終了時' in r['goal']) and s['day'] < days:
+            continue  # ループ終了時に決まる筋は、最終日でなければまだ崩されうる
+        return True
+    return False
 
 
 class SearchMastermind(RouteMastermind):
@@ -520,7 +543,17 @@ class SearchMastermind(RouteMastermind):
         if getattr(self, 'oracle_pc', None) is not None:  # oracle: 実際の主人公にこの置き場所への応手を出させる（上限の測定用）
             return [self._oracle_reply(s, ts, order)]
         if self.shadow is not None:
-            return [self._shadow_reply(s, ts, order)]
+            k = getattr(self, 'shadow_k', 1) if s['day'] >= self.days else 1  # 最終日だけ（今日成り立つ筋を最優先にする日は、予想の揺れに引かれやすい）
+            if k == 1:
+                return [self._shadow_reply(s, ts, order)]
+            # 模型の応手は内部の乱数で揺れる（gen_s11_018 L3D7: 同じ局面で病院の暗躍禁止を置いたり置かなかったりした）。
+            # k 通り引いて並べ、主人公の最善の応手（rank_moves の jstar）で比べる
+            sh, keep, out = self.shadow, self.shadow.rng.getstate(), []
+            for i in range(k):
+                sh.rng.seed(f"{s['loop']}:{s['day']}:{','.join(ts)}:{i}")
+                out.append(self._shadow_reply(s, ts, order))
+            sh.rng.setstate(keep)
+            return out
         focus = list(dict.fromkeys(ts + self._focus(s)))
         allt = self._targets(s)
         out = [DUMMY_PC]
@@ -588,10 +621,76 @@ class SearchMastermind(RouteMastermind):
                 after = after_incidents(after)
         except IllegalPlacement:
             return None
-        base = self._plan_score(s, after) if (self.tempo or self.known != 1.0 or self.guide or self.cut_mm) else score(after)
+        if getattr(self, 'need_plan', False):
+            base = self._need_score(s, after)
+        else:
+            base = self._plan_score(s, after) if (self.tempo or self.known != 1.0 or self.guide or self.cut_mm) else score(after)
+        if getattr(self, 'sk_leak', 0):
+            base -= self.sk_leak * self._sk_leak(s, after)
+        if getattr(self, 'last_day_now', False) and s['day'] >= self.days:
+            # ループの最終日は、今日のうちに成り立つ筋（残り0）の数を最優先にし、同じなら普段の評価で比べる（×100 で辞書式の近似。
+            # 目隠し対戦 gen_s11_018 L3D7: 教祖を学校へ動かせばウイルスのシリアルキラーと2人きりでフレンドが死ぬのに、不安を2か所に足す手を選んだ。
+            # 残り0の筋だけで比べた版は、勝てない日に手が無作為になり悪化した。runs/blind_calcGB_2026-10-16）
+            from selfplay.players import _weight
+            try:
+                base += 100 * sum(_weight(after, r) for r in enumerate_routes(after) if r['total'] == 0)
+            except Exception:
+                pass
         if self.persist:
             base += self.persist * self._persist(after)
         return base + (self.margin * surplus(after) if self.margin else 0.0)
+
+    @staticmethod
+    def _days_needed(r, int2):
+        """筋を成り立たせるのに脚本家が要る日数の下限（主人公の妨害なし）。同じ対象には1日1枚・1日3枚・暗躍+2 は1ループ1回。
+        位置の条件は2人を同じ日に動かせるとして半分。'days' は締め切りなので数えない。"""
+        per, cards = {}, 0
+        for c in r['conds']:
+            d = c['deficit']
+            if d <= 0 or c['kind'] in ('days', 'counter_max'):
+                continue
+            if d >= 99:
+                return 99
+            if c['kind'] == 'counter' or c['kind'] == 'incident_par':
+                t = c['detail'][0]
+                n = max(1, d - 1) if (int2 and c['kind'] == 'counter' and c['detail'][1] == 'int') else d
+            elif c['kind'] == 'board':
+                t, n = 'B:' + c['detail'][0], (max(1, d - 1) if int2 else d)
+            else:  # same_area・alone_with・in_area
+                t, n = ('pos',) + tuple(c['detail']), -(-d // 2)
+            per[t] = per.get(t, 0) + n
+            cards += d
+        return max(max(per.values(), default=0), -(-cards // 3))
+
+    def _need_score(self, s, after):
+        """必要な手数から逆算した評価（ユーザー「必要な手数を先に出して、必要なタイミングからやれるようにしたい」2026-10-16）。
+        筋ごとに、今日の行動の後の残りの日数（事件の筋は事件の日、他はループの最終日まで）と必要な日数を比べる。
+        間に合わない筋は 0。余裕が need_margin 日より大きい筋は、今日の進みを数えない（朝の距離で数える＝早く押して漏らさない）。"""
+        from selfplay.players import _weight
+        key = (s['loop'], s['day'], id(s))
+        if getattr(self, '_need_cache', (None,))[0] != key:
+            try:
+                before = {(r['id'], r['via'], r.get('reason')): r for r in enumerate_routes(s)}
+            except Exception:
+                before = {}
+            self._need_cache = (key, before)
+        before = self._need_cache[1]
+        try:
+            rs = enumerate_routes(after)
+        except Exception:
+            return 0.0
+        int2 = 'INT2' not in after['used']['M']
+        margin = getattr(self, 'need_margin', 1)
+        v = 0.0
+        for r in rs:
+            dl = next((c['deficit'] for c in r['conds'] if c['kind'] == 'days'), self.days - s['day'])
+            need = self._days_needed(r, int2)
+            if need > dl:
+                continue  # 間に合わない
+            if dl - need > margin and r['total'] > 0:  # まだ始める日ではない: 今日の進みは数えない
+                r = before.get((r['id'], r['via'], r.get('reason')), r)
+            v += _weight(after, r) / (1 + r['total'])
+        return v
 
     def _plan_score(self, s, after):
         try:
@@ -611,7 +710,8 @@ class SearchMastermind(RouteMastermind):
     def _guide_w(self, s, r):
         if not self.guide:
             return 1.0
-        w = next((g.get('w', 1.0) for g in self.guide.get('routes', []) if g['id'] == r['id'] and g.get('via') == r['via']), 1.0)
+        w = next((g.get('w', 1.0) for g in self.guide.get('routes', []) if g['id'] == r['id'] and g.get('via') == r['via']
+                  and s['loop'] in g.get('loop', [s['loop']])), 1.0)
         if r['via'] in self.guide.get('hide', []) and s['loop'] < self.loops:
             w *= 0.3
         return w
@@ -780,6 +880,8 @@ class SearchMastermind(RouteMastermind):
             self._last_mm = list(mm)
             return mm
         self._start_loop(s)
+        if getattr(self, 'lock_bluff', False):
+            self._all_in(s)  # 全力モードはループの最初の日に決める（盤面が動く前）
         self._reply_of = {}
         self._prog(0.02, '盤面を読んでいます')
         fp = None
@@ -809,14 +911,27 @@ class SearchMastermind(RouteMastermind):
             fp = fp or forced_plan(s, self.days, hidden=bool(self.gamble), watch=self._watch(s) if self.gamble else None,
                                    pos=getattr(self, 'calc_pos', False), abil=getattr(self, 'calc_abil', False),
                              pcab=getattr(self, 'calc_pcab', False))
+            g = self._guide_loop_routes(s)
+            if g and fp['forced'] and not (fp['locked'] or self._locked(s)):
+                # 指針がこのループに選んだ筋だけでも必ず取れるなら、そちらの手にする（ほかの筋を押して漏らさない。取る保証は変わらない）
+                fg = forced_plan(s, self.days, hidden=bool(self.gamble), watch=self._watch(s) if self.gamble else None,
+                                 pos=getattr(self, 'calc_pos', False), abil=getattr(self, 'calc_abil', False),
+                                 pcab=getattr(self, 'calc_pcab', False), only=g)
+                if fg['forced'] and fg['move']:
+                    fp = fg
             if fp['locked'] or self._locked(s):
                 # 確定したループは押さずに隠す（メモリ mastermind-hide-after-locked-loop）: 閾値に一番近い情報・守りの能力の持ち主に友好禁止。
                 # 残りの枠も押す札（不安+1・暗躍）は置かない: 犯人・負け筋を教えるだけ（問題 mm16c-l1d2-hide）
                 eve = self._gw_eve(s)
                 gwx = [(min(sorted(eve), key=eve.get), 'GWX')] if eve else []
+                if getattr(self, 'lock_bluff', False) and not self._all_in(s):  # 型1: 手を止めると「確定した」の合図になるので、偽の負け筋へは押す（メモリ mastermind-hide-after-locked-loop 改訂）
+                    gwx += self._fake_pushes(s, 3 - len(gwx), {t for t, _ in gwx})
+                # 本当の筋の人物への移動札も止める案は試して外した: gen_s11_034 で3試合ともループ3を落とした（calcG は3/3取る。
+                # selfplay/runs/blind_calcGB_2026-10-15/analysis.md）
                 mm = self._calc_merge(s, gwx, scored, skip=('PAR+', 'INT1', 'INT2'))
             elif fp['forced'] and fp['move']:
-                mm = self._calc_merge(s, fp['move'], scored)
+                mv, drop = self._drop_harmful_pushes(s, fp['move']) if getattr(self, 'push_check', False) else (fp['move'], set())
+                mm = self._calc_merge(s, mv, scored, skip=tuple(drop))
             elif self.gamble and fp.get('p', 0) >= self.gamble and fp.get('mix'):
                 # 今日の賭け（伏せ札の中身が見えない主人公への二択。route_calc.solve_hidden）: 混ぜ方から1つ引く。効果の無い札は友好禁止・不安−1・移動で
                 # 見張られている所（_watch）を避けて暗躍+2 を置く。同じなら混ぜ方どおり引く
@@ -832,8 +947,12 @@ class SearchMastermind(RouteMastermind):
                     if r <= acc:
                         break
                 mm = self._calc_merge(s, self._bluff_cards(s, mv), scored)
+            elif getattr(self, 'setup_k', 0) and s['day'] < self.days:
+                mm = self._setup_pick(s, scored, mm)
         if self.fill:
             mm = self._fill_idle(s, mm)
+        if getattr(self, 'diag_gate', False) and s['day'] < self.days:
+            mm = self._diag_gate(s, mm)
         self._last_mm = list(mm)  # 止められたかを行動解決の後に数える（stuck）
         for x in mm:
             self.tcount[(s['loop'], x['target'])] = self.tcount.get((s['loop'], x['target']), 0) + 1
@@ -848,6 +967,196 @@ class SearchMastermind(RouteMastermind):
                                   'ent_before': self.pub.ded.role_entropy(), 'cards': [(x['target'], x['card']) for x in mm],
                                   'feat': self._move_features(s, mm), 'sfeat': state_features(s, self.days, self.loops)})
         return mm
+
+    def _sk_leak(self, s, after):
+        """行動の解決後の盤面で、シリアルキラー（【強制】）が負け筋にならない人物と2人きりなら、ターン終了の殺しで漏れる情報（ビット）×λ。
+        相手が死なない役職（タイムトラベラー）なら「死亡しなかった」が公開され、両方が割れる（gen_b31_031 L1D1: 初期配置で神社に
+        異世界人と妹の2人きり）。殺しのあったループのエントロピーの減りは約7（runs/select_2026-10-15/leak_by_end.py）。"""
+        roles = {c: ph.base_role(after, c) for c in after['chars']}
+        ml = any(r == 'MAIN_LOVERS' and after['chars'][c]['alive'] for c, r in roles.items())
+        # ponytail: 負け筋になる被害者は engine.routes.enumerate_routes の victims を写したもの（ファクターの条件・従者は省略）
+        loss = {c for c, r in roles.items() if r in ('KEY', 'FRIEND', 'FACTOR') or (r == 'LOVERS' and ml)}
+        leak = 0.0
+        for c, v in after['chars'].items():
+            if not v['alive'] or not v.get('present', True) or ph.role(after, c) != 'SK':
+                continue
+            others = [x for x in ph.alive_in(after, v['area']) if x != c]
+            if len(others) != 1 or others[0] in loss:
+                continue
+            o = others[0]
+            immortal = sets.has_trait(after, roles[o], 'immortal')
+            k = (s['loop'], s['day'], c, o, immortal, after['chars'][o]['int'], v['par'])
+            cache = self.__dict__.setdefault('_skc', {})
+            if k not in cache:
+                self.pub._ensure(s)
+                obs = [('no_death', dict(char=o))] if immortal else \
+                    [('turn_end_death', dict(victim=o, others=[c], victim_int=k[5], par={c: k[6]}))]
+                cache[k] = self._leak(s, obs)
+            leak += cache[k]
+        return self._lam(s) * leak
+
+    def _feasible_score(self, s, after):
+        """締め切り（事件の日、他はループの最終日）までに間に合う筋だけの評価（_days_needed）。"""
+        from selfplay.players import _weight
+        try:
+            rs = enumerate_routes(after)
+        except Exception:
+            return 0.0
+        int2 = 'INT2' not in after['used']['M']
+        return sum(_weight(after, r) / (1 + r['total']) for r in rs
+                   if self._days_needed(r, int2) <= next((c['deficit'] for c in r['conds'] if c['kind'] == 'days'), self.days - s['day']))
+
+    def cultist_pick(self, s, placements):
+        """カルティストの暗躍禁止の無視: cult_feasible なら、間に合う筋の評価で比べる（gen_s11_018 ではなく gen_b31_031 L2D3:
+        遠隔殺人の犯人が臨界に届きようのない日に、フレンドの暗躍のために無視して、カルティストの場所を明かした）。"""
+        if not getattr(self, 'cult_feasible', False):
+            return super().cultist_pick(s, placements)
+        best, best_sc = [], None
+        for o in [None] + self.cultist_options(s, placements):
+            opt = [o] if o else []
+            try:
+                after, _ = resolve_actions(s, placements, opt)
+            except IllegalPlacement:
+                continue
+            if o and _wins_today(after, self.days):
+                return opt  # 今日のうちにループが取れるなら、漏れと比べない（mm_ability と同じ）
+            sc = self._feasible_score(s, after) - self._leak_cost(s, o)
+            if best_sc is None or sc > best_sc:
+                best, best_sc = opt, sc
+        return best
+
+    def _harmful_today(self, s):
+        """今日の事件のうち、行動なしの盤面で「起きる」より「起きない」ほうが上のもの → [(犯人, 止める札)]。
+        比べ方は優先順: ループが終わる ＞ 成り立った筋 ＞ score。"""
+        from engine.resolve import CHARS as RC
+        from selfplay.players import has_won_route
+        from selfplay.pc_v2 import after_incidents
+
+        def key(x):
+            if '_loss' in x:
+                return (1 if x['_loss'] else -1, False, 0.0)
+            return (0, has_won_route(x), score(x))
+        out = []
+        for inc in s['script']['incidents']:
+            cul = inc['culprit']
+            if inc['day'] != s['day'] or cul not in s['chars'] or not s['chars'][cul]['alive']:
+                continue
+            par, lim = s['chars'][cul]['par'], RC[cul]['limit']
+            if par >= lim + 1:
+                continue  # 今日はもう止められない
+            a = copy_state(s)
+            a['chars'][cul]['par'] = max(par, lim)  # 起きる場合
+            b = copy_state(s)
+            b['suppressed_culprits'] = list(s.get('suppressed_culprits', [])) + [cul]
+            if key(after_incidents(b)) > key(after_incidents(a)):
+                out.append((cul, 'PAR-' if par >= lim else 'PARX'))
+        return out
+
+    def _drop_harmful_pushes(self, s, move):
+        """逆算の札のうち、今日の事件の犯人への不安+1 で、予想した応手のもとで事件が起きると損になるものを外す。
+        逆算は事件の副作用（主人公の移動で事件が別の相手や自分の駒に当たる）を見ない。害のあった事件の 30 件中 27 件が
+        逆算の不安+1 だった（runs/inc_help_2026-10-16）。比べ方は優先順: ループが終わる ＞ 成り立った筋 ＞ score。"""
+        today = {i['culprit'] for i in s['script']['incidents'] if i['day'] == s['day']}
+        cand = [(t, c) for t, c in move if c == 'PAR+' and t in today]
+        if not cand:
+            return move, set()
+        from selfplay.players import has_won_route
+        from selfplay.pc_v2 import after_incidents
+        mm = [{'by': 'M', 'target': t, 'card': c} for t, c in move]
+        order = ['A', 'B', 'C']
+        i = order.index(s['leader'])
+        pc = self._shadow_reply(s, [t for t, _ in move], order[i:] + order[:i]) if self.shadow is not None else DUMMY_PC
+        try:
+            a = resolve_actions(s, mm + pc)[0]
+        except IllegalPlacement:
+            return move, set()
+
+        def key(x):
+            if '_loss' in x:
+                return (1 if x['_loss'] else -1, False, 0.0)
+            return (0, has_won_route(x), score(x))
+        occ = key(after_incidents(a))
+        drop = set()
+        for t, c in cand:
+            b = copy_state(a)
+            b['suppressed_culprits'] = list(a.get('suppressed_culprits', [])) + [t]
+            if key(after_incidents(b)) > occ:
+                drop.add((t, c))
+        # 朝から臨界の犯人は、不安+1 を外しても事件が起きる: 不安−1 で臨界の下に戻せるなら替える（不安−1 は回数制限なし）
+        from engine.resolve import CHARS as RC
+        out = []
+        for t, c in move:
+            if (t, c) in drop:
+                if s['chars'][t]['par'] >= RC[t]['limit'] > s['chars'][t]['par'] - 1:
+                    out.append((t, 'PAR-'))
+                continue
+            out.append((t, c))
+        return out, drop
+
+    def _diag_gate(self, s, mm):
+        """移動斜め（1ループ1回）の門: 斜めを手札の他の札に替えた手と比べ、斜めが厳密に上のときだけ残す（同点なら温存）。
+        比べ方は優先順（加点で混ぜない）: その日にループが終わる ＞ 今日成り立つ筋（残り0）の重み ＞ score。応手は模型の予想。
+        斜めの値打ちは「対角へ1手で入れて、その日のうちに殺す」形にほぼ限られ、途中の日の 61 回中 46 回は他の札で同じ結果だった
+        （runs/mvd_2026-10-16/report.md）。"""
+        j = next((i for i, x in enumerate(mm) if x['card'] == 'MV_D'), None)
+        if j is None:
+            return mm
+        from selfplay.players import _weight
+        from selfplay.pc_v2 import after_incidents
+        t = mm[j]['target']
+        hand = [c for c in CARDS['mastermind_hand'] if not (c in ONCE['M'] and c in s['used']['M'])]
+        for x in mm:
+            if x['card'] in hand:
+                hand.remove(x['card'])
+        subs = [c for c in (('PAR-', 'GWX', 'PARX') if t.startswith('B:') else ('MV_V', 'MV_H', 'PARX', 'GWX', 'PAR-')) if c in hand]
+        order = ['A', 'B', 'C']
+        i = order.index(s['leader'])
+        pc = self._shadow_reply(s, [x['target'] for x in mm], order[i:] + order[:i]) if self.shadow is not None else DUMMY_PC
+
+        def key(m):
+            try:
+                a = after_incidents(resolve_actions(s, m + pc)[0])
+            except IllegalPlacement:
+                return None
+            if '_loss' in a:
+                return (1 if a['_loss'] else -1, 0.0, 0.0)
+            return (0, sum(_weight(a, r) for r in enumerate_routes(a) if r['total'] == 0), score(a))
+        kd = key(mm)
+        best, bk = None, None
+        for c in subs:
+            m2 = mm[:j] + [dict(mm[j], card=c)] + mm[j + 1:]
+            k2 = key(m2)
+            if k2 is not None and (bk is None or k2 > bk):
+                best, bk = m2, k2
+        if best is None or (kd is not None and kd > bk):
+            return mm
+        return best
+
+    def _setup_pick(self, s, scored, mm):
+        """必勝が無い日の仕込み（ユーザー案 2026-10-16「必勝がないときはバレにくい複数の筋の仕込みをし、応手の状況によっては後日必勝になりえる状況も」）。
+        評価の上位 setup_k 手に、模型の応手を当てて今日の事件まで解き、翌日の盤面で逆算（forced_plan）を解く。
+        段で比べる: 翌日に必勝 ＞ 翌日の賭けの確率 ＞ 今日の評価（加点で混ぜない。メモリ mastermind-loop-win-first）。"""
+        from selfplay.pc_v2 import after_incidents
+        best, best_key = mm, None
+        for v, cand, *_ in scored[:self.setup_k]:
+            pc = self._reply_of.get(id(cand), [])
+            try:
+                after = after_incidents(resolve_actions(s, cand + pc)[0])
+            except IllegalPlacement:
+                continue
+            if '_loss' in after:  # 今日の事件でループが終わる
+                key = (2 if after['_loss'] else -1, 1.0, v)
+            else:
+                nxt = dict(after, day=s['day'] + 1)
+                try:
+                    f = forced_plan(nxt, self.days, hidden=bool(self.gamble), watch=self._watch(nxt) if self.gamble else None)
+                except Exception:
+                    continue
+                key = (int(bool(f['forced'])), f.get('p') or 0.0, v)
+            if best_key is None or key > best_key:
+                best, best_key = cand, key
+        self.setup_log = getattr(self, 'setup_log', []) + [(s['loop'], s['day'], best_key[:2] if best_key else None, best is not mm)]
+        return best
 
     def _watch(self, s):
         """主人公に見張られている度合い {置き先: 点}: 暗躍禁止が置かれた回数＋前のループで暗躍が2に届いた（筋が割れた）ループ数×3。"""
@@ -899,10 +1208,11 @@ class SearchMastermind(RouteMastermind):
             for x in mm:
                 if len(out) == 3:
                     return out
-                if x['card'] in hand and x['card'] not in skip and x['target'] not in {o['target'] for o in out}:
+                if x['card'] in hand and x['card'] not in skip and (x['target'], x['card']) not in skip and x['target'] not in {o['target'] for o in out}:
                     hand.remove(x['card'])
                     out.append(x)
-        return out if len(out) == 3 or not skip else SearchMastermind._calc_merge(s, [(o['target'], o['card']) for o in out], scored)
+        pairs = tuple(x for x in skip if isinstance(x, tuple))  # 外した（対象, 札）の組は埋め直しでも置かない
+        return out if len(out) == 3 or skip == pairs else SearchMastermind._calc_merge(s, [(o['target'], o['card']) for o in out], scored, skip=pairs)
 
     def _fill_idle(self, s, mm):
         """予想した主人公の応手で何も起きない（または上乗せの）札を、置き場所はそのままに役目のある札へ替える（ユーザー「無作為はよくない、
@@ -1082,6 +1392,40 @@ class SearchMastermind(RouteMastermind):
                                                       [{'by': 'M', 'target': u, 'card': k} for u, k in zip(others, cards)])
         # 足す候補は別の乱数で作る（本体の乱数の流れを変えない＝無作為の候補が入れ替わって良い手を逃さない。d24 の調べ）
         xr = random.Random(f"{s['loop']}:{s['day']}:{len(s['used']['M'])}")
+        if getattr(self, 'lock_bluff', False) and 'PAR+' in hand:
+            # 型6 の見せ札: 主人公が暗躍禁止を置いてきた人物（intx_seen）が、本当の筋で不安を要する人物なら、不安+1 を置く手を候補に足す。
+            # 暗躍禁止を置かれても不安は通る（同じ人物に暗躍禁止と不安−1 は同じ日に置けない）。評価は探索がする（加点はしない）
+            allt = self._targets(s)
+            for c in sorted({t for t, k in self._relevant(s) if k == 'par' and self.intx_seen.get(t, 0) > 0}):
+                for _ in range(3):
+                    others = xr.sample([u for u in allt if u != c], 2)
+                    cards = xr.sample([x for x in hand if x != 'PAR+'], 2)
+                    forced.setdefault((c, *others), []).append([{'by': 'M', 'target': c, 'card': 'PAR+'}] +
+                                                               [{'by': 'M', 'target': u, 'card': k} for u, k in zip(others, cards)])
+        if getattr(self, 'sk_leak', 0) and self._sk_leak(s, s) > 0:
+            # シリアルキラーが筋に要らない相手と2人きりなら、どちらかを動かす手を候補に足す（評価は探索。gen_b31_031 L1D1）
+            allt = self._targets(s)
+            pairs = [(c, o) for c, v in s['chars'].items() if v['alive'] and v.get('present', True) and ph.role(s, c) == 'SK'
+                     for o in [x for x in ph.alive_in(s, v['area']) if x != c] if len(ph.alive_in(s, v['area'])) == 2]
+            for c, o in pairs:
+                for t in (c, o):
+                    for mv in [x for x in ('MV_V', 'MV_H') if x in hand]:
+                        others = xr.sample([u for u in allt if u not in (c, o)], 2)
+                        cards = xr.sample([x for x in hand if x != mv], 2)
+                        forced.setdefault((t, *others), []).append([{'by': 'M', 'target': t, 'card': mv}] +
+                                                                   [{'by': 'M', 'target': u, 'card': k} for u, k in zip(others, cards)])
+        if getattr(self, 'inc_guard', False):
+            # 事件の門番: 今日の事件が起きると損（起きない盤面のほうが上）なら、犯人を止める手を候補に足す（評価は探索。加点はしない）。
+            # 臨界未満なら不安禁止、臨界ちょうどなら不安−1（runs/inc_help_2026-10-16 の 4-1）
+            allt = self._targets(s)
+            for cul, c in self._harmful_today(s):
+                if c not in hand:
+                    continue
+                for _ in range(3):
+                    others = xr.sample([u for u in allt if u != cul], 2)
+                    cards = xr.sample([x for x in hand if x != c], 2)
+                    forced.setdefault((cul, *others), []).append([{'by': 'M', 'target': cul, 'card': c}] +
+                                                                 [{'by': 'M', 'target': u, 'card': k} for u, k in zip(others, cards)])
         if self.double:
             for ts, mm in self._double_moves(s, hand, xr):
                 forced.setdefault(ts, []).append(mm)
@@ -1094,8 +1438,8 @@ class SearchMastermind(RouteMastermind):
         locked = bool(self.hide_culprit) and self._locked(s)
         culprits_today = {i['culprit'] for i in s['script']['incidents'] if i['day'] >= s['day']} if locked else set()
         tss = self._triples(s) + [list(k) for k in forced]
-        for i_ts, ts in enumerate(tss):
-            self._prog(0.05 + 0.75 * i_ts / max(1, len(tss)), f'伏せ札の置き場所を比べています（{i_ts + 1}/{len(tss)} 組）')
+        jobs = []  # 置き場所の組ごとの候補（乱数を引く順は並列にしても変えない）
+        for ts in tss:
             cands = list(forced.get(tuple(ts), []))
             for _ in range(self.nc):
                 cards = self._deal(hand, ts)
@@ -1103,18 +1447,35 @@ class SearchMastermind(RouteMastermind):
             gd = self._guide_deal(s, hand, ts) if self.guide else None
             if gd:
                 cands.append(gd)
-            replies = self._replies(s, ts, order)
-            table = [[self._val(s, mm, pc) for pc in replies] for mm in cands]
+            jobs.append((ts, cands))
+        hstate = self._block_state(s) if getattr(self, 'human_block', None) else None
+        results = self._par_tables(s, order, jobs)
+        for i_ts, ((ts, cands), (replies, table)) in enumerate(zip(jobs, results)):
+            self._prog(0.05 + 0.75 * i_ts / max(1, len(tss)), f'伏せ札の置き場所を比べています（{i_ts + 1}/{len(tss)} 組）')
             # 主人公は札の中身を知らない: 中身の候補の平均で脚本家の評価が最小の応手を選ぶ
+            nw = getattr(self, 'naive_w', 0)
+            hb = getattr(self, 'human_block', None)
+            nrep = len(replies) - (1 if (nw or hb) else 0)  # 最後の列（応手なし）は jstar・平均に入れない
             def mean_over_mm(j):
                 xs = [row[j] for row in table if row[j] is not None]
                 return sum(xs) / len(xs) if xs else float('inf')
-            jstar = min(range(len(replies)), key=mean_over_mm)
+            jstar = min(range(nrep), key=mean_over_mm)
             for mm, row in zip(cands, table):
-                xs = [x for x in row if x is not None]
+                xs = [x for x in row[:nrep] if x is not None]
                 if not xs or row[jstar] is None:
                     continue
                 v = self.worst * row[jstar] + (1 - self.worst) * sum(xs) / len(xs)
+                if hb and row[-1] is not None:
+                    # 人間の止め方の模型（ユーザー「なぜ止めなかったかを数値化」2026-10-16、selfplay/threat_table）:
+                    # この手が近づける脅威のうち一番見えやすいもの（公開の推理で要る役職がそろう割合 vis）を、
+                    # 止める確率 q = hb[0] + hb[1]·vis で止められ、1−q で止められない（応手なしの値）とみなす
+                    q = self._block_prob(s, mm, hb, hstate)
+                    if q is not None:
+                        v = q * v + (1 - q) * row[-1]
+                if nw and row[-1] is not None:
+                    # 課題 D: 模型は慎重な主人公の応手を返す。人間は止め損なうことがあるので、応手なしの値を重み nw で混ぜる
+                    # （gen_s11_009 L3D6: 止める応手が1つあるだけで最終日の決め手を捨てた）。ponytail: 重みは一定、主人公の推理の確信度で変えるのは後
+                    v = (1 - nw) * v + nw * row[-1]
                 if not last_day:
                     v -= self.hold * sum(1 for x in mm if x['card'] in ONCE['M'])
                 if urgent:
@@ -1154,6 +1515,49 @@ class SearchMastermind(RouteMastermind):
         scored.sort(key=lambda x: -x[0])
         return scored
 
+    def _block_state(self, s):
+        from selfplay.threat_table import Snap
+        key = lambda x: (x['id'], x['via'], x['goal'])  # noqa: E731
+        return Snap(self.pub, s), {key(x): x['total'] for x in enumerate_routes(s)}
+
+    def _block_prob(self, s, mm, hb, hstate):
+        """人間が模型の応手のように動く確率（threat_table の脅威の定義・見えやすさ）。応手なしと比べて混ぜる重み。"""
+        from selfplay.threat_table import NEAR, visibility
+        snap, start_d = hstate
+        try:
+            dummy, _ = resolve_actions(s, mm + DUMMY_PC)
+        except IllegalPlacement:
+            return None
+        th = [x for x in enumerate_routes(dummy)
+              if x['total'] <= NEAR and start_d.get((x['id'], x['via'], x['goal']), 99) > x['total'] and '登場前' not in x.get('note', '')]
+        near = min((x['total'] for x in th), default=None)  # 一番近い脅威（決め手）の見えやすさで決める。脇の脅威で上げない
+        vis = [v for v in (visibility(snap, x, s) for x in th if x['total'] == near) if v is not None]
+        # 近づける脅威が無い手: 模型の応手どおりに主人公が動く（移動の合成などで筋が成り立つ）とは限らないので、基準の hb[0] で混ぜる
+        # （目隠し6戦目 L3D6: 模型の応手との合成に賭けた手が、模型の下だけで勝ちになっていた）
+        return min(1.0, max(0.0, hb[0] + hb[1] * max(vis))) if vis else hb[0]
+
+    def _par_tables(self, s, order, jobs):
+        """組ごとの（応手, 評価の表）。主人公の模型（shadow）の応手は自分の乱数を元に戻すので、組ごとに独立に計算できる。
+        環境変数 SANGEKI_WORKERS（既定 1）が 2 以上なら fork したプロセスで並べる（常駐モードの待ち時間向け。対戦表は試合ごとに
+        プロセスが分かれ、メモリが足りなくなるので使わない）。模型が無い脚本家は応手に self.rng を使うので並べない。"""
+        def one(job):
+            ts, cands = job
+            replies = self._replies(s, ts, order)
+            if getattr(self, 'naive_w', 0) or getattr(self, 'human_block', None):  # 最後の列は「応手なし」（人間が止め損なう場合）
+                replies = replies + [DUMMY_PC]
+            return replies, [[self._val(s, mm, pc) for pc in replies] for mm in cands]
+        workers = int(os.environ.get('SANGEKI_WORKERS', '1'))
+        if workers < 2 or self.shadow is None or len(jobs) < 2:
+            return [one(j) for j in jobs]
+        import multiprocessing
+        global _PAR
+        _PAR = (one, jobs)
+        try:
+            with multiprocessing.get_context('fork').Pool(min(workers, len(jobs))) as pool:
+                return pool.map(_par_job, range(len(jobs)))
+        finally:
+            _PAR = None
+
     def _close_move(self, s):
         """直前の手の結果（次の日の始めの盤面）を書き込む。ループが変わっていれば、結果はループの終わりで決まる（league が埋める）。"""
         if self.move_log and 'score_after' not in self.move_log[-1] and self.move_log[-1]['loop'] == s['loop']:
@@ -1174,10 +1578,118 @@ class SearchMastermind(RouteMastermind):
         return f
 
     # ---- 脚本家能力 ----
+    def _leak(self, s, obs):
+        """観測 obs の漏れ（ビット）: 配役のエントロピーの減り（最後の戦い）＋ rule_leak × 残りのループ × ルールの組のエントロピーの減り。
+        ルールが割れると主人公はこの先のループで負け筋を読んで止めやすくなる。残りのループが減るほど許せる（ユーザー 2026-10-16）。
+        残りのループ = 残りのループ数 + 今のループの残りの日の割合（最終ループの最終日で 0）。"""
+        self.pub._ensure(s)
+        v = self.pub.ded.trial(obs)
+        w = getattr(self, 'rule_leak', 0)
+        if w:
+            rem = (self.loops - s['loop']) + (self.days - s['day']) / self.days
+            v += w * rem * self.pub.ded.trial_rules(obs)
+        return v
+
     def _lam(self, s):
         # 最終ループはループを取らないと負けなので、進みを重く見る（λ を下げる）
         lam = self.lam * (0.5 if s['loop'] >= self.loops else 1.0)
-        return lam * self.hide if self.hide and self._locked(s) else lam
+        return lam * self.hide if self._hiding(s) else lam
+
+    def _fake_pushes(self, s, n, taken):
+        """確定したループで置く偽の筋への暗躍（最大 n 枚）。主人公の推理で生きている仮説を引き、本当の近い筋が要する所でない置き先に押す。
+        型2: 偽のループ終了時の敗北条件（神社・ウィッチの初期エリア・キーパーソンの暗躍2）を先に選び、ループ終了時に成立させきる。
+        成立していれば敗北の原因が絞れず、届かずに終わると原因の候補から消えるだけで札の無駄（p006 の分析）。
+        - すでに2以上の所には置かない。残りの日数（暗躍+2 が使えれば +1）で2に届かない所にも置かない。
+        - 仮説のループ終了時の条件が無ければ、近い筋が暗躍を要する所（型1の初版）に押す。
+        ponytail: 不安+1 は使わない（事件の日に限界以上にすると「犯人ではない」が割れる。型4 の安全条件の判定が要る）。
+        仮説の事件の犯人は本当の犯人のまま（偽の筋は役職とルールの側だけ）。主人公の暗躍禁止の読みは見ていない。"""
+        rel0 = self._relevant(s)
+        real = {t for t, k in rel0 if k == 'int'}  # 本当の筋が暗躍を要する所（ここは押さない）
+        # 型6 の仕込み: 本当の筋が不安を要する人物（事件の犯人・メインラバーズなど）に暗躍を置き、「暗躍の人」に見せておく。
+        # 次のループで主人公がそこへ暗躍禁止を置けば、不安+1 が通る（暗躍禁止と不安−1 は同じ人物に同じ日に置けない）
+        bait = {t for t, k in rel0 if k == 'par' and t not in real and not t.startswith('B:')}
+        # 置き先の順はループの最初に確定したときに一度だけ決め、そのループの間は同じ所へ押す（日ごとに変えると偽の話にならない。H2。p006 の分析）
+        fix = getattr(self, 'fake_fix', True)  # False: H2 の前（呼ぶたびに引き直し、置き先の数も絞らない。比較用）
+        fr = getattr(self, '_fake_rank', None)
+        if not fix or not fr or fr[0] != s['loop']:
+            self.pub._ensure(s)
+            cnt, end = {}, set()
+            for combo, roles in self.pub.ded.sample(random.Random(self.rng.random()), 8) or []:
+                sc = {'rules': list(combo), 'roles': dict(roles), 'incidents': s['script']['incidents']}
+                for t in self._loop_end_targets(s, sc):
+                    if t not in real:
+                        cnt[t] = cnt.get(t, 0) + 3  # ループ終了時の条件を優先（型2）
+                        end.add(t)
+                try:
+                    rel = self._relevant(dict(s, script={**s['script'], **sc}))
+                except Exception:
+                    continue
+                for t, k in rel:
+                    if k == 'int' and t not in real:
+                        cnt[t] = cnt.get(t, 0) + 1
+            order = sorted(cnt, key=lambda t: (-cnt[t], t))
+            if fix and bait and s['loop'] < self.loops:  # 次のループがあるときは、2か所のうち1か所を仕込みに充てる
+                b = sorted(bait)[0]
+                order = [t for t in order if t != b][:1] + [b]
+            fr = self._fake_rank = (s['loop'], [(t, t in end) for t in order[:2 if fix else None]])  # 2か所まで
+        hand = [c for c in ('INT2', 'INT1') if not (c in ONCE['M'] and c in s['used']['M'])]
+        out = []
+        for t, is_end in fr[1]:
+            if len(out) >= n or not hand or t in real or t in taken:
+                continue
+            if t not in card_targets(s):
+                continue  # 死亡・登場前の人物・幻想には札を置けない
+            if is_end:
+                need = 2 - (s['boards'].get(t[2:], 0) if t.startswith('B:') else s['chars'][t]['int'])
+                if need <= 0 or need > self.days - s['day'] + 1 + ('INT2' in hand):
+                    continue
+                c = 'INT2' if need >= 2 and 'INT2' in hand else 'INT1' if 'INT1' in hand else hand[0]
+            else:
+                c = hand[0]
+            hand.remove(c)
+            out.append((t, c))
+        return out
+
+    @staticmethod
+    def _loop_end_targets(s, sc):
+        """仮説の脚本 sc のループ終了時の暗躍の敗北条件の置き先（データ loop_end_loss: board_int・role_counter・start_area_int）。"""
+        out = []
+        for rid in sc['rules']:
+            c = sets.rule(s, rid).get('loop_end_loss') or {}
+            if c.get('do') == 'board_int':
+                out.append('B:' + c['board'])
+            elif c.get('do') == 'role_counter' and c.get('counter') == 'int':
+                out += [x for x, r in sc['roles'].items() if r == c['role'] and x in s['chars'] and s['chars'][x]['alive']
+                        and s['chars'][x].get('present', True)]  # 登場前の人物には札を置けない
+            elif c.get('do') == 'start_area_int':
+                out += ['B:' + (s.get('init') or {})[x] for x, r in sc['roles'].items() if r == c['role'] and (s.get('init') or {}).get(x)]
+        return out
+
+    def _all_in(self, s):
+        """全力モードの理由（無ければ None）。ループの最初に1回決め、そのループの間は変えない（ユーザー案 2026-10-15
+        「残ループと残っている筋から、情報が割れても全力で勝ちに行くべきタイミングはある」）。全力なら、確定したループでも
+        おとり（型1・型2）と隠す（任意能力を使わない）をやめる。最終ループは今まで通り（確定後は隠す）。
+        - 最後の戦いで外させる見込みが無い（公開情報の推理で、本当の配役の重みが ALL_IN_CRACK 以上）なら全力。
+        「使える筋の数 < 残りのループ数」の条件は試して外した: 筋を1本ずつ逆算すると、ほとんどの筋は主人公に止められる（見込み 0）。
+        全部の筋を同時に押して必ず取れる脚本（p002・p006 など）は隠しても取る確実さが下がらず、同時でも取れない脚本（p001・gen_s11_034 など）は
+        主人公の読み違いで取っているので、どちらも筋の数で全力に切り替える理由にならない（plan の「全力モード」）。"""
+        m = getattr(self, '_allin', None)
+        if m and m[0] == s['loop']:
+            return m[1]
+        why = None
+        if s['loop'] < self.loops:
+            import numpy as np
+            from engine.deduce import ROLES
+            self.pub._ensure(s)
+            ded = self.pub.ded
+            R, C = ded._sync()
+            truth = np.array([ROLES.index(s['script']['roles'].get(c, 'PERSON')) for c in ded.chars])
+            w = ded._w(C)
+            crack = float(w[(R == truth).all(axis=1)].sum() / w.sum()) if w.sum() else 1.0
+            if crack >= ALL_IN_CRACK:
+                why = f'最後の戦いで外させる見込みが無い（本当の配役の重み {crack:.2f}）'
+        self._allin = (s['loop'], why)
+        return why
 
     def _locked(self, s):
         """このループの勝ちが確定したか: ループ終了時の敗北条件が成立していて、主人公に崩す手がない。
@@ -1186,13 +1698,30 @@ class SearchMastermind(RouteMastermind):
         r = ph.loop_end_loss(copy.deepcopy(s))  # 写しで呼ぶ（フレンドの役職公開を書き込むため）
         return bool({'Y_FUTURE', 'FRIEND'} & set(r)) or (bool(r) and surplus(s) >= 1)
 
+    def _guide_loop_routes(self, s):
+        """指針（guide の routes に loop があるもの）がこのループに選んだ筋 {(id, via)}。無ければ空。"""
+        return {(g['id'], g.get('via')) for g in (self.guide or {}).get('routes', []) if s['loop'] in g.get('loop', ())}
+
+    def _hiding(self, s):
+        """確定したループで隠すか（hide があり、確定していて、全力モードでない。全力モードは lock_bluff を持つ脚本家だけ）。"""
+        return bool(self.hide) and self._locked(s) and not (getattr(self, 'lock_bluff', False) and self._all_in(s))
+
     def killer_pick(self, s):
-        if self.hide and self._locked(s):
+        if self._hiding(s):
             return []  # 勝ちは確定済み。キラーの能力は役職を明かすだけ
-        return super().killer_pick(s)
+        opts = super().killer_pick(s)
+        g = self._guide_loop_routes(s)
+        if opts and g and s['day'] < self.days:
+            # 指針の筋が明日以降も必ず取れるなら、指針に無い筋の任意の能力（メインラバーズ・キラー）は使わない（その役職を明かすだけ）
+            # ponytail: 明日の朝の盤面の代わりに日だけ進めた写しで逆算する（ターン終了後の事件・能力は見ていない）
+            nxt = dict(copy_state(s), day=s['day'] + 1)
+            if forced_plan(nxt, self.days, pcab=getattr(self, 'calc_pcab', False), only=g)['forced']:
+                rid = {'MAIN_LOVERS': 'ML_PROT'}
+                opts = [o for o in opts if (rid.get(o['ability'], o['ability']), o['char']) in g]
+        return opts
 
     def mm_ability(self, s, actor, ability=None):
-        if self.hide and self._locked(s):
+        if self._hiding(s):
             return None
         a = s['chars'][actor]
         opts = [c for c in ph.alive_in(s, a['area'])]
@@ -1214,12 +1743,23 @@ class SearchMastermind(RouteMastermind):
                     best, best_d = t, d
             return best
         best, best_v = None, score(s)
+        # 優先順（メモリ mastermind-loop-win-first）: 今日ループが取れる ＞ このループが必ず取れる（逆算の必勝） ＞ 評価−漏れ。
+        # 使わないと必勝でないのに、使うと必勝になる選び方があれば、漏れと比べずにそれから選ぶ（ユーザー「ループ勝てなくなるのは意味がない」）
+        from engine.route_calc import forced_plan
+        need_forced = self.calc and not forced_plan(s, self.days)['forced']
+        forced_opts = []
         for t in opts:
             trial = copy.deepcopy(s)
             try:
                 ev = ph.mm_ability(trial, actor, t, ability)
             except IllegalPlacement:
                 continue
+            if need_forced and forced_plan(trial, self.days)['forced']:
+                forced_opts.append((score(trial), t))
+            if _wins_today(trial, self.days):
+                # 今日のうちにループが取れるなら、漏れと比べずに使う（ループを取るのが最優先。メモリ mastermind-loop-win-first）。
+                # 目隠し7戦目 gen_s11_027 L1D5: クロマクで手先（メインラバーズ、不安3）に暗躍1を置けば主人公死亡だったのに、漏れの λ で使わなかった
+                return t
             area = t[2:] if t.startswith('B:') else s['chars'][t]['area']
             obs = [('mm_effect', {'counter': 'int' if 'int' in ev[0] else 'par', 'present': ph.alive_in(s, area),
                                   'school_int': trial['boards']['SCH']})]
@@ -1227,9 +1767,11 @@ class SearchMastermind(RouteMastermind):
             if self.chain_ab != 1.0 and not t.startswith('B:') and any(
                     i['culprit'] == t and i['day'] >= s['day'] for i in s['script']['incidents']):
                 lam *= self.chain_ab
-            v = score(trial) - lam * self.pub.ded.trial(obs)
+            v = score(trial) - lam * self._leak(s, obs)
             if v > best_v:
                 best, best_v = t, v
+        if forced_opts:
+            return max(forced_opts)[1]
         return best
 
     def choose_rule_x(self, s, options):
@@ -1255,9 +1797,9 @@ class SearchMastermind(RouteMastermind):
         self.pub._ensure(s)
         t = o['target']
         area = t[2:] if t.startswith('B:') else s['chars'][t]['area']
-        return self._lam(s) * self.pub.ded.trial([('intx_ignored', {'present': ph.alive_in(s, area)})])
+        return self._lam(s) * self._leak(s, [('intx_ignored', {'present': ph.alive_in(s, area)})])
 
     def _leak_cost_ability(self, s, cid):
         """脚本家が医者[2] を使うと、医者が友好無視を持つと明かす（拒否と同じ情報）。"""
         self.pub._ensure(s)
-        return self._lam(s) * self.pub.ded.trial([('refused', {'char': cid})])
+        return self._lam(s) * self._leak(s, [('refused', {'char': cid})])

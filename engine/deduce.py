@@ -571,6 +571,27 @@ class Deduction:
             return 0.0
         return self.role_entropy() - self.role_entropy(R[keep], C[keep])
 
+    def rule_entropy(self, R=None, C=None):
+        """ルールの組（Y・X）の分布のエントロピー（ビット）。最後の戦いでは当てないが、ループの途中で主人公が負け筋を読む手がかりになる。"""
+        if R is None:
+            R, C = self._sync()
+        if not len(C):
+            return 0.0
+        w = self._w(C)
+        p = np.bincount(C, weights=w)
+        p = p[p > 0] / p.sum()
+        return float(-(p * np.log2(p)).sum())
+
+    def trial_rules(self, obs):
+        """観測の列を足したと仮定したときの、ルールの組のエントロピーの減り（ビット）。"""
+        R, C = self._sync()
+        keep = np.ones(len(C), bool)
+        for kind, kw in obs:
+            keep &= self._mask(R, C, kind, kw)
+        if keep.all() or not keep.any():
+            return 0.0
+        return self.rule_entropy() - self.rule_entropy(R[keep], C[keep])
+
     def sample(self, rng, k):
         """重みつきで k 個の仮説を引く（ルールの組, 配役）。"""
         R, C = self._sync()

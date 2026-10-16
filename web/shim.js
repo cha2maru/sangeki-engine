@@ -46,7 +46,7 @@
       case '/deduce': return reply(store.deduce);
       case '/record': return reply(store.record || '{}');
       case '/rejected': return reply(store.rejected || '[]');
-      case '/scripts': return reply(JSON.stringify({ ...(ready ? list : await new Promise(r => waitList.push(r))), mms: ['calcD', 'calcG', 'searchL', 'search', 'route'] }));
+      case '/scripts': return reply(JSON.stringify({ ...(ready ? list : await new Promise(r => waitList.push(r))), mms: ['calcGBxhd', 'calcD', 'calcG', 'searchL', 'search', 'route'] }));
       case '/new': {
         const a = body();
         if (started) { worker.terminate(); boot(); }  // 試合の途中は Python が操作を待って止まっているので、Worker ごと作り直す

@@ -1268,7 +1268,7 @@ $('rp-last').onclick = () => RP.go(RP.steps.length - 1); $('rp-play').onclick = 
 $('rp-seek').oninput = e => RP.go(+e.target.value);
 $('rp-reveal').onclick = () => { const keep = S; S = { ...S, reveal: RP.data.final.reveal }; openReveal(); S = keep; };
 // ---- 開始画面（脚本・脚本家・乱数の種を選んで進行役を起動し直す。サーバーが SANGEKI_AI=1 のときだけ）----
-const MMLABEL = { search: 'search（速い・ふつう）', searchL: 'searchL（強い）', calcD: 'calcD（最強・1手に数十秒）', calcG: 'calcG（強い・1手に数十秒）', route: 'route（最速・弱い）' };
+const MMLABEL = { calcGBxhd: 'calcGBxhd（最強・1手に数十秒〜1分）', search: 'search（速い・ふつう）', searchL: 'searchL（強い）', calcD: 'calcD（強い・1手に数十秒）', calcG: 'calcG（強い・1手に数十秒）', route: 'route（最速・弱い）' };
 let canStart = false;
 fetch('/scripts').then(r => r.ok ? r.json() : null).then(d => {
   if (!d) return;

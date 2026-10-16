@@ -20,7 +20,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from engine import abilities as ab  # noqa: E402
 from engine import phases as ph  # noqa: E402
-from engine.adapter import NAME2C, placements_from_inbox  # noqa: E402
+from engine.adapter import NAME2C, UI2CARD, placements_from_inbox  # noqa: E402
 from engine.project import AREA_JA, CARD_UI, INC_JA, project  # noqa: E402
 from engine.resolve import CARDS, CHARS, ONCE  # noqa: E402
 from engine.scripts import by_id  # noqa: E402
@@ -82,13 +82,16 @@ class Table:
         # （エンジンのルール処理は乱数を使わない）。crc: 公開ログの文の照合値（再生が食い違えば、エンジンの版が違う）
         # v2: 判断ごとに、その時点の公開ログの行数 n を付ける（途中の場面から再開するときの切り口。m は [n, 値]、h は {'n': …}）
         self.record = {'v': 2, 'h': [], 'm': [], 'n': 0, 'crc': 0}
+        # 目隠しでは試合中の記録を private/ に書く（record.json は盤面から /record で配信され、脚本の id と脚本家の判断の並び＝役職の手がかりが見える）。
+        # 試合の後に record.json として公開する
+        self.record_file = 'record.json'
         self.replay = None  # 再生中なら記録（record の形）。wait は記録から返す
         self.rejected = []  # 受け付けなかった操作（公開ログには書かない。リプレイで見返せるように rejected.json に残す。ユーザー指摘 2026-10-10）
 
     # ファイルの読み書きはここにまとめる（ブラウザ版 web/web_gm.py はこれを差し替えて、ファイルの代わりに盤面へ直接送る）
     def _reset_files(self):
         os.makedirs(self.d, exist_ok=True)
-        for f in ('log.jsonl', 'inbox.jsonl', 'snapshots.jsonl'):
+        for f in ('log.jsonl', 'inbox.jsonl', 'snapshots.jsonl', 'beliefs.jsonl'):
             open(os.path.join(self.d, f), 'w').close()
         for f in ('deduce.json', 'record.json', 'rejected.json'):  # 前の試合の推理・記録を残さない
             if os.path.exists(os.path.join(self.d, f)):
@@ -116,7 +119,7 @@ class Table:
         import zlib
         self.n += 1
         self.record['n'], self.record['crc'] = self.n, zlib.crc32(text.encode('utf-8'), self.record['crc'])
-        self._write('record.json', self.record)
+        self._write(self.record_file, self.record)
         s = self.s or {}
         loop = min(s['loop'], self.script['loops']) if s.get('loop') else None  # 最後の戦いではエンジンのループ番号が1つ進んでいる
         self._append('log.jsonl', {'n': self.n, 'loop': loop, 'day': s.get('day'), 'text': text})
@@ -189,7 +192,7 @@ class Table:
             self.show(bump=True)
         rec = self.wait(types)
         self.record['h'].append({**{k: v for k, v in rec.items() if k not in ('seq', 'at', 'game', 'phaseId', 'label')}, 'n': self.n})
-        self._write('record.json', self.record)
+        self._write(self.record_file, self.record)
         return rec
 
     def wait(self, types):
@@ -329,6 +332,8 @@ def describe(e):
             extra = f' → {name(c)} の役職は {ROLE_JA.get(r, r)}'
         if isinstance(e.get('reveal_rule_x'), str):
             extra = f' → ルールX {RULE_JA.get(e["reveal_rule_x"], e["reveal_rule_x"])}'
+        if e.get('returned'):  # 委員長[2]: 手札に戻した札
+            extra += f" → {CARD_UI.get(e['returned'], e['returned'])} を手札に戻した"
         if 'reveal_culprit' in e:
             extra = ' → 犯人: ' + '、'.join(f'{INC_JA.get(i, i)}={name(c)}' for i, c in e['reveal_culprit'].items())
         # カウンターの増減・移動などの結果（公開の盤面に現れる事実）も1行に添える
@@ -418,7 +423,7 @@ class HumanProtagonist:
             dec = self._match(s, rec)
             if dec is None:  # 受け付けなかった宣言はログに書かない（「脚本家の返答」に出す）
                 lab = ability_label(NAME2C.get(rec.get('char')), rec.get('ability'))
-                tg = '・'.join(f'{k}={rec[k]}' for k in ('target', 'mode', 'from', 'to', 'counter', 'declare', 'incident', 'day', 'board') if rec.get(k) is not None)
+                tg = '・'.join(f'{k}={rec[k]}' for k in ('target', 'mode', 'from', 'to', 'counter', 'declare', 'incident', 'day', 'board', 'card') if rec.get(k) is not None)
                 self.t.reject(f'能力: {rec.get("char")} {lab}' + (f'（{tg}）' if tg else ''),
                               f'{rec.get("char")} の能力 {lab} は、いまは使えない（友好・場所・対象・回数を確認）')
                 self.t.show(bump=False)
@@ -496,6 +501,8 @@ class HumanProtagonist:
             want['incident'] = JA2INC.get(rec['incident'], rec['incident'])
         if rec.get('day'):  # 同じ名前の事件が2つある脚本（2日・4日の遠隔殺人など）
             want['day'] = rec['day']
+        if rec.get('card'):  # 委員長[2]: 手札に戻す札（盤面は表示名で送る）。以前は見ておらず、使用済みの先頭の札が戻っていた
+            want['card'] = UI2CARD.get(rec['card'], rec['card'])
         for c, i, a in ab.declaration_options(s):
             if c == cid and i == idx and all((a or {}).get(k) == v for k, v in want.items() if k in (a or {})):
                 return (c, i, a)
@@ -548,6 +555,14 @@ class Narrator:
         rev = next((e['cards'] for e in events if isinstance(e, dict) and e.get('kind') == 'revealed'), None)
         self.t.show(s, placed=[dict(x, open=True) for x in rev] if rev else [] if phase in ('actions', 'turn_end', 'loop_start') else None)
         self.deduce(s)
+
+    def loop_done(self, s, loop):
+        """ループ終了ごとに、主人公の推理シートの印（notes.json）と推理エンジンの割合（deduce.json）を beliefs.jsonl に並べて残す。
+        ブラフが人間・Claude に効いたかを、エンジンの推理との差で見る（plan/mastermind_algorithm_evolution_plan.md H7）。"""
+        if loop == 'final':
+            return
+        rd = lambda f: json.load(open(os.path.join(self.t.d, f), encoding='utf-8')) if os.path.exists(os.path.join(self.t.d, f)) else None
+        self.t._append('beliefs.jsonl', {'loop': loop, 'notes': rd('notes.json'), 'deduce': rd('deduce.json')})
 
     def deduce(self, s):
         """推理エンジンの候補の割合（役職・ルール・犯人）を deduce.json に書く。"""
@@ -677,10 +692,19 @@ def short_id(sid):
     return (head + '/' if head else '') + base.rsplit('_', 1)[0]
 
 
+# おすすめの脚本: 「優秀な脚本の選定」（plan/mastermind_algorithm_evolution_plan.md、2026-10-16）で選んだ23本のうち、公開できる設計の脚本。
+# 要素が脚本家にとって意味がある・日数5〜7・主人公が情報を取る手立てがある・脚本家がループを取りきる・最後の戦いがもつれる、で選んだ。
+# 選んだ残り（投稿シナリオ p001・p006、有志サイトの b071・b072・b180・b208）は非公開なので入れない（tools/export_public.py の FORBID）
+RECOMMENDED = ('designed/d02_traits', 'designed/d05_contract', 'designed/d06', 'designed/d07', 'designed/d10', 'designed/d11',
+               'designed/d12', 'designed/d14', 'designed/d15', 'designed/d18', 'designed/d19', 'designed/d23', 'designed/d26',
+               'designed/d27', 'designed/d30', 'designed/d31', 'designed/d33')
+
+
 def list_scripts():
-    """開始画面に出す脚本: 同梱（試験用）と設計した脚本。自動生成の脚本は「伏せて選ぶ」で使う。公開情報だけ（ネタバレを出さない）。"""
+    """開始画面に出す脚本: おすすめ（選定した設計の脚本）・同梱（試験用）・設計した脚本。自動生成の脚本は「伏せて選ぶ」で使う。
+    公開情報だけ（ネタバレを出さない）。"""
     from engine.scripts import glob_scripts, load, script_dirs
-    out = []
+    rows = []
     for group, pat in (('同梱', '*.json'), ('設計', 'designed/*.json')):
         for f in glob_scripts(pat):
             sc = load(f)
@@ -688,9 +712,10 @@ def list_scripts():
             sid = rel[:-5].replace(os.sep, '/')
             if sid.startswith('toukou_') or sid == 'blind_001':  # 投稿シナリオは手で指定（--script）。目隠しの記録は出さない
                 continue
-            out.append({'id': sid, 'title': sc.get('title') or sid, 'loops': sc.get('loops'), 'days': sc.get('days'),
-                        'set': sc.get('set', 'BTX'), 'group': group})
-    return out
+            rows.append({'id': sid, 'title': sc.get('title') or sid, 'loops': sc.get('loops'), 'days': sc.get('days'),
+                         'set': sc.get('set', 'BTX'), 'group': 'おすすめ' if sid in RECOMMENDED else group})
+    rec = sorted((r for r in rows if r['group'] == 'おすすめ'), key=lambda r: RECOMMENDED.index(r['id']))
+    return rec + [r for r in rows if r['group'] != 'おすすめ']
 
 
 def main():
@@ -757,6 +782,8 @@ def run(a, table_cls=None):
     else:
         script = by_id(a.script)
     t = table_cls(a.dir, script)
+    if a.blind:
+        t.record_file = os.path.join('private', 'record.json')
     t.record.update({'s': '' if a.script == 'user' else a.script, 'c': getattr(a, 'code', '') or '', 'mm': a.mm})
     if rp:
         t.replay = {'h': [{k: v for k, v in x.items() if k != 'n'} for x in rp.get('h', [])], 'resume': bool(getattr(a, 'resume', False))}
@@ -827,7 +854,8 @@ def run(a, table_cls=None):
         'special': script.get('special') or '',
         'final': bool(guesses), 'stopped_at': (stop + 1) if stop is not None else None,
     }
-    if a.blind:  # 試合の後に、遊んだルールの組を記録する（次の目隠しの選択で同じ組を避ける）
+    if a.blind:  # 試合の後に、遊んだルールの組を記録する（次の目隠しの選択で同じ組を避ける）。伏せていた記録も公開する
+        t._write('record.json', t.record)
         with open(HISTORY, 'a', encoding='utf-8') as fp:
             fp.write(json.dumps({'id': a.script.split('/')[-1], 'rules': script['rules'], 'mm': a.mm, 'winner': r.get('winner')}, ensure_ascii=False) + '\n')
     if rp:  # 最後まで再生した。記録の照合値と同じなら、同じ試合を再現できた

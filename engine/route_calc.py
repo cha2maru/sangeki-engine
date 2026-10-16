@@ -132,26 +132,29 @@ def _abstract(rs, state, days, positional=True, pos_mode=False):
     return targets, [(sp[0], tuple((targets.index((t, k)), n) for t, k, n in sp[1])) for _, sp in specs], specs
 
 
-def forced_plan(state, days, hidden=False, watch=None, pos=False, abil=False, pcab=False):
+def forced_plan(state, days, hidden=False, watch=None, pos=False, abil=False, pcab=False, only=None):
     """このループを脚本家が必ず取れるか（下限）と、取れるなら今日の手（[(対象, 札)]）。
     hidden: 伏せ札の中身が主人公に見えない場合の、ループを取る確率 p と今日の混ぜ方 mix [(確率, [(対象, 札)])] も返す。
     watch: {置き先: 主人公に見張られている度合い}。賭けで同じ値の手のうち、暗躍+2 を見張られていない側に置く手を選ぶ。
     pos: 位置の筋も対象に入れる（v2.1）。対象の数に上限があるので、位置を入れない計算（位置の条件は数えない＝下限）と両方解き、
     取れる方・賭けの確率が高い方を採る（入れると d16 で別の筋が枠から押し出され、二択 0.5 を見失った）。
-    abil: 脚本家の能力（クロマク・ミスリーダー）で毎日入る+1 を数える（v2.2、_supply）。"""
+    abil: 脚本家の能力（クロマク・ミスリーダー）で毎日入る+1 を数える（v2.2、_supply）。
+    only: 筋を {(id, via)} に絞る（脚本家の指針がそのループに選んだ筋だけで取れるか）。"""
     if pos:
-        a = _forced_plan(state, days, hidden, watch, False, positional=False, abil=abil, pcab=pcab)
-        b = _forced_plan(state, days, hidden, watch, True, abil=abil, pcab=pcab)
+        a = _forced_plan(state, days, hidden, watch, False, positional=False, abil=abil, pcab=pcab, only=only)
+        b = _forced_plan(state, days, hidden, watch, True, abil=abil, pcab=pcab, only=only)
         if a['forced'] != b['forced']:
             return a if a['forced'] else b
         if a['locked'] != b['locked']:
             return a if a['locked'] else b
         return b if hidden and b['p'] > a['p'] + 1e-9 else a
-    return _forced_plan(state, days, hidden, watch, False, abil=abil, pcab=pcab)
+    # 位置の条件が今揃っているだけの筋は「必ず取れる」に数えない（主人公は移動札1枚で崩せる。目隠し4戦目 gen_b31_002 L2D7、
+    # 殺人事件の筋を必勝として病院へ押し続け、学校の暗躍+1 で確定する巨大時限爆弾Xを置かなかった）
+    return _forced_plan(state, days, hidden, watch, False, positional=False, abil=abil, pcab=pcab, only=only)
 
 
-def _forced_plan(state, days, hidden, watch, pos, positional=True, abil=False, pcab=False):
-    rs = enumerate_routes(state)
+def _forced_plan(state, days, hidden, watch, pos, positional=True, abil=False, pcab=False, only=None):
+    rs = [r for r in enumerate_routes(state) if only is None or (r['id'], r['via']) in only]
     abst = _abstract(rs, state, days, positional=positional, pos_mode=pos)
     if abst is None:
         return {'forced': False, 'move': None, 'locked': False, 'routes': [], **({'p': 0.0, 'mix': None} if hidden else {})}

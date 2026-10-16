@@ -265,6 +265,63 @@ def _make(kind, rng, script=None):
         p = make('calcA' if kind == 'calcAD' else 'calcG', rng, script)
         p.double = True
         return p
+    if kind == 'calcGBg0':  # 比較用: calcGBg から H2（おとりの置き先をループで固定）を外したもの
+        p = make('calcGBg', rng, script)
+        p.fake_fix = False
+        return p
+    if kind == 'calcGBg':  # calcGB＋計算で作った指針（engine/scripts/guides/calc/<id>.json、selfplay.route_sig --write）
+        from engine.scripts import find
+        p = make('calcGB', rng, script)
+        gp = find(f"guides/calc/{script['id']}.json")
+        p.guide = json.load(open(gp, encoding='utf-8')) if gp else {}
+        return p
+    if kind == 'calcGBd':  # calcGB＋ループの最終日は今日成り立つ筋だけで評価（search_mm._val の last_day_now）
+        p = make('calcGB', rng, script)
+        p.last_day_now, p.shadow_k = True, 4  # 最終日は模型の応手を4通り引く（1通りだと止め損ないの予想に引かれ、途中のループを落とした）
+        return p
+    if kind == 'calcGBn':  # calcGB＋必要な手数から逆算した評価（間に合わない筋は0、余裕のある筋は今日の進みを数えない。search_mm._need_score）
+        p = make('calcGB', rng, script)
+        p.need_plan = True
+        return p
+    if kind == 'calcGBf':  # calcGB＋必勝が無い日の仕込み（翌日の必勝・賭けの確率で上位の手を選び直す。search_mm._setup_pick）
+        p = make('calcGB', rng, script)
+        p.setup_k = 6
+        return p
+    if kind == 'calcGBdg':  # calcGB＋移動斜めの門（斜めが他の札より厳密に良いときだけ使う。search_mm._diag_gate、runs/mvd_2026-10-16）
+        p = make('calcGB', rng, script)
+        p.diag_gate = True
+        return p
+    if kind == 'calcGBi':  # calcGB＋事件の損得（逆算の不安+1 の確かめ・事件の門番。search_mm._drop_harmful_pushes・_harmful_today、runs/inc_help_2026-10-16）
+        p = make('calcGB', rng, script)
+        p.push_check, p.inc_guard = True, True
+        return p
+    if kind.startswith('calcGBxh'):  # calcGBx＋人間の止め方の模型（止める確率 0.25+0.4·vis。threat_table の Claude・read2 の表から）
+        p = make('calcGBx', rng, script)
+        p.human_block = (0.25, 0.4)
+        p.last_day_now = kind == 'calcGBxhd'  # d: 最終日は今日成り立つ筋を最優先（人間の模型と組で）
+        return p
+    if kind.startswith('calcGBxn'):  # calcGBx＋応手なしの値を混ぜる（課題 D、例 calcGBxn0.25）
+        p = make('calcGBx', rng, script)
+        p.naive_w = float(kind[len('calcGBxn'):] or 0.25)
+        return p
+    if kind.startswith('calcGBxr'):  # calcGBx（λ=0.3）＋ルールの漏れを残りのループに比例して数える（例 calcGBxr0.5）
+        p = make('calcGBx', rng, script)
+        p.lam, p.rule_leak = 0.3, float(kind[len('calcGBxr'):] or 0.5)
+        return p
+    if kind.startswith('calcGBx@'):  # 漏れの重み λ を変えた calcGBx（例 calcGBx@0.3。既定 0.1）
+        p = make('calcGBx', rng, script)
+        p.lam = float(kind.split('@')[1])
+        return p
+    if kind == 'calcGBx':  # 2026-10-16 の直しをまとめたもの: 移動斜めの門・事件の損得・必勝が無い日の仕込み（目隠しの Claude 戦で採否を見る）
+        p = make('calcGB', rng, script)
+        p.diag_gate, p.push_check, p.inc_guard, p.setup_k = True, True, True, 6
+        p.cult_feasible, p.sk_leak = True, 1.0  # gen_b31_031 の目隠し対戦から（カルティストの無駄な無視、シリアルキラーがタイムトラベラーに当たる配置）
+        return p
+    if kind == 'calcGB':  # calcG＋確定したループで偽の負け筋に押す（型1。plan/mastermind_algorithm_evolution_plan.md P2）
+        p = make('calcG', rng, script)
+        p.lock_bluff = True
+        p.hide = 10.0  # 確定したループでは任意能力（キラー・メインラバーズ）・脚本家能力を使わない（目隠し対戦: 確定後のメインラバーズで3人が割れた）
+        return p
     if kind == 'calcGf0':  # 比較用: 何も起きない札の置き換え（fill）を外したもの
         p = make('calcG', rng, script)
         p.fill = False

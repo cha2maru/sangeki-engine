@@ -81,7 +81,24 @@ def _loss_conds(state, rid):
 
 
 def enumerate_routes(state, days_in_loop=None):
-    """主人公の敗北への道筋を列挙する。返り値は道筋のリスト（total が小さいほど近い）。"""
+    """主人公の敗北への道筋を列挙する。返り値は道筋のリスト（total が小さいほど近い）。
+    このループのあとの日に登場する人物（転校生）の筋も、登場した盤面（初期エリア）で数え、登場までの待ちの日数を条件 days に足す
+    （ユーザー「転校生の登場日・神格の登場ループの考慮を水平展開」2026-10-16。登場前は札を置けないので逆算 route_calc は数えない）。"""
+    routes = _enumerate(state, days_in_loop)
+    ch = state['chars'].get('C24')
+    d = state['script'].get('appear', {}).get('C24', {}).get('day')
+    if ch is not None and d and d > state.get('day', 0) and ch['alive'] and not ch.get('present', True):
+        proj = dict(state, chars=dict(state['chars'], C24=dict(ch, present=True, area=CHARS['C24']['start'])))
+        wait = _cond('days', ('登場', 'C24', d), d - state['day'])
+        for r in _enumerate(proj, days_in_loop):
+            if r['via'] == 'C24' or 'C24' in r['goal'] or any('C24' in map(str, c['detail']) for c in r['conds']):
+                conds = r['conds'] + [wait]  # 期限の読み（最初の days）を変えないよう最後に置く
+                routes.append(dict(r, conds=conds, total=min(INF, r['total'] + wait['deficit']), note=(r['note'] + ' 登場前').strip()))
+        routes.sort(key=lambda r: r['total'])
+    return routes
+
+
+def _enumerate(state, days_in_loop=None):
     sc = state['script']
     chars = state['chars']
     br = {c: base_role(state, c) for c in chars}  # 役職はこの中で何度も引くので1回だけ（1試合で数千万回呼ばれていた）
@@ -211,7 +228,7 @@ def enumerate_routes(state, days_in_loop=None):
                                                               _cond('counter_max', (c, 'gw', 2), 0 if chars[c]['gw'] <= 2 else INF)])
     # 既に死亡しているフレンド、このループで発生した蝶の羽ばたき（未来改変プラン）: ループ終了時の敗北が確定している
     for f in friends:
-        if f not in alive:
+        if not chars[f]['alive']:  # 登場前（転校生など、present=False）は死亡ではない（gen_b31_033: ループ1日目に「確定」と誤り、隠しに回った）
             add('FRIEND', f, 'ループ終了時の敗北（フレンド死亡）', [])
     for iid, rid in occ_loss.items():
         if any(i['loop'] == state['loop'] and i['id'] == iid and i['occurred'] for i in state.get('incident_log', [])):
@@ -307,7 +324,7 @@ def _apply_unstoppable(state, routes, days):
     if not days or not UNSTOPPABLE:
         return
     for r in routes:
-        dl = next((c['deficit'] for c in r['conds'] if c['kind'] == 'days'), days - state['day'])
+        dl = next((c['deficit'] for c in r['conds'] if c['kind'] == 'days' and c['detail'][0] != '登場'), days - state['day'])
         extra = []
         for c in r['conds']:
             if c['deficit'] <= 0 or c['deficit'] >= INF or c.get('fixed'):
