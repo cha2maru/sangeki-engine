@@ -304,6 +304,9 @@ class PublicObserver:
         self.revealed = {}
         self.culprits = {}      # 刑事[友好4] で明かされた犯人 {事件ID: キャラクター}
         self.inc_history = []   # 事件の発生・不発と判定時の不安臨界以上の生存者（犯人の推理用）
+        # 見た登場（転校生の登場日・神格の登場ループ）。登場の指定は脚本作成時に決める（カードの特性）ので毎ループ同じ。
+        # 一度見たら推理の世界の脚本に入れる（負け筋の列挙が登場前の筋を数える。ユーザー「転校生や神格は場に現れるタイミングも」2026-10-17）
+        self.appear_seen = {}
 
     def _ensure(self, s):
         if self.ded is None:
@@ -315,6 +318,8 @@ class PublicObserver:
         self._ensure(s)
         for e in events:
             k = e.get('kind')
+            if k == 'appear' and e.get('char') == 'C24':
+                self.appear_seen['C24'] = {'day': s['day']}
             if k == 'ability' and (e['char'], e.get('ability')) not in UNREFUSABLE:  # 主人公能力フェイズで拒否されなかった（絶対友好無視ではない）
                 # 拒否されない能力（ナース・妹など、カードの文面）は手がかりにならない（数えると真の脚本を消していた: d30 のカルティストのナース）
                 self.ded.observe('not_refused', char=e['char'])
@@ -541,7 +546,8 @@ class DeductiveBlocker(DeductiveProtagonist):
                 cul = self.rng.choice(pool)
                 taken.add(cul)
                 incs.append(dict(i, culprit=cul))
-            scripts.append({'rules': list(combo), 'roles': dict(roles), 'incidents': incs})
+            scripts.append({'rules': list(combo), 'roles': dict(roles), 'incidents': incs,
+                            **({'appear': dict(self.appear_seen)} if getattr(self, 'appear_seen', None) else {})})
         return scripts
 
     def pc_cards(self, s, order, mm_targets=None):
@@ -564,7 +570,8 @@ class DeductiveBlocker(DeductiveProtagonist):
                 pool = [t for t in (focus if focused else self._targets(s)) if t not in taken] or [t for t in self._targets(s) if t not in taken]
                 t = self.rng.choice(pool)
                 taken.add(t)
-                stops = [c for c in STOP if c in hand]
+                from selfplay.pc_v2 import _moves_into_forbidden
+                stops = [c for c in STOP if c in hand and not _moves_into_forbidden(s, t, c)]
                 out.append({'by': p, 'target': t, 'card': self.rng.choice(stops if focused and stops else hand)})
             return out
 

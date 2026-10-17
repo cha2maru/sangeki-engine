@@ -128,11 +128,21 @@ def one_game(sid, mm, pc, seed, prefix):
     sc, rng = by_id(sid), random.Random(int(seed))
     recs = []
 
+    mm_p = make(mm, rng, sc)  # 脚本家を先に作る（乱数の使い方を前と同じ順に）
+    pc_p = make(pc, rng, sc)
+
     class Obs(PublicObserver):
         def loop_done(self, s, loop):
             self._ensure(s)
-            recs.append(('belief', {'loop': loop, 'entropy': round(self.ded.role_entropy(), 1), 'n_hyp': self.ded.n_hyp()}))
-    r = play_game(sc, Combo(make(mm, rng, sc), make(pc, rng, sc)), lambda k, rec: recs.append((k, rec)), observers=(Obs(),))
+            rec = {'loop': loop, 'entropy': round(self.ded.role_entropy(), 1), 'n_hyp': self.ded.n_hyp()}
+            ded = getattr(pc_p, 'ded', None)
+            if ded is not None:  # 主人公自身の推理で、本当の役職に乗っている確率の平均（意図の読みなどの効き目を測る。2026-10-17）
+                m, tot = ded.marginals()
+                if tot:
+                    ps = [m.get(c, {}).get(s['script']['roles'].get(c, 'PERSON'), 0) / tot for c in s['chars']]
+                    rec['pc_ptrue'] = round(sum(ps) / len(ps), 3)
+            recs.append(('belief', rec))
+    r = play_game(sc, Combo(mm_p, pc_p), lambda k, rec: recs.append((k, rec)), observers=(Obs(),))
     with open(prefix + '.jsonl', 'w', encoding='utf-8') as f:
         for k, rec in recs:
             f.write(json.dumps({'k': k, **rec}, ensure_ascii=False, default=str) + '\n')

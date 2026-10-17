@@ -80,6 +80,16 @@ def _after_incidents(after):
 
 NULLED_BY = {'PAR+': 'PARX', 'PAR-': 'PARX', 'GW1': 'GWX', 'GW2': 'GWX'}  # 主人公の札 → それを打ち消す脚本家の札
 STOP = ('MVX', 'PAR-', 'INTX', 'MV_V', 'MV_H')
+
+
+def _moves_into_forbidden(s, t, card):
+    """移動の札で、移動先が禁止エリア（禁止エリアを失っていない）＝必ず無効になる札か。入院患者は病院からどちらへも動けない
+    （ユーザーの指摘 2026-10-17: d11 の自動同士で oread が入院患者に移動の札を3回置き、すべて無効）。"""
+    from engine.resolve import CHARS, combine_moves, destination
+    if card not in ('MV_V', 'MV_H') or t not in s['chars'] or not s['chars'][t].get('area'):  # 未登場・取り除かれた者はエリアが無い
+        return False
+    to = destination(s['chars'][t]['area'], combine_moves([card]))
+    return to in CHARS.get(t, {}).get('forbidden', []) and t not in s.get('unbound', [])
 NULL_COST = 0.02
 
 
@@ -163,7 +173,7 @@ def incident_info(after, day_incs, cands):
 
 
 class ReadingBlocker(DeductiveBlocker):
-    def __init__(self, rng, hyps=40, beta=0.7, hold=0.15, null_cost=0.1, model_mm=True, tt_weight=1.0, soft_gamma=0.0, pairs=True, memory=0.0, info_sched=False, loops=3, info_last=None, intent=0.0, urgency=0.3, reach=True, crit=False, info_adapt=9.0, reach_mv=False, safe=0.0, chain=False, zero=0.0, obs=0.0, clear=False, defense=0.0, itarget=False, probe=0.0, reveal=True, nulled=0.3, defplan=False, lookday=False, recall_mm=0.0, reach_info=0.0, board_waste=0.0, probe_broad=False, cut_w=0.0, lock_block=0.0, lock_probe=0.0, lock_danger=0.0, danger_lr=4.0, card_lr=0.0, prio=0.0, lost_th=0.05, prio_info=1.0, prio_gate=0.0, split=0.0, split_info=2.0, split_known=False, assume=0.0, **kw):
+    def __init__(self, rng, hyps=40, beta=0.7, hold=0.15, null_cost=0.1, model_mm=True, tt_weight=1.0, soft_gamma=0.0, pairs=True, memory=0.0, info_sched=False, loops=3, info_last=None, intent=0.0, urgency=0.3, reach=True, crit=False, info_adapt=9.0, reach_mv=False, safe=0.0, chain=False, zero=0.0, obs=0.0, clear=False, defense=0.0, itarget=False, probe=0.0, reveal=True, nulled=0.3, defplan=False, lookday=False, recall_mm=0.0, reach_info=0.0, board_waste=0.0, probe_broad=False, cut_w=0.0, lock_block=0.0, lock_probe=0.0, lock_danger=0.0, danger_lr=4.0, card_lr=0.0, prio=0.0, lost_th=0.05, prio_info=1.0, prio_gate=0.0, split=0.0, split_info=2.0, split_known=False, assume=0.0, calc_block=False, ability_lr=0.0, bluff_read=False, **kw):
         super().__init__(rng, hyps=hyps, **kw)
         # nulled: 脚本家の不安禁止・友好禁止で打ち消された (対象, 禁止) の回数を覚え、同じ対象へ不安±・友好の札を置く手を回数×nulled 減点する（ループをまたいで残す）。
         # 中身を知る Claude が脚本家の d27（seed 51）: 無関係の C07 に毎ループ不安禁止を置かれ、不安−1 を4回打ち消されて学者を守る札が足りなくなった
@@ -190,6 +200,17 @@ class ReadingBlocker(DeductiveBlocker):
         # lock_block: 応手ごとに「今日の後で脚本家がこのループを必ず取れるようになる割合」（伏せ札の置き先だけ見える）を減点
         # lock_probe: このループが脚本家に確定した世界の割合が 0.7 以上なら、情報を取りに行く（probe と同じ切り替え。重みはこの値）
         self.lock_block, self.lock_probe = lock_block, lock_probe
+        # calc_block: 優先順（脚本家の calc と同じ形。ユーザー「脚本知ってるのにループ勝利できないのはこまる」2026-10-17）。
+        # ① 応手表（block_rates: 伏せ札の置き先だけ見え、中身はどれでも）の「最悪の場合に今日の後で確定する」割合が最小の手 ② その中で従来の評価。
+        # 表で最良の応手（不安−1 の置き先・暗躍禁止の置き先）そのものも候補に足す。oread の調べ: 途中で確定した前日16か所のうち12か所に確定しない応手があった
+        self.calc_block = calc_block
+        # ability_lr: 脚本家能力フェイズに「どこからともなく」置かれた暗躍・不安（クロマク・ミスリーダーの任意の能力）の置き先を、
+        # 脚本家が選んで置いた札と同じ形の手がかりにする（置かれた人物が暗躍の効く役職＝キラー・キーパーソンなどの仮説を ability_lr 倍）。
+        # 任意の能力なので札（おとりもある）より意図が強い（ユーザー「キラーとクロマクがいる場合、どこからともなく暗躍が置かれたら、置かれた側がキラーの可能性が高い」2026-10-17）
+        self.ability_lr = ability_lr
+        # bluff_read: 脚本家が選んで置いたカウンター（公開された伏せ札・どこからともなく置かれたもの）を「真の手かブラフか」の混合で推理に入れる
+        # （Deduction.bluff_evidence。ブラフは主人公から見て意味がありそうな所に置く。ブラフの割合も推理する）。card_lr・ability_lr の代わり
+        self.bluff_read = bluff_read
         # lock_danger: 伏せ札の人物が「キーパーソン・フレンドなら取り返せない」場合に備える。推理の確率を、脚本家がそこに札を置いた
         # ことで danger_lr 倍に寄せ（脚本家の意図）、その役職の世界だけで応手ごとの「確定される割合」を見る（d27 の契約: 委員長に暗躍禁止）
         self.lock_danger, self.danger_lr = lock_danger, danger_lr
@@ -331,8 +352,9 @@ class ReadingBlocker(DeductiveBlocker):
                 # 暗躍禁止は2枚以上で全部無効になり候補ごと捨てられるので、決めた札に暗躍禁止があれば残りの者には引かせない
                 # （d27 の readdefplan 戦 L5D3: 「委員長に暗躍禁止＋学者に不安−1」の組が、残りの1枚に暗躍禁止を引いて捨てられ候補に残らなかった）
                 no_intx = any(x['card'] == 'INTX' for x in out) or any(f[2] == 'INTX' for f in fixed.values())
-                stops = [c for c in STOP if c in hands[p] and not (no_intx and c == 'INTX')]
-                out.append({'by': p, 'target': t, 'card': self.rng.choice(stops or [c for c in hands[p] if not (no_intx and c == 'INTX')] or hands[p])})
+                stops = [c for c in STOP if c in hands[p] and not (no_intx and c == 'INTX') and not _moves_into_forbidden(s, t, c)]
+                rest = [c for c in hands[p] if not (no_intx and c == 'INTX') and not _moves_into_forbidden(s, t, c)]
+                out.append({'by': p, 'target': t, 'card': self.rng.choice(stops or rest or hands[p])})
             return out
 
         # タイムトラベラーの候補への友好: 推理でのタイムトラベラーの確率 × 友好3に足りない分（Claude が主人公を担当した点検の学び）
@@ -341,6 +363,8 @@ class ReadingBlocker(DeductiveBlocker):
         cands, singles = [], []
         for t in mm_targets:  # 伏せ札の対象×止める札（リーダーから順に、持っている者が置く）
             for card in STOP:
+                if _moves_into_forbidden(s, t, card):
+                    continue
                 p = next((p for p in order if card in hands[p]), None)
                 if p:
                     singles.append((p, t, card))
@@ -363,6 +387,8 @@ class ReadingBlocker(DeductiveBlocker):
                     if v['area'] != t[2:] or not v['alive'] or not v.get('present', True) or c == 'C20':
                         continue
                     for mv in ('MV_H', 'MV_V'):
+                        if _moves_into_forbidden(s, c, mv):
+                            continue
                         pb = next((p for p in order if p != pa and mv in hands[p]), None)
                         if pb:
                             cands.append(fill((pa, t, 'INTX'), (pb, c, mv)))
@@ -428,7 +454,14 @@ class ReadingBlocker(DeductiveBlocker):
             if p2:
                 cands.append(fill((p2, def_c, 'GW1')))
         for k in range(self.samples + 40):
-            cands.append(fill(None) if k < 40 else [{'by': p, 'target': self.rng.choice(allt), 'card': self.rng.choice(hands[p])} for p in order])
+            if k < 40:
+                cands.append(fill(None))
+                continue
+            rnd = []
+            for p in order:
+                t = self.rng.choice(allt)
+                rnd.append({'by': p, 'target': t, 'card': self.rng.choice([c for c in hands[p] if not _moves_into_forbidden(s, t, c)] or hands[p])})
+            cands.append(rnd)
         iw = self.info_weight
         loops = s['script'].get('loops') or self.loops  # ループ数は公開情報
         if self.info_sched and loops > 1:  # 序盤のループは情報を重く、最終ループは守りだけ（ユーザーの観点: 情報と守りの釣り合い）
@@ -488,7 +521,7 @@ class ReadingBlocker(DeductiveBlocker):
                 probing = True
                 iw = max(iw, 0.3) * self.probe
         lock_w = []  # [(応手の割合 {(不安−1 の置き先, 暗躍禁止の置き先): (最悪, 平均)}, 重み)]
-        if (self.lock_block or self.lock_probe) and s['loop'] <= loops:
+        if (self.lock_block or self.lock_probe or self.calc_block) and s['loop'] <= loops:
             from engine.route_calc import block_rates, forced_plan
             days = s['script'].get('days') or 8
             lk, tw = 0.0, 0.0
@@ -497,8 +530,9 @@ class ReadingBlocker(DeductiveBlocker):
                 if self.lock_probe and s['loop'] < loops:
                     lk += wt * forced_plan(st, days)['locked']
                     tw += wt
-                if self.lock_block:
-                    br = block_rates(st, days, mm_targets)
+                if self.lock_block or self.calc_block:
+                    br = block_rates(st, days, mm_targets, pos=self.calc_block, abil=self.calc_block,
+                                     max_targets=getattr(self, 'table_targets', 5), max_routes=getattr(self, 'table_routes', 8))
                     if br:
                         lock_w.append((br, wt))
             if self.lock_probe and tw and lk / tw >= 0.7:  # このループはもう取られている → 札は情報に（ル構-06）
@@ -547,6 +581,47 @@ class ReadingBlocker(DeductiveBlocker):
                     p = next((p for p in order if card in hands[p]), None)
                     if p:
                         cands.append(fill((p, c, card)))
+        if self.calc_block and lock_w:  # 表で最悪が最小の応手を候補に足す
+            for br, _ in lock_w:
+                lo = min(v[0] for v in br.values())
+                for (pm, ix), v in br.items():
+                    if v[0] > lo + 1e-9:
+                        continue
+                    firsts, usedp, ok = [], set(), True
+                    for t in sorted(pm):
+                        if t.startswith('P:'):  # 位置を崩す: 伏せ札の置かれた筋の人物に移動禁止
+                            who, card = sorted(set(t.split(':')[2:]) & set(mm_targets)), 'MVX'
+                        else:
+                            who, card = [t], 'PAR-'
+                        p = next((p for p in order if p not in usedp and card in hands[p]), None)
+                        if not who or p is None:
+                            ok = False
+                            break
+                        usedp.add(p)
+                        firsts.append((p, who[0], card))
+                    p = next((p for p in order if p not in usedp and 'INTX' in hands[p]), None) if ix else None
+                    if ix and p:
+                        firsts.append((p, ix, 'INTX'))
+                    elif ix:
+                        ok = False
+                    if ok:
+                        cands.append(fill(*firsts))
+
+        def worst_of(pc):
+            pm = frozenset(x['target'] for x in pc if x['card'] == 'PAR-')
+            # 位置を崩す札: 筋の人物への移動禁止・移動（ponytail: 動かした先で揃わないかは見ない）
+            brk = {x['target'] for x in pc if x['card'] in ('MVX', 'MV_V', 'MV_H')}
+            pm |= {n for br, _ in lock_w for k in br for n in k[0] if n.startswith('P:') and set(n.split(':')[2:]) & brk}
+            ix = [x['target'] for x in pc if x['card'] == 'INTX']
+            ix = ix[0] if len(ix) == 1 else None
+            tot, tw = 0.0, 0.0
+            for br, wt in lock_w:
+                names = {n for k in br for n in k[0]} | {k[1] for k in br if k[1]}
+                key = (frozenset(pm & names), ix if ix in names else None)
+                tot += wt * (br.get(key) or br.get((key[0], None)) or max(br.values()))[0]
+                tw += wt
+            return tot / (tw or 1.0)
+        calc_recs = []
         for pc in cands:
             if len({x['target'] for x in pc}) < len(pc):
                 continue
@@ -626,6 +701,8 @@ class ReadingBlocker(DeductiveBlocker):
                 self.last_debug.append((round(v, 4), round(mean, 4), round(max(x for x, _ in vals), 4), [(x['target'], x['card'], x['by']) for x in pc]))
             if self.prio:
                 recs.append((safe_w / wsum, v, info_w / wsum, pc))
+            if self.calc_block and lock_w:
+                calc_recs.append((worst_of(pc), v, pc))
             if best_v is None or v < best_v:
                 best, best_v = pc, v
         if self.prio and recs:
@@ -642,6 +719,16 @@ class ReadingBlocker(DeductiveBlocker):
             else:
                 best = base[3]
             self.last_prio = top
+        if calc_recs and not probing:
+            lo = min(r[0] for r in calc_recs)
+            keep = [r for r in calc_recs if r[0] <= lo + 1e-9]
+            best = min(keep, key=lambda r: r[1])[2]
+            if self.prio and recs:  # calc_block＋prio: 応手表で絞った中で、今日の後の勝ち目（_safe）が最大に近い手（仮説 H2・H1）
+                ids = {id(r[2]) for r in keep}
+                sub = [r for r in recs if id(r[3]) in ids]
+                if sub:
+                    top = max(r[0] for r in sub)
+                    best = min((r for r in sub if r[0] >= top - self.prio), key=lambda r: r[1])[3]
         return best or super().pc_cards(s, order, mm_targets)
 
     def _safe(self, after):
@@ -766,9 +853,14 @@ class ReadingBlocker(DeductiveBlocker):
                     if x['by'] == 'M':
                         h = self.mm_hist.setdefault(x['target'], {})
                         h[x['card']] = h.get(x['card'], 0) + 1
-                        if (self.card_lr or self.assume) and x['card'] in ('INT1', 'INT2', 'PAR+'):
+                        if (self.card_lr or self.assume or self.bluff_read) and x['card'] in ('INT1', 'INT2', 'PAR+'):
                             self._evidence(s, x['target'], x['card'])
-            if e.get('by') == 'SCHOLAR' and (self.card_lr or self.assume) and e.get('kind') in ('par', 'int'):  # 学者の特性: 脚本家が選んだカウンター
+            if (self.ability_lr or self.bluff_read) and e.get('kind') == 'mm_ability' and e.get('role') in ('KUROMAKU', 'MISLEADER') and e.get('target'):
+                # role は進行役の内部の記録（主人公には見えない）。見えるのは「どこからともなく」置かれたカウンターと置き先だけ。
+                # 不穏な噂（ボードに暗躍1）とは公開情報では見分けられないので、ボードへの暗躍は手がかりにしない
+                if not e['target'].startswith('B:'):
+                    self._evidence(s, e['target'], 'INT1' if 'int' in e else 'PAR+', lr=self.ability_lr)
+            if e.get('by') == 'SCHOLAR' and (self.card_lr or self.assume or self.bluff_read) and e.get('kind') in ('par', 'int'):  # 学者の特性: 脚本家が選んだカウンター
                 self._evidence(s, 'C19', 'PAR+' if e['kind'] == 'par' else 'INT1')
             if e.get('kind') == 'nullified' and e.get('by') in ('PARX', 'GWX'):
                 k = (e['target'], e['by'])
@@ -785,7 +877,7 @@ class ReadingBlocker(DeductiveBlocker):
         picks = [p for a, _ in live for p in self.ded.sample_in(self.rng, a, k)]
         return self._scripts_from_picks(s, picks) if picks else []
 
-    def _evidence(self, s, target, card):
+    def _evidence(self, s, target, card, lr=None):
         """脚本家が選んで置いたカウンターを推理の手がかりにする（Deduction.card_evidence）。同じ所・同じ種類は1ループ1回だけ（毎日のおとりで膨らまない）。"""
         kind = 'par' if card == 'PAR+' else 'int'
         if getattr(self, 'ded', None) is None or (s['loop'], target, kind) in self._card_seen:
@@ -793,8 +885,12 @@ class ReadingBlocker(DeductiveBlocker):
         self._card_seen.add((s['loop'], target, kind))
         if self.assume:
             self.ded.assume_card(target, card, s.get('init'), f"L{s['loop']}D{s['day']} {card}")
-        if self.card_lr:
-            self.ded.card_evidence(target, card, s.get('init'), self.card_lr * (1.5 if card == 'INT2' else 1.0))
+        if self.bluff_read:
+            self.ded.bluff_evidence(target, card, s.get('init'))
+            return
+        lr = lr or self.card_lr
+        if lr:
+            self.ded.card_evidence(target, card, s.get('init'), lr * (1.5 if card == 'INT2' else 1.0))
 
     def _fill(self, s, sc, targets, hand, temp=0.3, n=24):
         """伏せ札の中身を1通り引く。脚本家の評価を上げる組ほど選ばれやすい。

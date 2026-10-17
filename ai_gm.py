@@ -742,7 +742,7 @@ def main():
                     help='--blind の選び先: おすすめ（遊び尽くしたら自動生成）か、自動生成（Claude の目隠し対戦）')
     ap.add_argument('--blind', action='store_true', help='脚本を進行役が目隠しで選ぶ（id もルールも表示しない。遊んだ組は選ばない）')
     ap.add_argument('--mm', default='search', help='自動の脚本家（selfplay.league.make の種類）')
-    ap.add_argument('--pc', default='', help='自動の主人公（league の種類。read2・read・脚本を知る oread など）。指定すると自動同士で最後まで進める')
+    ap.add_argument('--pc', default='', help='自動の主人公（league の種類。read2・read・脚本を知る oreadKQL など。oread は v0.6 の脚本を知る主人公）。指定すると自動同士で最後まで進める')
     ap.add_argument('--seed', type=int, default=1)
     ap.add_argument('--dir', default=os.path.join(HERE, 'game_ai'))
     ap.add_argument('--list', action='store_true', help='開始画面の脚本の一覧（題名・ループ数・日数だけ。役職・犯人は出さない）を JSON で出して終わる')
@@ -815,7 +815,7 @@ def run(a, table_cls=None):
     rng = random.Random(a.seed)
     # 自動の主人公は専用の乱数（脚本家と共有すると、再生で脚本家を記録に置き換えたときに主人公の手がずれる）
     pc = make(auto_pc, random.Random(f'pc:{a.seed}:{auto_pc}'), script) if auto_pc else HumanProtagonist(t, rng)
-    if auto_pc == 'oread':
+    if auto_pc.startswith('oread'):
         pc.final_truth = True  # 脚本を知っている主人公は、最後の戦いも本当の配役で答える
     if a.mm == 'claude' and not rp:  # Claude が脚本家（問いは private/ に書くので盤面からは見えない）
         from selfplay.play_cli import BlockingMastermind

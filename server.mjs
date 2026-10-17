@@ -25,7 +25,7 @@ const PY = process.env.SANGEKI_PYTHON || 'python3';
 // SANGEKI_WORKERS: 自動の脚本家が主人公の応手を読むときの並列の数（fork。既定はコア数−1、最大6。1 で並列なし）
 const WORKERS = process.env.SANGEKI_WORKERS || String(Math.max(1, Math.min(6, os.cpus().length - 1)));
 const ENV = { ...process.env, SANGEKI_WORKERS: WORKERS };
-const PCS = ['read2', 'read', 'oread'];  // 自動の主人公（自動同士で観る。oread は脚本を知る）。空なら人が主人公
+const PCS = ['read2', 'read', 'oreadKQL', 'oread'];  // 自動の主人公（自動同士で観る。oreadKQL は脚本を知る。oread は v0.6 の版）。空なら人が主人公
 const MMS = ['calcGBxhd', 'calcD', 'calcG', 'searchL', 'search', 'route'];  // 先頭が既定（最強）  // 開始画面で選べる自動の脚本家（ほかの型は ai_gm.py を直接起動）
 let child = null, scriptList = null;
 function listScripts() {

@@ -26,7 +26,7 @@ def _raw(c):
     return c.get('supply', {}).get('before', c['deficit'])
 
 
-def _route_spec(r, state, days, positional=True, pos_mode=False):
+def _route_spec(r, state, days, positional=True, pos_mode=False, future=False):
     """筋を (判定の日, [(対象, 種類, 必要量)]) に直す。扱えない筋は None。positional=False なら位置の条件を含む筋も None。
     pos_mode: 位置の条件を「揃っている（1）／いない（0）」の対象 'P:種類:人物:人物' として数える（v2.1。揃っていないなら移動1回で揃うものだけ）。"""
     when, need = None, []
@@ -37,19 +37,22 @@ def _route_spec(r, state, days, positional=True, pos_mode=False):
         if k == 'days':
             if c['detail'][0] == '事件':
                 when = c['detail'][2]
+            elif future and c['detail'][0] == '登場':
+                continue  # 登場を待つ日数（routes の登場前の筋）。主人公の見積もりでは、登場の前から押せるとみなす（脚本家に有利＝上限）
             else:
                 return None
         elif k == 'counter' and c['detail'][1] in ('par', 'int'):
             ch = state['chars'].get(c['detail'][0])
-            if ch is None or not ch.get('present', True):
+            if ch is None or (not ch.get('present', True) and not (future and ch.get('alive'))):
                 # ponytail: 登場前（転校生など）には札を置けない（d23 で反則の置き方になった）。登場後に押せる分は数えない＝下限のまま
+                # future（主人公の見積もり）: 登場前の転校生も対象に入れる。今日は脚本家も主人公も札を置けない（伏せ札の置き先に入らない）
                 return None
             need.append((c['detail'][0], c['detail'][1], c['detail'][2]))
         elif k == 'board':
             need.append(('B:' + c['detail'][0], 'int', c['detail'][1]))
         elif k in ('same_area', 'alone_with', 'in_area') and pos_mode:
-            if _raw(c) > 1 or any(state['chars'].get(w, {}).get('alive') is not True for w in c['detail'][:2] if w in state['chars']):
-                return None
+            if (_raw(c) > 1 and not future) or any(state['chars'].get(w, {}).get('alive') is not True for w in c['detail'][:2] if w in state['chars']):
+                return None  # future（主人公の見積もり）: 2手以上離れた位置も、移動1回で揃うとみなす（脚本家に有利＝上限）
             need.append(('P:%s:%s:%s' % (k, *c['detail'][:2]), 'pos', 1))
         elif k in ('same_area', 'alone_with', 'in_area'):
             if _raw(c) > 0 or not positional:
@@ -109,23 +112,23 @@ def _pos_move(state, t, taken=()):
     return None
 
 
-def _abstract(rs, state, days, positional=True, pos_mode=False):
+def _abstract(rs, state, days, positional=True, pos_mode=False, future=False, max_targets=MAX_TARGETS, max_routes=MAX_ROUTES):
     """筋を抽象化した盤面に直す: (対象 [(対象, 種類)], 筋 [(判定の日, ((対象の番号, 必要量), ...))], [(筋, spec)]) or None。"""
     specs = []
     for r in sorted(rs, key=lambda r: r['total']):
         if r['total'] >= INF:
             continue
-        sp = _route_spec(r, state, days, positional, pos_mode)
+        sp = _route_spec(r, state, days, positional, pos_mode, future)
         if sp is not None:
             specs.append((r, sp))
-        if len(specs) >= MAX_ROUTES:
+        if len(specs) >= max_routes:
             break
     targets = []
     for _, (_, need) in specs:
         for t, kind, _ in need:
             if (t, kind) not in targets:
                 targets.append((t, kind))
-    targets = targets[:MAX_TARGETS]
+    targets = targets[:max_targets]
     specs = [(r, sp) for r, sp in specs if all((t, k) in targets for t, k, _ in sp[1])]
     if not specs:
         return None
@@ -466,7 +469,7 @@ def _dp(targets, route_need, days, idle, supply=(), pcab=()):
 BLUFF = 'BLUFF'  # 効果の無い伏せ札（友好禁止・移動など）。主人公からは本物と見分けられない
 
 
-def solve_hidden(targets, current, route_need, day0, days, par_left, int2, watch=None, fixed_T=None, supply=(), pcab=()):
+def solve_hidden(targets, current, route_need, day0, days, par_left, int2, watch=None, fixed_T=None, supply=(), pcab=(), movers=None):
     """今日の賭け: 伏せ札の中身が主人公に見えない（置き先だけ見える）として、今日の札の後に「必ず取れる」盤面（solve）になる確率と、今日の混ぜ方。
     置き先の組ごとに、割り当て（行）× 主人公の応手（列）の行列ゲームを LP で解く。値は 翌日 solve が取れる→1、取れない→0。
     ponytail: 1日だけの賭け。何日も続けて賭ける値（暗躍+2 の温存など）は数えない（全日の版は d16 で80秒かかり、刈り込みで値が動いた）。
@@ -481,6 +484,9 @@ def solve_hidden(targets, current, route_need, day0, days, par_left, int2, watch
     pl = tuple(par_left)
     names = sorted({t for t, _ in targets})
     idx_of = {nm: [i for i, (t, _) in enumerate(targets) if t == nm] for nm in names}
+    for i, nm in (movers or {}).items():  # 位置の対象を、動かせば揃う人物への札（移動）として数える（block_rates の pos）
+        for c in nm:
+            idx_of.setdefault(c, []).append(i)
 
     def lost(v, day):
         return any((w == 'turn_end' or w == day) and all(v[i] >= n for i, n in need) for w, need in route_need)
@@ -579,15 +585,152 @@ def solve_hidden(targets, current, route_need, day0, days, par_left, int2, watch
     return best, (best_mix if best > 0 else None)
 
 
-def block_rates(state, days, mm_targets):
+def block_rates(state, days, mm_targets, pos=False, abil=False, max_targets=MAX_TARGETS, max_routes=MAX_ROUTES):
     """主人公から見た今日: 脚本家の伏せ札の置き先（mm_targets）は見え、中身は見えない。応手ごとに、今日の後で脚本家が
     このループを必ず取れるようになる割合 {(不安−1 の置き先, 暗躍禁止の置き先): (最悪, 平均)}。負け筋が無ければ None。
-    位置の条件は今の位置のまま（主人公の移動は数えない）。"""
-    abst = _abstract(enumerate_routes(state), state, days)
+    位置の条件は今の位置のまま（主人公の移動は数えない）。
+    pos・abil: 主人公の側の見積もり（脚本家に有利なことを数える。ユーザー「わかっている事実から勝利の筋も」2026-10-17）。
+    pos: 移動1回で揃う位置の筋を対象 'P:種類:a:b' に入れ、a・b（2人きりは同じエリアの他の人物も）への伏せ札を移動（斜めも）とみなす。
+    応手の組には崩した位置の対象の名前も入る。abil: 脚本家の能力の補給（クロマク・ミスリーダー）を数える。
+    d29 L1D2: 斜めの移動でキラーをファクターの所へ＋都市に暗躍+1＋クロマクの補給で、1日でキラーの筋が揃った（下限の表は「何もしなくてよい」）"""
+    abst = _abstract(enumerate_routes(state), state, days, positional=not pos, pos_mode=pos, future=pos, max_targets=max_targets, max_routes=max_routes)
     if abst is None:
         return None
     targets, route_need, _ = abst
+    movers = None
+    if pos:
+        movers = {}
+        for i, (t, k) in enumerate(targets):
+            if k != 'pos':
+                continue
+            _, kind, a, b = t.split(':')
+            ms = {a} if kind == 'in_area' else {a, b}
+            if kind == 'alone_with' and state['chars'].get(b, {}).get('area'):
+                ms |= {c for c, v in state['chars'].items() if v['alive'] and v.get('present', True) and v.get('area') == state['chars'][b]['area']}
+            movers[i] = ms & set(mm_targets)
     return solve_hidden(targets, [_current(state, t, k) for t, k in targets], route_need, state['day'], days,
                         tuple('PAR-' not in state['used'][p] for p in 'ABC'), 'INT2' not in state['used']['M'],
-                        fixed_T=[t for t in mm_targets if t != 'C20'])
+                        fixed_T=[t for t in mm_targets if t != 'C20'], supply=_supply(state, targets) if abil else (), movers=movers)
 
+
+
+def pc_holds(state, days, max_names=9, max_targets=8, max_routes=40, budget=120.0):
+    """主人公に、このループを守りきる手があるか（タブー①の否定の側。ユーザー「1にあたるかどうかを確認する解析方法」2026-10-17）。
+    主人公は伏せ札の置き先だけが見え、中身は見えない。毎日「脚本家の置き先がどこでも → 主人公の応手があって → 中身がどれでも負けない」が
+    ループの最後まで続けば True。脚本家に有利なことを数える（上限）: 移動1回で揃う位置の筋（伏せ札の置かれた筋の人物への札は移動とみなす、
+    1日3枚まで・斜めの1回制限は数えない）、脚本家の能力の補給、登場前の転校生（登場の前から押せる）。主人公の能力は数えない。
+    返り値 {'holds': bool|None, 'routes': 数えた筋, 'skipped': 数えられなかった筋}。skipped があれば、True でも「数えた筋の範囲で」。
+    holds None: 負け筋が抽象化に乗らない（対象が多すぎるなど）。"""
+    rs = [r for r in enumerate_routes(state) if r['total'] < INF]
+    abst = _abstract(rs, state, days, positional=False, pos_mode=True, future=True, max_targets=max_targets, max_routes=max_routes)
+    if abst is None:
+        return {'holds': True if not rs else None, 'routes': [], 'skipped': [f"{r['id']}:{r['via']}" for r in rs]}
+    targets, route_need, specs = abst
+    used = {id(r) for r, _ in specs}
+    skipped = sorted({f"{r['id']}:{r['via']}" for r in rs if id(r) not in used})
+    supply = _supply(state, targets)
+    cap = [max([n for _, need in route_need for i, n in need if i == j] or [0]) + (3 if k == 'par' else 0)
+           for j, (_, k) in enumerate(targets)]
+    # 置き先の名前: 対象の人物・ボードと、位置の対象を揃えうる人物（2人きりは同じエリアの他の人物も）
+    idx_of = {}
+    for i, (t, k) in enumerate(targets):
+        if k != 'pos':
+            idx_of.setdefault(t, []).append(i)
+            continue
+        _, kind, a, b = t.split(':')
+        ms = {a} if kind == 'in_area' else {a, b}
+        if kind == 'alone_with' and state['chars'].get(b, {}).get('area'):
+            ms |= {c for c, v in state['chars'].items() if v['alive'] and v.get('present', True) and v.get('area') == state['chars'][b]['area']}
+        for c in ms:
+            if state['chars'].get(c, {}).get('present', True):
+                idx_of.setdefault(c, []).append(i)
+    names = sorted(idx_of)
+    if len(names) > max_names:
+        return {'holds': None, 'routes': [f"{r['id']}:{r['via']}" for r, _ in specs], 'skipped': skipped}
+
+    def lost(v, day):
+        return any((w == 'turn_end' or w == day) and all(v[i] >= n for i, n in need) for w, need in route_need)
+
+    def options(nm, i2):
+        out = [(BLUFF, None)]
+        for i in idx_of[nm]:
+            k = targets[i][1]
+            out += [('PAR+', i), ('PARX', i)] if k == 'par' else [('MOVE', i)] if k == 'pos' else [('INT1', i)] + ([('INT2', i)] if i2 else [])
+        return out
+
+    def rows_for(T, i2):
+        res = [[]]
+        for nm in T:
+            res = [a + [o] for a in res for o in options(nm, i2)]
+        return [a for a in res if all([c for c, _ in a].count(x) <= m for x, m in (('PAR+', 2), ('INT1', 1), ('INT2', 1), ('PARX', 1)))]
+
+    def cols_for(T, vals, pl):
+        par_t = [i for i in range(len(targets)) if targets[i][1] == 'par' and (targets[i][0] in T or vals[i] > 0)]
+        int_t = sorted({i for nm in T for i in idx_of[nm] if targets[i][1] == 'int'})
+        pos_t = [i for i in range(len(targets)) if targets[i][1] == 'pos' and (vals[i] > 0 or any(i in idx_of[nm] for nm in T))]
+        out = []
+        for k in range(0, min(sum(pl), len(par_t)) + 1):
+            for ts in combinations(par_t, k):
+                out.append((ts, None))
+                if k < 3:
+                    out += [(ts, i) for i in int_t if targets[i][0] not in {targets[j][0] for j in ts}]
+        return [(ts + bs, ix) for ts, ix in out for n in range(0, min(3 - len(ts) - (ix is not None), len(pos_t)) + 1)
+                for bs in combinations(pos_t, n)]
+
+    def after(vals, a, y):
+        ts, ix = y
+        v = list(vals)
+        mm = {}
+        for c, i in a:
+            if i is not None:
+                mm.setdefault(i, []).append(c)
+        for i in range(len(targets)):
+            cs = mm.get(i, [])
+            if targets[i][1] == 'pos':
+                v[i] = 0 if i in ts else 1 if 'MOVE' in cs else v[i]
+            elif targets[i][1] == 'par':
+                if 'PARX' not in cs:
+                    v[i] = max(0, min(v[i] + cs.count('PAR+') - (i in ts), cap[i]))
+            elif ix != i:
+                v[i] = min(v[i] + sum(2 if c == 'INT2' else 1 for c in cs if c in ('INT1', 'INT2')), cap[i])
+        vs = [tuple(v)]
+        for idx in supply:  # 脚本家能力フェイズ: 持ち主ごとに対象1つに+1（いちばん脚本家に良い使い方を、すべて見る）
+            vs = list(dict.fromkeys([w for x in vs for w in [x] + [tuple(min(y + (j == i), cap[j]) for j, y in enumerate(x)) for i in idx]]))
+        return vs
+
+    import time
+    t_end = time.time() + budget
+
+    class _Budget(Exception):
+        pass
+
+    @lru_cache(maxsize=None)
+    def hold(day, vals, pl, i2):
+        if day > days:
+            return True
+        if time.time() > t_end:
+            raise _Budget
+        # 脚本家は毎日3枚置く。負け筋に関わらない所に置く札は、組の中の効果の無い札（BLUFF）と同じか、主人公に情報を渡すぶん脚本家に不利
+        for n in [min(3, len(names))]:
+            for T in combinations(names, n):
+                rows = rows_for(T, i2)
+                ok_T = False
+                for y in cols_for(T, vals, pl):
+                    npl = list(pl)
+                    for _ in [j for j in y[0] if targets[j][1] == 'par']:
+                        npl[npl.index(True)] = False
+                    npl = tuple(npl)
+                    if all(not lost(w, day) and hold(day + 1, w, npl, i2 and all(c != 'INT2' for c, _ in a))
+                           for a in rows for w in after(vals, a, y)):
+                        ok_T = True
+                        break
+                if not ok_T:
+                    return False
+        return True
+
+    v0 = tuple(min(_current(state, t, k), c) for (t, k), c in zip(targets, cap))
+    try:
+        ok = hold(state['day'], v0, tuple('PAR-' not in state['used'][p] for p in 'ABC'), 'INT2' not in state['used']['M'])
+    except _Budget:
+        ok = None  # 読み切れず
+    return {'holds': ok, 'routes': [f"{r['id']}:{r['via']}" for r, _ in specs], 'skipped': skipped}

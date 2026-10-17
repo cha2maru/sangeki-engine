@@ -57,6 +57,30 @@ def _make(kind, rng, script=None):
     if kind == 'oread':
         from selfplay.pc_v2 import OracleReader
         return OracleReader(rng, null_cost=0.1, model_mm=True)
+    if kind == 'oreadK':  # 脚本を知る主人公＋応手表で最悪の確定が最小の手に絞る（calc_block）。上限の目安
+        from selfplay.pc_v2 import OracleReader
+        return OracleReader(rng, null_cost=0.1, model_mm=True, calc_block=True)
+    if kind == 'oreadK0':  # oreadK＋情報の加点をすべて切る（脚本を知っていれば情報に値打ちは無い。ユーザー「シナリオ知っている上で最短ループで勝利」）
+        from selfplay.pc_v2 import OracleReader
+        return OracleReader(rng, null_cost=0.1, model_mm=True, calc_block=True, info_weight=0.0, info_adapt=0.0, reveal=False)
+    if kind in ('oreadKQ', 'oreadKQL', 'oreadK0w', 'oreadK0h'):  # 脚本を知る主人公の仮説の検証（ユーザー「複数の仮説をたて検証」2026-10-17）
+        from selfplay.pc_v2 import OracleReader
+        p = OracleReader(rng, null_cost=0.1, model_mm=True, calc_block=True, info_weight=0.0, info_adapt=0.0, reveal=False)
+        if kind in ('oreadKQ', 'oreadKQL'):  # H2: 応手表で絞った中で今日の後の勝ち目（_safe）。L は H1: その日の事件まで進めた盤面で見る
+            p.prio = 0.02
+            p.lookday = kind == 'oreadKQL'
+        if kind == 'oreadK0w':  # H3: 応手表を大きく（対象8・筋30）
+            p.table_targets, p.table_routes = 8, 30
+        if kind == 'oreadK0h':  # H4: 一度きりの札の温存の費用を上げる
+            p.hold = 0.5
+        return p
+    if kind == 'calcpc':  # 調整した主人公（tuned/pc_r2）＋calc_block
+        p = make('tuned-pc_r2', rng, script)
+        p.calc_block = True
+        return p
+    if kind.startswith('oreadQ'):  # oreadQ0.02: 脚本を知る主人公＋優先順（このループの勝ち目 → 従来の評価。lockQ と同じ形）。上限の目安
+        from selfplay.pc_v2 import OracleReader
+        return OracleReader(rng, null_cost=0.1, model_mm=True, prio=float(kind[6:] or 0.02))
     if kind == 'read2':
         from selfplay.pc_v2 import ReadingBlocker2
         return ReadingBlocker2(rng)
@@ -82,6 +106,12 @@ def _make(kind, rng, script=None):
             p.assume = float(rest[1:] or 0.5)
         elif rest == 'QC':
             p.prio, p.card_lr = 0.02, 3.0
+        elif rest == 'QB':  # lockQB: 優先順＋ブラフか真かの推理（伏せ札・どこからともなく置かれたカウンター。bluff_read）
+            p.prio, p.bluff_read = 0.02, True
+        elif rest in ('QA', 'QCA'):  # lockQA: 優先順＋どこからともなく置かれたカウンターの置き先を手がかりに（ability_lr 3）。QCA は札の手がかり（card_lr 3）も
+            p.prio, p.ability_lr = 0.02, 3.0
+            if rest == 'QCA':
+                p.card_lr = 3.0
         elif rest == 'KC':  # lockKC: 知っている筋だけ守る（0.3・0.4）＋脚本家が置いたカウンターで推理を更新（card_lr 3）
             p.split, p.split_known, p.card_lr = 0.3, 0.4, 3.0
         elif rest.startswith('K'):  # lockK0.3 / lockK0.3_0.4: lockS＋知っている筋だけ（役職が推理で 0.7（_の後の値）以上・犯人が1人に絞れた筋）

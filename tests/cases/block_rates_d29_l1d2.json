@@ -1,0 +1,100 @@
+{
+ "script": "designed/d29",
+ "loop": 1,
+ "day": 2,
+ "state": {
+  "chars": {
+   "C05": {
+    "area": "CIT",
+    "alive": true,
+    "par": 0,
+    "gw": 0,
+    "int": 0,
+    "guard": 0
+   },
+   "C06": {
+    "area": "CIT",
+    "alive": true,
+    "par": 0,
+    "gw": 1,
+    "int": 2,
+    "guard": 0
+   },
+   "C08": {
+    "area": "HOS",
+    "alive": true,
+    "par": 0,
+    "gw": 0,
+    "int": 0,
+    "guard": 0
+   },
+   "C10": {
+    "area": "SHR",
+    "alive": true,
+    "par": 0,
+    "gw": 0,
+    "int": 0,
+    "guard": 0
+   },
+   "C12": {
+    "area": "SHR",
+    "alive": true,
+    "par": 0,
+    "gw": 0,
+    "int": 0,
+    "guard": 0
+   },
+   "C19": {
+    "area": "SHR",
+    "alive": true,
+    "par": 0,
+    "gw": 0,
+    "int": 1,
+    "guard": 0
+   },
+   "C23": {
+    "area": "SCH",
+    "alive": true,
+    "par": 0,
+    "gw": 0,
+    "int": 0,
+    "guard": 0
+   },
+   "C25": {
+    "area": "HOS",
+    "alive": true,
+    "par": 0,
+    "gw": 0,
+    "int": 0,
+    "guard": 0
+   },
+   "C31": {
+    "area": "SHR",
+    "alive": true,
+    "par": 0,
+    "gw": 0,
+    "int": 0,
+    "guard": 0
+   }
+  },
+  "boards": {
+   "HOS": 0,
+   "SHR": 0,
+   "CIT": 0,
+   "SCH": 0
+  },
+  "used": {
+   "M": [
+    "INT2"
+   ],
+   "A": [],
+   "B": [],
+   "C": []
+  }
+ },
+ "mm_targets": [
+  "C10",
+  "C19",
+  "B:CIT"
+ ]
+}

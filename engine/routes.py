@@ -44,6 +44,8 @@ def colocate(state, a, b):
     A, B = state['chars'][a]['area'], state['chars'][b]['area']
     best = (INF, None)
     for mover, frm, to in ((a, A, B), (b, B, A)):
+        if frm is None or to is None:  # 盤面にいない（登場前の転校生を主人公の見積もりに入れたとき）
+            continue
         if _can_enter(state, mover, to):
             best = min(best, (move_steps(frm, to, diag), to))
     return best

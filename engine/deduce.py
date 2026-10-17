@@ -389,6 +389,7 @@ class Deduction:
         if self._R is None:
             self._R, self._C = _base_for(self.T, self.chars, self.cap)
             self._lw = None  # 仮説ごとの対数の重み（soft_target）。None なら全て0
+            self._bl, self._bm = None, []  # ブラフか真かの混合（bluff_evidence）
             self._lw_ver = getattr(self, '_lw_ver', 0) + 1
             self._seen_obs = 0
             if self._watch is not None:
@@ -400,6 +401,10 @@ class Deduction:
             self._R, self._C = self._R[keep], self._C[keep]
             if self._lw is not None:
                 self._lw = self._lw[keep]
+                self._lw_ver = getattr(self, '_lw_ver', 0) + 1
+            if getattr(self, '_bl', None) is not None:
+                self._bl = self._bl[:, keep]
+                self._bm = [(m[keep], q) for m, q in self._bm]
                 self._lw_ver = getattr(self, '_lw_ver', 0) + 1
             if self._truth is not None:
                 had = self._truth.any()
@@ -485,6 +490,56 @@ class Deduction:
         self._lw -= self._lw.max()
         self._lw_ver = getattr(self, '_lw_ver', 0) + 1
 
+    # ---- ブラフか真か（ユーザー「脚本家能力で意味のないことはしない、ただブラフかもしれない…ブラフか真かという判断も推理に」2026-10-17）----
+    BETAS = (0.1, 0.3, 0.5, 0.7, 0.9)  # 脚本家のブラフの割合 β の候補（一様な事前分布）
+
+    def bluff_evidence(self, target, card, init):
+        """脚本家が選んで置いたカウンター（伏せ札・どこからともなく置かれたもの）を、真の手かブラフかの混合として仮説に掛ける。
+        真の手: その仮説で負け筋を進める所に置く。ブラフ: その仮説では意味がないが、主人公から見て意味がありそうな所に置く
+        （ユーザー「ブラフならどこでもよいも違う。ブラフとして有効な場所におくはず」）。意味がありそうな度合い q は、置いた時点の推理で
+        その置き先が負け筋を進める仮説の重みの割合。尤度 (1−β)·[意味がある] + β·q·[意味がない]（下限 1e-3）。
+        β（ブラフの割合）は BETAS の上の分布として観測と一緒に推理する。割れた役職で「あれはブラフだった」と分かれば β の見積もりが上がる。"""
+        m = self._card_mask(target, card, init)
+        if m is None:
+            return
+        R, C = self._sync()
+        w = self._w(C)
+        q = float((w * m).sum() / (w.sum() or 1.0))
+        if self._bl is None:
+            self._bl = np.zeros((len(self.BETAS), len(self._C)), dtype=np.float64)
+        b = np.array(self.BETAS)[:, None]
+        mm = m[None, :].astype(np.float64)
+        self._bl += np.log(np.maximum((1 - b) * mm + b * q * (1 - mm), 1e-3))
+        self._bm.append((m, q))
+        self._lw_ver = getattr(self, '_lw_ver', 0) + 1
+
+    def _bluff_lw(self):
+        """混合の対数の重み（仮説ごと。β について足し合わせる）。"""
+        x = self._bl
+        mx = x.max()
+        return np.log(np.exp(x - mx).sum(axis=0)) + mx
+
+    def bluff_rate(self):
+        """脚本家のブラフの割合 β の事後の平均（手がかりが無ければ None）。"""
+        R, C = self._sync()
+        if self._bl is None or not len(C):
+            return None
+        w0 = self._w0(C)
+        x = self._bl - self._bl.max()
+        pb = (np.exp(x) * w0[None, :]).sum(axis=1)
+        pb = pb / (pb.sum() or 1.0)
+        return float((pb * np.array(self.BETAS)).sum())
+
+    def evidence_true(self):
+        """これまでの手がかりごとに「真の手だった」確率（観測の順）。真の手は意味のある所にしか置かないので、
+        今の推理でその置き先が意味を持つ仮説の重みの割合（β は事後の平均で代える近似は要らない: 意味がある仮説ではブラフの項が0）。"""
+        R, C = self._sync()
+        if self._bl is None or not len(C):
+            return []
+        w = self._w(C)
+        tot = w.sum() or 1.0
+        return [float((w * m).sum() / tot) for m, _ in self._bm]
+
     # ---- 仮定（ユーザーの案 2026-10-10: 仮定を置いて推理を分岐させ、合う仮説が0になった仮定は誤りだったとする）----
     def assume_card(self, target, card, init, basis):
         """脚本家が置いたカウンターから「この札は負け筋を進めている」という仮定を立てる（同じ所・同じ種類はまとめて裏付けを数える）。
@@ -550,13 +605,21 @@ class Deduction:
             ways //= math.factorial(c)
         return 1.0 / ways / self.T.variants[self.T.combos[ci]]
 
-    def _w(self, C):
+    def _w0(self, C):
         if not hasattr(self, '_cw'):
             self._cw = np.array([self.weight(i) for i in range(len(self.T.combos))])
         w = self._cw[C]
         lw = getattr(self, '_lw', None)
         if lw is not None and len(lw) == len(C) and C is self._C:  # 全仮説のときだけ soft_target の重みを掛ける
             w = w * np.exp(lw)
+        return w
+
+    def _w(self, C):
+        w = self._w0(C)
+        bl = getattr(self, '_bl', None)
+        if bl is not None and bl.shape[1] == len(C) and C is self._C:  # ブラフか真かの混合
+            x = self._bluff_lw()
+            w = w * np.exp(x - x.max())
         return w
 
     def _marg(self, R, C):

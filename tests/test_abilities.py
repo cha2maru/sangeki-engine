@@ -112,3 +112,12 @@ def test_every_targeted_ability_kind_gets_candidates():
          'boards': {a: 0 for a in ('HOS', 'SHR', 'CIT', 'SCH')}, 'used': {p: [] for p in 'MABC'}, 'ability_used_loop': []}
     got = {(c, i) for c, i, _ in declaration_options(s)}
     assert {('C16', 0), ('C20', 0), ('C30', 0), ('C34', 0)} <= got
+
+
+def test_protagonist_skips_void_moves_into_forbidden_areas():
+    """主人公は、移動先が禁止エリアで必ず無効になる移動の札を候補にしない（d11: 病院の入院患者）。エリアの無い者（未登場）でも落ちない。"""
+    from selfplay.pc_v2 import _moves_into_forbidden
+    s = {'chars': {'C09': {'area': 'HOS'}, 'C13': {'area': None, 'present': False}}}
+    assert _moves_into_forbidden(s, 'C09', 'MV_V') and _moves_into_forbidden(s, 'C09', 'MV_H')
+    assert not _moves_into_forbidden(dict(s, unbound=['C09']), 'C09', 'MV_V')
+    assert not _moves_into_forbidden(s, 'C13', 'MV_V')
