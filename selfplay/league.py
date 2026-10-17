@@ -63,6 +63,15 @@ def _make(kind, rng, script=None):
     if kind == 'oreadK0':  # oreadK＋情報の加点をすべて切る（脚本を知っていれば情報に値打ちは無い。ユーザー「シナリオ知っている上で最短ループで勝利」）
         from selfplay.pc_v2 import OracleReader
         return OracleReader(rng, null_cost=0.1, model_mm=True, calc_block=True, info_weight=0.0, info_adapt=0.0, reveal=False)
+    if kind in ('oreadKQLa', 'oreadKQLd', 'oreadKQLb'):  # oreadKQL＋守りの案 A（事件の犯人の不安）・D（移動で位置を崩す候補）・B（中身の最悪・3倍）
+        p = make('oreadKQL', rng, script)
+        if kind == 'oreadKQLa':
+            p.inc_guard = 1.0
+        if kind == 'oreadKQLd':
+            p.pos_moves = True
+        if kind == 'oreadKQLb':
+            p.safe_worst, p.min_worlds = True, 48
+        return p
     if kind in ('oreadKQ', 'oreadKQL', 'oreadK0w', 'oreadK0h'):  # 脚本を知る主人公の仮説の検証（ユーザー「複数の仮説をたて検証」2026-10-17）
         from selfplay.pc_v2 import OracleReader
         p = OracleReader(rng, null_cost=0.1, model_mm=True, calc_block=True, info_weight=0.0, info_adapt=0.0, reveal=False)

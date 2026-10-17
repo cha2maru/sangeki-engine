@@ -2,12 +2,14 @@
 
 ボードゲーム **「惨劇RoopeR」** を、ブラウザやコマンドラインで遊び、研究するための **非公式の二次創作ツール** です。
 
-- **ウェブ対戦ツール**: ブラウザの盤面で **主人公3人を操作して、自動の脚本家と対戦** できます（対AIモード。自分のPCでサーバーを動かして遊ぶ形です）
+- **ウェブ対戦ツール**: ブラウザの盤面で **主人公3人を操作して、自動の脚本家と対戦** できます（対AIモード）。
+  選び抜いた **おすすめの脚本** を伏せて遊べるほか、**主人公も自動にして自動同士の試合を観る**（脚本を知っている主人公も選べる）こともできます
 - ルール（Basic Tragedy Χ）を処理するエンジンと、自動の脚本家・主人公の思考ルーチンを含みます
 - 自動どうしの対戦表、次の一手問題、重みの自動調整など、AI を強くするための道具もそろっています
 
 **ブラウザですぐ遊ぶ**: https://cha2maru.github.io/sangeki-engine/ （インストール不要。Chrome・Edge の最近の版。初回は約30MB の読み込み）
-自動の脚本家はブラウザを動かしている PC で計算するので、速さは PC の性能に左右されます。脚本家の種類によっては手の計算で待たされます（calcG は1手に数十秒かかることがあります）。
+自動の脚本家はブラウザを動かしている PC で計算するので、速さは PC の性能に左右されます。いちばん強い脚本家 `calcGBxhd`（既定）は1手に数秒〜数十秒かかります（各ループの1日目がいちばん重い。補助の Web Worker で並列に計算します）。
+自分の PC でサーバーを動かして遊ぶこともできます（[はじめての1試合](#はじめての1試合対aiモード)）。
 
 > 原作「惨劇RoopeR」は BakaFire Party の作品です。本リポジトリは BakaFire Party とは関係のないファンの制作物で、
 > 公式の「二次創作のガイドライン」に従って公開しています（[原作と出典](#原作と出典)）。
@@ -106,7 +108,7 @@ python ai_gm.py --script s03_bomb --mm calcG --seed 1
 
 画面の見方、1日の流れ、友好能力・最後の戦いの操作、推理シート、困ったときの対処は **[`docs/browser.md`](docs/browser.md)** にあります。
 
-脚本家の思考には1手あたり数十秒〜1分ほどかかります。ゲームの状態は `game_ai/` に保存されます（最初からやり直すときは消してください）。
+脚本家の思考は、`calcGBxhd` で1手に数秒〜数十秒です（`search` なら1秒ほど）。ゲームの状態は `game_ai/` に保存されます（最初からやり直すときは消してください）。
 
 **オプション**
 
@@ -115,7 +117,8 @@ python ai_gm.py --script s03_bomb --mm calcG --seed 1
 | `--script <id>` | 脚本（[遊べる脚本](#遊べる脚本)） |
 | `--mm <名前>` | 自動の脚本家（[自動のプレイヤー](#自動のプレイヤー)）。既定は `search` |
 | `--seed <整数>` | 乱数の種 |
-| `--blind` | 脚本を伏せて選ぶ（sangeki-scripts の自動生成の脚本から） |
+| `--blind` | 脚本を伏せて選ぶ（おすすめの脚本から遊んだことのないものを。遊び尽くしたら自動生成の脚本から。`--blind-pool generated` で自動生成だけから。sangeki-scripts が必要） |
+| `--pc <名前>` | 主人公も自動にして、自動同士で最後まで進める（`read2`・`read`・脚本を知る `oreadKQL` など）。リプレイを残して観られます |
 
 ## 遊べる脚本
 
@@ -132,7 +135,8 @@ python ai_gm.py --script s03_bomb --mm calcG --seed 1
 | `s07_shrine` | 社の宴 | 4 | 6 |
 | `s08_misfits` | はぐれ者たちの時限 | 3 | 6 |
 
-もっと遊びごたえのある脚本（設計した35本・自動生成した約180本）は、別のリポジトリ **sangeki-scripts** にあります。
+もっと遊びごたえのある脚本（設計した35本、そのうち選び抜いた **おすすめ29本**・自動生成した約180本）は、別のリポジトリ **sangeki-scripts** にあります。
+おすすめの選び方は [`docs/research.md`](docs/research.md) の「優秀な脚本（おすすめ）の選定」にあります。
 脚本の中身（役職・犯人）が見えてしまうので分けています。隣に置くと自動で読み込みます。
 
 ```
@@ -190,7 +194,8 @@ while d['kind'] not in ('end', 'error'):
 
 ## 自動のプレイヤー
 
-名前で指定します（定義は `selfplay/league.py` の `make`）。主人公側の自動のプレイヤーは、脚本の中身を知らず、公開情報だけで推理します。
+名前で指定します（定義は `selfplay/league.py` の `make`）。主人公側の自動のプレイヤーは、脚本の中身を知らず、公開情報だけで推理します
+（例外は `oread` で始まる「脚本を知っている主人公」。脚本の難しさを測る上限の目安と、自動同士の観戦用です）。
 
 ### おすすめ
 
@@ -198,6 +203,7 @@ while d['kind'] not in ('end', 'error'):
 |---|---|---|
 | **いちばん強い相手と遊ぶ・測る** | `calcGBxhd` | `tuned-pc_r2`（要 sangeki-scripts） |
 | **素早く動かす**（試し遊び・動作確認・大量の対戦） | `search` | `read` |
+| 自動同士で観る（ブラウザの既定） | `calcGBxhd` | `read2`（推理する）・`oreadKQL`（脚本を知っている） |
 | 最速（ルールの確認用。弱い） | `route` | `blind` |
 
 ### 考え方と速さ
@@ -212,7 +218,9 @@ while d['kind'] not in ('end', 'error'):
 | `searchL` | 脚本家 | 5 秒（24 秒） | — | 探索（主人公の応手を読み、その日の脚本家能力・事件まで進めて評価） |
 | `search` | 脚本家 | 0.3 秒（3 秒） | 0.6 秒（6 秒） | **素早い**。探索の基本形（対AIモードの既定） |
 | `route` | 脚本家 | 0.01 秒 | — | 負け筋に近づく手を1手先だけ読む。主人公の妨害を考えない |
-| `tuned-pc_r2` | 主人公 | 1.9 秒（8 秒） | 2.2 秒（8 秒） | **現行最強**。推理＋その日の事件までの先読み。重みを次の一手問題で調整したもの（重みは sangeki-scripts の `tuned/pc_r2.json`） |
+| `oreadKQL` | 主人公 | — | — | **脚本を知っている**主人公（配役・ルール・犯人を知り、伏せ札の中身は知らない）。ループを守ることを先に: 伏せ札の置き先を見て、中身がどれでも今日の後にループが確定しない応手に絞り、その日の事件まで進めた盤面の勝ち目で選ぶ。おすすめ29本×3試合で、calcGBxhd 相手にループを守って勝った試合 40/87（従来の `oread` は 25） |
+| `read2` | 主人公 | — | — | 推理。`read` とほぼ同じ設定（無駄な札の費用と伏せ札の中身の見積もりを明示した版）。ブラウザの自動同士の既定 |
+| `tuned-pc_r2` | 主人公 | 1.9 秒（8 秒） | 2.2 秒（8 秒） | **現行最強**（推理する主人公）。推理＋その日の事件までの先読み。重みを次の一手問題で調整したもの（重みは sangeki-scripts の `tuned/pc_r2.json`） |
 | `readlook` | 主人公 | 1.3 秒（4 秒） | — | 推理＋その日の事件までの先読み（調整前） |
 | `read` | 主人公 | 0.6 秒（3 秒） | 0.8 秒（7 秒） | **素早い**。推理（仮説を引き、伏せ札の置き場所から脚本家の狙いを読む） |
 | `blind` | 主人公 | 0.2 秒（3 秒） | — | 推理の基本形 |
@@ -268,7 +276,7 @@ PYTHONPATH=../sangeki-engine python -m selfplay.tune positions/*.json --side mm 
 - 惨劇セットは **Basic Tragedy Χ だけ** です。収録したキャラクター35人のうち、上位存在の特性・友好能力は未対応です
 - 画面とメッセージは **日本語だけ** です
 - 一部の細かい裁定は、エンジンの判断で処理しています（公式の裁定を確認できていない箇所があります）
-- 脚本家 `calcG` は1手に数十秒〜1分かかります
+- 強い脚本家（`calcGBxhd`・`calcG`）は1手に数秒〜数十秒かかります（ブラウザ版は PC の性能に左右されます）
 - 対AIモードは1人で主人公3人を操作する形です（複数人での対戦や、人どうしのネット対戦はありません）
 - 開発中のため、コマンドや形式は予告なく変わることがあります
 
@@ -309,7 +317,9 @@ It contains a rules engine for the *Basic Tragedy X* set, AI players for both th
 UI where you control the three Protagonists against an AI Mastermind, and tools for training and evaluating the AIs
 (round-robin leagues, next-move puzzles, weight tuning).
 
-- Quick start: `pip install -r requirements.txt`, `bash setup_images.sh`, then run
+- Play in the browser without installing: https://cha2maru.github.io/sangeki-engine/ (recent Chrome/Edge; about 30 MB on first load).
+  You can also watch AI-vs-AI games, including a Protagonist that knows the script, and share replays as URLs.
+- Quick start (local): `pip install -r requirements.txt`, `bash setup_images.sh`, then run
   `SANGEKI_GAME=game_ai PORT=8766 node server.mjs` and `python ai_gm.py --script s03_bomb --mm calcG`, and open `http://localhost:8766/`.
 - The UI and messages are in Japanese only. You need to know the rules (a copy of the game is assumed).
 - Game data is transcribed from the rulebooks and cards with attribution, as permitted by the publisher's fan-work guideline.

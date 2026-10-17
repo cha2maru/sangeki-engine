@@ -173,7 +173,7 @@ def incident_info(after, day_incs, cands):
 
 
 class ReadingBlocker(DeductiveBlocker):
-    def __init__(self, rng, hyps=40, beta=0.7, hold=0.15, null_cost=0.1, model_mm=True, tt_weight=1.0, soft_gamma=0.0, pairs=True, memory=0.0, info_sched=False, loops=3, info_last=None, intent=0.0, urgency=0.3, reach=True, crit=False, info_adapt=9.0, reach_mv=False, safe=0.0, chain=False, zero=0.0, obs=0.0, clear=False, defense=0.0, itarget=False, probe=0.0, reveal=True, nulled=0.3, defplan=False, lookday=False, recall_mm=0.0, reach_info=0.0, board_waste=0.0, probe_broad=False, cut_w=0.0, lock_block=0.0, lock_probe=0.0, lock_danger=0.0, danger_lr=4.0, card_lr=0.0, prio=0.0, lost_th=0.05, prio_info=1.0, prio_gate=0.0, split=0.0, split_info=2.0, split_known=False, assume=0.0, calc_block=False, ability_lr=0.0, bluff_read=False, **kw):
+    def __init__(self, rng, hyps=40, beta=0.7, hold=0.15, null_cost=0.1, model_mm=True, tt_weight=1.0, soft_gamma=0.0, pairs=True, memory=0.0, info_sched=False, loops=3, info_last=None, intent=0.0, urgency=0.3, reach=True, crit=False, info_adapt=9.0, reach_mv=False, safe=0.0, chain=False, zero=0.0, obs=0.0, clear=False, defense=0.0, itarget=False, probe=0.0, reveal=True, nulled=0.3, defplan=False, lookday=False, recall_mm=0.0, reach_info=0.0, board_waste=0.0, probe_broad=False, cut_w=0.0, lock_block=0.0, lock_probe=0.0, lock_danger=0.0, danger_lr=4.0, card_lr=0.0, prio=0.0, lost_th=0.05, prio_info=1.0, prio_gate=0.0, split=0.0, split_info=2.0, split_known=False, assume=0.0, calc_block=False, ability_lr=0.0, bluff_read=False, inc_guard=0.0, pos_moves=False, safe_worst=False, **kw):
         super().__init__(rng, hyps=hyps, **kw)
         # nulled: 脚本家の不安禁止・友好禁止で打ち消された (対象, 禁止) の回数を覚え、同じ対象へ不安±・友好の札を置く手を回数×nulled 減点する（ループをまたいで残す）。
         # 中身を知る Claude が脚本家の d27（seed 51）: 無関係の C07 に毎ループ不安禁止を置かれ、不安−1 を4回打ち消されて学者を守る札が足りなくなった
@@ -211,6 +211,11 @@ class ReadingBlocker(DeductiveBlocker):
         # bluff_read: 脚本家が選んで置いたカウンター（公開された伏せ札・どこからともなく置かれたもの）を「真の手かブラフか」の混合で推理に入れる
         # （Deduction.bluff_evidence。ブラフは主人公から見て意味がありそうな所に置く。ブラフの割合も推理する）。card_lr・ability_lr の代わり
         self.bluff_read = bluff_read
+        # 脚本を知る主人公の守りの案（ユーザー「脚本公開側での防御性能強化の案」2026-10-17）
+        # inc_guard（案A）: 事件の予定日までに犯人の不安が臨界に届きうるなら、犯人への不安−1 を候補に足し、急ぐほど加点（d07 不安拡大・d22 噂の流布）
+        # pos_moves（案D）: 応手表で位置を崩せば安全なとき、移動禁止に加えて筋の人物を移動の札で動かす候補も足す
+        # safe_worst（案B）: 今日の後の勝ち目（prio）を、引いた伏せ札の中身の平均ではなく最悪で見る（引く回数は min_worlds で増やす）
+        self.inc_guard, self.pos_moves, self.safe_worst = inc_guard, pos_moves, safe_worst
         # lock_danger: 伏せ札の人物が「キーパーソン・フレンドなら取り返せない」場合に備える。推理の確率を、脚本家がそこに札を置いた
         # ことで danger_lr 倍に寄せ（脚本家の意図）、その役職の世界だけで応手ごとの「確定される割合」を見る（d27 の契約: 委員長に暗躍禁止）
         self.lock_danger, self.danger_lr = lock_danger, danger_lr
@@ -587,25 +592,48 @@ class ReadingBlocker(DeductiveBlocker):
                 for (pm, ix), v in br.items():
                     if v[0] > lo + 1e-9:
                         continue
-                    firsts, usedp, ok = [], set(), True
+                    opts = []
                     for t in sorted(pm):
-                        if t.startswith('P:'):  # 位置を崩す: 伏せ札の置かれた筋の人物に移動禁止
-                            who, card = sorted(set(t.split(':')[2:]) & set(mm_targets)), 'MVX'
+                        if t.startswith('P:'):  # 位置を崩す: 伏せ札の置かれた筋の人物に移動禁止（pos_moves: 筋の人物を移動の札で動かす手も）
+                            ab_ = [x for x in t.split(':')[2:] if x in s['chars']]
+                            o = [(w, 'MVX') for w in sorted(set(ab_) & set(mm_targets))]
+                            if self.pos_moves:
+                                o += [(w, mv) for w in ab_ for mv in ('MV_V', 'MV_H')
+                                      if s['chars'][w].get('area') and not _moves_into_forbidden(s, w, mv)]
+                            opts.append(o)
                         else:
-                            who, card = [t], 'PAR-'
-                        p = next((p for p in order if p not in usedp and card in hands[p]), None)
-                        if not who or p is None:
-                            ok = False
-                            break
-                        usedp.add(p)
-                        firsts.append((p, who[0], card))
-                    p = next((p for p in order if p not in usedp and 'INTX' in hands[p]), None) if ix else None
-                    if ix and p:
-                        firsts.append((p, ix, 'INTX'))
-                    elif ix:
-                        ok = False
-                    if ok:
-                        cands.append(fill(*firsts))
+                            opts.append([(t, 'PAR-')])
+                    if ix:
+                        opts.append([(ix, 'INTX')])
+                    from itertools import islice, product
+                    for combo in islice(product(*opts), 6):
+                        firsts, usedp, ok = [], set(), True
+                        for w, card in combo:
+                            p = next((p for p in order if p not in usedp and card in hands[p]), None)
+                            if p is None or w in {f[1] for f in firsts}:
+                                ok = False
+                                break
+                            usedp.add(p)
+                            firsts.append((p, w, card))
+                        if ok:
+                            cands.append(fill(*firsts))
+
+        inc_t = {}
+        if self.inc_guard:  # 案A: 事件の予定日までに犯人の不安が臨界に届きうる（脚本家は1日に不安+1 を1枚、能力も数えない近似）
+            from engine.resolve import CHARS as _CH
+            sc0 = scripts[0]
+            for inc in sc0.get('incidents', []):
+                c, dleft = inc.get('culprit'), inc['day'] - s['day']
+                ch = s['chars'].get(c)
+                if dleft < 0 or not ch or not ch['alive'] or not ch.get('present', True):
+                    continue
+                lim = _CH.get(c, {}).get('limit', 9)
+                if ch['par'] + dleft + 1 >= lim and ch['par'] > 0:
+                    inc_t[c] = max(inc_t.get(c, 0.0), 1.0 / (dleft + 1))
+            for c in inc_t:
+                p = next((p for p in order if 'PAR-' in hands[p]), None)
+                if p:
+                    cands.append(fill((p, c, 'PAR-')))
 
         def worst_of(pc):
             pm = frozenset(x['target'] for x in pc if x['card'] == 'PAR-')
@@ -630,7 +658,7 @@ class ReadingBlocker(DeductiveBlocker):
             tt_bonus = sum(ptt.get(x['target'], 0) * min(3 - s['chars'][x['target']]['gw'], 2 if x['card'] == 'GW2' else 1)
                            for x in pc if x['card'] in ('GW1', 'GW2') and x['target'] in s['chars'] and s['chars'][x['target']]['gw'] < 3)
             vals, wsum = [], 0.0
-            safe_w, info_w = 0.0, 0.0
+            safe_w, info_w, safe_min = 0.0, 0.0, 1.0
             for sc, w, wt in worlds:
                 try:
                     after, _ = resolve_actions(dict(s, script=sc), w + pc)
@@ -645,7 +673,9 @@ class ReadingBlocker(DeductiveBlocker):
                 vals.append(((score_cut(after, getattr(self, '_known_fn', None), sc) if self.split else score(after)) + z - iw * ip - o, wt))
                 wsum += wt
                 if self.prio:
-                    safe_w += wt * self._safe(after)
+                    sf = self._safe(after)
+                    safe_w += wt * sf
+                    safe_min = min(safe_min, sf)
                     info_w += wt * (iw * ip + o)
             if not vals:
                 continue
@@ -699,8 +729,10 @@ class ReadingBlocker(DeductiveBlocker):
                 v += self.nulled_w * sum(self.nulled.get((x['target'], NULLED_BY.get(x['card'])), 0) for x in pc)
             if getattr(self, 'debug', False):
                 self.last_debug.append((round(v, 4), round(mean, 4), round(max(x for x, _ in vals), 4), [(x['target'], x['card'], x['by']) for x in pc]))
+            if inc_t:
+                v -= self.inc_guard * sum(inc_t.get(x['target'], 0.0) for x in pc if x['card'] == 'PAR-')
             if self.prio:
-                recs.append((safe_w / wsum, v, info_w / wsum, pc))
+                recs.append((safe_min if self.safe_worst else safe_w / wsum, v, info_w / wsum, pc))
             if self.calc_block and lock_w:
                 calc_recs.append((worst_of(pc), v, pc))
             if best_v is None or v < best_v:
