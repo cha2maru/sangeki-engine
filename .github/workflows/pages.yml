@@ -29,6 +29,8 @@ jobs:
           key: tragedy-commons-5th-v1
       - name: 盤面の画像（惨劇コモンズ5th）
         run: '[ -d assets/tragedy_commons_5th/board ] || bash setup_images.sh'
+      - name: 画像を縮める道具（Pillow。表示の大きさの WebP にする）
+        run: python3 -m pip install --quiet pillow
       - name: 組み立て
         run: bash web/build.sh
       - uses: actions/upload-pages-artifact@v3

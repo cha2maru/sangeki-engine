@@ -330,3 +330,19 @@ def test_time_gap_can_skip_to_final_battle(tmp_path):
     rec = json.load(open(d1 + '/record.json'))
     ai_gm.run(SimpleNamespace(script='', mm='', seed=None, blind=False, dir=d2, code='', replay=rec))
     assert log(d1) == log(d2)
+
+
+def test_public_ev_has_no_secret_fields(tmp_path):
+    """公開ログの ev（機械が読める出来事）に、役職の持ち主・理由などの秘匿の項目が載らない（設計資料 段階3）。"""
+    import json
+    from types import SimpleNamespace
+    import ai_gm
+    d = str(tmp_path / 'a')
+    ai_gm.run(SimpleNamespace(script='s03_bomb', mm='search', pc='read', seed=7, blind=False, dir=d, code=''))
+    evs = [json.loads(x).get('ev') for x in open(d + '/log.jsonl')]
+    evs = [e for e in evs if e]
+    assert evs and {e['kind'] for e in evs} >= {'move', 'incident'}
+    for e in evs:
+        assert not ({'actor', 'cause', 'by', 'culprit', 'reason'} & set(e)), e
+        assert 'role' not in e or e['kind'] == 'role_public', e
+        assert not any(isinstance(v, str) and len(v) == 3 and v[0] == 'C' and v[1:].isdigit() for v in e.values()), e  # カード番号でなく名前

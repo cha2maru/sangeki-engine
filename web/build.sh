@@ -5,11 +5,13 @@
 set -euo pipefail
 WEB="$(cd "$(dirname "$0")" && pwd)"; PLAY="$(dirname "$WEB")"; OUT="$WEB/dist"
 mkdir -p "$OUT/data"
+# 画像は表示の大きさに縮めた WebP にする（原寸の PNG は盤面1枚 1MB・合計 16MB で、読み込みが遅かった。ユーザー指摘 2026-10-22）。Pillow が無ければ原寸の PNG のまま
+IMGX=.png; python3 -c 'import PIL' 2>/dev/null && IMGX=.webp
 # 盤面: サーバー版と同じ board.html に shim.js を先に読み込ませ、画像を相対パスにする
-python3 - "$PLAY/board.html" "$OUT/index.html" <<'PY'
+python3 - "$PLAY/board.html" "$OUT/index.html" "$IMGX" <<'PY'
 import sys
 t = open(sys.argv[1], encoding='utf-8').read()
-t = t.replace("const IMG = '/img/';", "const IMG = 'img/';", 1)
+t = t.replace("const IMG = '/img/', IMGX = '.png';", f"const IMG = 'img/', IMGX = '{sys.argv[3]}';", 1)
 t = t.replace('<script>\nconst IMG', '<script src="shim.js"></script>\n<script>\nconst IMG', 1)
 assert 'shim.js' in t and "IMG = 'img/'" in t, '差し込む場所が見つからない（board.html が変わった）'
 open(sys.argv[2], 'w', encoding='utf-8').write(t)
@@ -63,9 +65,29 @@ fi
 if [[ " $* " != *" --no-img "* ]]; then
   for src in "$PLAY/assets/tragedy_commons_5th" "$PLAY/../originals/tragedy_commons_5th"; do
     if [ -d "$src/board" ]; then
-      mkdir -p "$OUT/img"
-      for d in action_cards board tokens chara_stand; do cp -r "$src/$d" "$OUT/img/"; done
-      echo "img: $src"; break
+      rm -rf "${OUT:?}/img"; mkdir -p "$OUT/img"
+      if [ "$IMGX" = .webp ]; then
+        # 縮める大きさ（長い辺ではなく、表示の最大の約2倍）: 盤面 幅1060・札 幅260・立ち絵 高さ320・トークン 幅96
+        python3 - "$src" "$OUT/img" <<'PY'
+import os, sys
+from PIL import Image
+src, out = sys.argv[1:3]
+SIZE = {'board': ('w', 1060), 'action_cards': ('w', 260), 'chara_stand': ('h', 320), 'tokens': ('w', 96)}
+for d, (side, n) in SIZE.items():
+    os.makedirs(os.path.join(out, d), exist_ok=True)
+    for f in os.listdir(os.path.join(src, d)):
+        if not f.endswith('.png'):
+            continue
+        im = Image.open(os.path.join(src, d, f)).convert('RGBA')
+        k = n / (im.width if side == 'w' else im.height)
+        if k < 1:
+            im = im.resize((round(im.width * k), round(im.height * k)), Image.LANCZOS)
+        im.save(os.path.join(out, d, f[:-4] + '.webp'), 'WEBP', quality=82, method=6)
+PY
+      else
+        for d in action_cards board tokens chara_stand; do cp -r "$src/$d" "$OUT/img/"; done
+      fi
+      echo "img: $src ($IMGX)"; break
     fi
   done
 fi

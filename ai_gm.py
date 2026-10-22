@@ -121,14 +121,15 @@ class Table:
             json.dump(obj, fp, ensure_ascii=False, indent=1)
         os.replace(tmp, os.path.join(self.d, f))
 
-    def log(self, text):
+    def log(self, text, ev=None):
+        """ev: 機械が読める出来事（公開の項目だけ。public_ev）。照合値（crc）は文だけで数える（古いリプレイの照合を崩さない）。"""
         import zlib
         self.n += 1
         self.record['n'], self.record['crc'] = self.n, zlib.crc32(text.encode('utf-8'), self.record['crc'])
         self._write(self.record_file, self.record)
         s = self.s or {}
         loop = min(s['loop'], self.script['loops']) if s.get('loop') else None  # 最後の戦いではエンジンのループ番号が1つ進んでいる
-        self._append('log.jsonl', {'n': self.n, 'loop': loop, 'day': s.get('day'), 'text': text})
+        self._append('log.jsonl', {'n': self.n, 'loop': loop, 'day': s.get('day'), 'text': text, **({'ev': ev} if ev else {})})
 
     def show(self, s=None, phase_name=None, waiting=None, placed=None, bump=True):
         """bump=False: 同じ段階の中での表示の更新（phaseId を変えないので、送信済みの操作が古い扱いにならない）。"""
@@ -280,6 +281,29 @@ class ReplayMM:
                 raise ReplayEnd()
             return _mval(self._q.pop(0))
         return f
+
+
+# 公開ログの行に添える、機械が読める出来事（設計資料 段階3 の ev）。種類ごとに載せてよい項目の許可リスト（秘匿の項目＝役職の持ち主・理由は載せない）。
+# 人物はカード番号ではなく公開の名前にする
+EV_FIELDS = {'move': ('char', 'from', 'to'), 'par': ('target', 'from', 'to', 'n', 'card'), 'gw': ('target', 'from', 'to', 'n', 'card'),
+             'int': ('target', 'from', 'to', 'n', 'card'), 'death': ('char',), 'appear': ('char', 'area'), 'guarded': ('char',), 'no_death': ('char',),
+             'incident': ('id', 'day', 'occurred', 'critical'), 'nullified': ('target', 'cards'), 'move_forbidden': ('char',), 'move_blocked': ('char',),
+             'role_public': ('char', 'role'), 'refused': ('char',), 'loop_end': ('at_phase',)}
+
+
+def public_ev(e):
+    k = e.get('kind')
+    if k == 'mm_ability' and e.get('role') != 'DOCTOR':  # どこからともなく: 対象と種類だけ（持ち主は載せない）
+        return {'kind': 'nowhere', 'target': name(e['target']), 'counter': next((c for c in ('int', 'par', 'gw') if c in e), None)}
+    if k not in EV_FIELDS:
+        return None
+    nm = lambda v: [name(x) for x in v] if isinstance(v, list) else name(v) if isinstance(v, str) and (v in CHARS or v.startswith('B:')) else v  # noqa: E731
+    out = {'kind': k, **{f: nm(e[f]) for f in EV_FIELDS[k] if f in e and f not in SECRET}}
+    if k == 'role_public':  # 公開された役職（ログの文にも出ている）
+        out['role'] = ROLE_JA.get(e.get('role'), e.get('role'))
+    if k == 'loop_end':
+        out['protagonist_dead'] = e.get('reason') == '主人公死亡'  # 理由の文は載せない（主人公の死亡かどうかは公開）
+    return out
 
 
 def describe(e):
@@ -620,7 +644,7 @@ class Narrator:
                 except Exception:  # ログの1行が作れなくても試合は止めない（秘匿の項目は除いて出す）
                     line = f'{e.get("kind")} ' + json.dumps({k: v for k, v in e.items() if k not in SECRET and k != 'kind'}, ensure_ascii=False)
                 if line:
-                    self.t.log(line)
+                    self.t.log(line, public_ev(e))
         self.pub.observe(s, phase, events)
         # 行動解決では、公開された6枚（脚本家の札も表向き）を盤面に出す。次のフェイズの区切りで手札に戻す（Table.phase）
         rev = next((e['cards'] for e in events if isinstance(e, dict) and e.get('kind') == 'revealed'), None)
