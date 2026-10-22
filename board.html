@@ -74,6 +74,19 @@ summary { cursor:pointer; color:var(--acc); }
   #p-sheet { position:fixed; left:0; right:0; bottom:0; z-index:20; max-height:75vh; box-shadow:0 -6px 18px #000; }
   #p-sheet.closed > .body { display:none; } body { padding-bottom:40px; }
   .azoom { display:block; }
+  body:not(.noimg) .area { aspect-ratio:auto; min-height:110px; display:flex; flex-wrap:wrap; align-items:center; align-content:flex-start; gap:4px; padding:4px 4px 26px; background-position:center; }
+  body:not(.noimg) .alabel { display:block; position:static; transform:none; font-size:14px; color:#fff; text-shadow:0 0 3px #000, 0 0 6px #000; order:0; }
+  body:not(.noimg) .slots, body:not(.noimg) .acards { position:static; order:1; } body:not(.noimg) .acards:empty { display:none; }
+  body:not(.noimg) .chars { position:static; order:2; width:100%; margin-top:auto; }
+  body:not(.noimg) .area.hasm { box-shadow:none; }
+  /* 絵は横幅に合わせて縦横比のまま（引き伸ばさない）。足りない所は黒。上の段は絵を下へ、下の段は上へ寄せ、4枚の内側の角を中央で突き合わせる */
+  body:not(.noimg) #board { gap:0; }
+  body:not(.noimg) .area { background-color:#000; background-size:100% auto; background-repeat:no-repeat; border:none; }
+  body:not(.noimg) .area, body:not(.noimg) .area.hasm { box-shadow:inset 0 0 0 1px rgba(224,162,74,.7); }  /* エリアの境を線で（黒い部分も含めて、どこまでがそのエリアか） */
+  body:not(.noimg) .area:nth-child(-n+2) { background-position:center bottom; } body:not(.noimg) .area:nth-child(n+3) { background-position:center top; }  /* ボードの伏せ札は見出しの帯の「ボード」の札で示す（駒の赤枠と分ける） */
+  .acards:not(:empty)::before { content:'ボード'; font-size:11px; font-weight:800; color:#fff; background:#7a2626; border-radius:3px; padding:0 4px; align-self:center; }
+  body #placeline { display:flex; flex-direction:column; gap:2px; width:100%; font-size:12px; padding:4px 6px; background:var(--panel); border:1px solid var(--line); border-radius:4px; box-sizing:border-box; order:1; }
+  body #placeline:empty { display:none; } #placeline b { color:var(--acc); margin-right:4px; }
   body.timegap #p-ops .sec-send { position:fixed; top:var(--bandh, 52px); left:0; right:0; z-index:12; background:#1e1d1b; border-bottom:2px solid var(--acc); padding:6px 8px; }  /* 時の狭間の選択は帯の直下に（決まったこと 21） */
   #sheetbar .days { display:none; } #sheetbar.open .days { display:grid; }  /* 公開シート帯は1行。押すと日の列 */
   /* 帯は2行まで（日・フェイズ／誰の番）。長い文は省略（全文は操作の欄にある） */
@@ -81,9 +94,12 @@ summary { cursor:pointer; color:var(--acc); }
   #band .wait { order:5; flex:1 1 100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:12px; }
   /* 手札のトレイ: 札を置く番の主人公だけ（3枚そろうまで）。脚本家の使用済みは公開シート帯にある */
   #hands.placing .hand:not(.turn) { display:none; }
-  #p-ops .sec-hands h3, #p-ops .sec-send h3, #pending li.mut { display:none; } #p-ops .sec-hands, #p-ops .sec-send { padding:4px 2px; }
+  #p-ops .sec-hands h3, #p-ops .sec-send h3, #pending li.mut { display:none; }
+  /* 操作のボタン（確定・能力の宣言を終える など）は画面の下（推理の引き出しの上）に固定。毎回いちばん下までスクロールしなくてよい（ユーザー指摘） */
+  #p-ops .sec-send { position:sticky; bottom:40px; z-index:11; background:var(--panel); border-top:2px solid var(--acc); box-shadow:0 -4px 12px #000; }
+  body.phase-ability #abilsec { order:-3; } body.phase-ability #p-ops .sec-hands { display:none; } #p-ops .sec-hands, #p-ops .sec-send { padding:4px 2px; }
 }
-.area { position:relative; aspect-ratio:1519/1076; background-size:cover; border:2px solid #000; container-type:inline-size; }
+.area { position:relative; aspect-ratio:1519/1076; background-size:cover; border:2px solid #000; container:area / inline-size; }
 .area.tgt:hover { outline:2px solid var(--acc); }
 .slots { position:absolute; top:22%; display:flex; gap:clamp(2px,1cqi,5px); align-items:center; background:rgba(0,0,0,.8); padding:clamp(1px,.8cqi,4px) clamp(3px,1.6cqi,8px); border-radius:4px; font-size:clamp(10px,3cqi,15px); font-weight:700; }
 .slots.l { left:3%; } .slots.r { right:3%; }
@@ -98,9 +114,9 @@ summary { cursor:pointer; color:var(--acc); }
 .area.crowd .ch .b, .area.crowd2 .ch .b, .area.crowd3 .ch .b { padding:1px 4px; } .area.crowd .b .cr, .area.crowd2 .b .cr { display:none; }
 .area.crowd3 .ch .b img.tk, .area.crowd3 .ch .b .k2, .area.crowd3 .ch .b .cr { display:none; } .area.crowd3 .ch .b .k1 { display:inline; }
 /* 駒の幅はエリアの幅で決まるので、エリアの幅で縮める（同じエリアの中では形をそろえる） */
-@container (max-width: 460px) { .ch .b { padding:1px 4px; } .ch .b img.tk, .ch .b .cr { display:none; }
+@container area (max-width: 460px) { .ch .b { padding:1px 4px; } .ch .b img.tk, .ch .b .cr { display:none; }
   .area.crowd .ch .b .k2 { display:none; } .area.crowd .ch .b .k1 { display:inline; } }
-@container (max-width: 260px) { .ch .b .k2 { display:none; } .ch .b .k1 { display:inline; } }
+@container area (max-width: 260px) { .ch .b .k2 { display:none; } .ch .b .k1 { display:inline; } }
 .acards { position:absolute; top:3%; display:flex; gap:2px; } .acards.l { left:30%; } .acards.r { right:30%; }
 .chars { position:absolute; left:1%; right:1%; bottom:2%; top:30%; display:flex; flex-wrap:wrap; align-content:flex-end; gap:clamp(2px,.8cqi,4px); }
 .ch { position:relative; width:clamp(48px,21cqi,112px); background:rgba(0,0,0,.8); border:1px solid #666; border-radius:4px; padding:2px; cursor:context-menu; }
@@ -108,6 +124,23 @@ summary { cursor:pointer; color:var(--acc); }
 .ch.dead img.st { filter:grayscale(1) brightness(.45); }
 .ch.dead::after { content:'死亡'; position:absolute; top:30%; left:0; right:0; text-align:center; color:var(--warn); font-weight:700; font-size:22px; text-shadow:0 0 4px #000; }
 .ch img.st { display:block; height:clamp(40px,19.5cqi,104px); margin:0 auto; }
+/* 立ち絵を札の下端まで伸ばし、名前とバッジは絵の下の方に重ねる。重ねた所は下ほど濃い半透明の黒（影）にする（ユーザー指摘） */
+body:not(.noimg) .ch { padding:0; display:flex; flex-direction:column; justify-content:flex-end; }  /* 立ち絵は全身を縮めて入れる（切らない） */
+body:not(.noimg) .area .ch img.st { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; object-position:center top; border-radius:3px; margin:0; }
+body:not(.noimg) .ch .cap { position:relative; padding:8px 1px 2px; border-radius:0 0 3px 3px; background:linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,.7) 30%, rgba(0,0,0,.85)); }
+body:not(.noimg) .ch .cap .nm { line-height:1.15; } body:not(.noimg) .ch .cap .cnt { gap:2px; margin-top:1px; }
+body:not(.noimg) .ch .ccards, body:not(.noimg) .ch .rolec { z-index:2; }
+body:not(.noimg) .ch .nm { text-shadow:0 0 3px #000, 0 1px 2px #000; }
+body.noimg .ch .cap { display:contents; }
+body:not(.noimg) .ch.hasm { border:1px solid #ff3b3b; box-shadow:0 0 0 2px #ff3b3b, 0 0 14px 2px rgba(255,59,59,.7); }  /* 赤枠は外側に描く（札の中を狭めない） */
+/* 駒の札はキャラクターカードと同じ 5:7（373×521）にそろえる。幅はエリアの混み具合で決め、名前の長さで形を変えない（ユーザー 2026-10-22） */
+body:not(.noimg) .area .ch { box-sizing:border-box; --w:clamp(56px,22cqi,112px); width:var(--w); height:auto; min-height:calc(var(--w) * 1.4); min-width:0; container:chip / inline-size; }  /* 5:7 を最低に、トークンが多いときだけ縦に伸びる（はみ出して隣に重ならない） */
+body:not(.noimg) .area.crowd .ch { --w:clamp(54px,18cqi,96px); } body:not(.noimg) .area.crowd2 .ch { --w:clamp(52px,15cqi,80px); } body:not(.noimg) .area.crowd3 .ch { --w:clamp(52px,12cqi,66px); }
+body:not(.noimg) .ch .cap .nm { white-space:nowrap; overflow:hidden; font-size:clamp(11px,22cqi,14px); line-height:1.15; }
+body:not(.noimg) .ch .cap .nm.long { font-size:min(clamp(11px,22cqi,14px), calc((100cqi - 6px) / var(--n))); letter-spacing:-.02em; }  /* 名前は1行。長い名前（サラリーマン・コピーキャットなど）だけ札の幅に収まるまで小さく */
+body:not(.noimg) .ch .cap .cnt { overflow:hidden; }
+@container chip (max-width: 92px) { .ch .b img.tk, .ch .b .cr { display:none; } .ch .b { padding:0 3px; } }
+@container chip (max-width: 72px) { .ch .b .k2 { display:none; } .ch .b .k1 { display:inline; } .area .ch .cap .b { font-size:11px; padding:0 1px; gap:0; border-radius:6px; } .area .ch .cap .cnt { gap:1px; } .area .ch .cap { padding-left:0; padding-right:0; } }  /* 狭い札はバッジを詰めて1行に2つ */
 .area.crowd .ch { width:clamp(40px,15.5cqi,90px); } .area.crowd .ch img.st { height:clamp(32px,13.5cqi,80px); }
 .area.crowd2 .ch { width:clamp(34px,12cqi,72px); } .area.crowd2 .ch img.st { height:clamp(28px,10.5cqi,64px); }
 .area.crowd3 .ch { width:clamp(28px,9.5cqi,58px); padding:1px; } .area.crowd3 .ch img.st { height:clamp(22px,8.5cqi,50px); }
@@ -191,6 +224,7 @@ table.sh input { width:100%; box-sizing:border-box; }
 #sh-mat td:not(:first-child) { text-align: center; }
 #sh-mat td:first-child { white-space: nowrap; }
 #board .area { position: relative; }
+#placeline { display:none; }  /* 狭い画面だけ（下の @media で出す） */
 #board .area .turf { position: absolute; right: 6px; bottom: 6px; width: 44px; height: 44px; border-radius: 50%; pointer-events: none; }
 /* ---- 人が遊ぶための表示（設定パネルと URL の ?ux=off で切れる）---- */
 #band .tools { margin-left:auto; display:flex; gap:4px; flex-shrink:0; } #helpbtn, #uxbtn, #filebtn { padding:0 8px; } #band button { white-space:nowrap; flex-shrink:0; }
@@ -285,7 +319,7 @@ table.rg th { font-size:11px; font-weight:600; } table.rg .need { writing-mode:h
 table.rg tr.sel th.rowh { color:var(--acc); } table.rg th.rowh { cursor:pointer; } .warnm { color:var(--warn); font-size:12px; } #board .ch.hl { box-shadow:0 0 0 3px var(--acc); } #sh-loops b.y { color:#ff8a7a; } #sh-loops b.n { color:var(--mut); } #sh-loops tr.today td { background:rgba(224,162,74,.1); } table.rg tr:first-child th:not(:first-child) { writing-mode:vertical-rl; padding:2px 0; vertical-align:bottom; line-height:1.1; } table.rg td { padding:0; text-align:center; } table.rg .gone { opacity:.35; }
 table.rg .gc { width:100%; min-width:1.8em; height:1.8em; background:transparent; border:1px solid #3d3a35; color:var(--fg); font-weight:800; padding:0; cursor:pointer; }
 table.rg .gc.soft { color:var(--mut); font-weight:400; font-size:11px; } table.rg .gc:focus-visible { outline:2px solid var(--acc); }
-.hguide { background:rgba(224,162,74,.14); border-left:3px solid var(--acc); padding:2px 6px; margin-bottom:4px; }
+.hguide .lastp { margin-top:2px; } .hguide { background:rgba(224,162,74,.14); border-left:3px solid var(--acc); padding:2px 6px; margin-bottom:4px; }
 .hand.turn { outline:2px solid var(--acc); outline-offset:2px; border-radius:3px; }
 .trayp { display:none; gap:4px; margin-bottom:4px; } .trayp [aria-pressed="true"] { border-color:var(--acc); color:var(--acc); }
 @media (max-width:1299px) { .trayp { display:flex; } }
@@ -347,7 +381,7 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
 
 <div id="band"></div>
 <div id="wrap">
-  <main id="stage"><div id="board"></div>
+  <main id="stage"><div id="board"></div><div id="placeline" aria-live="polite"></div>
    <section class="pane" id="p-log"><div class="ph"><button class="tog" aria-expanded="true">ログ</button><select id="logf" class="extra" aria-label="ログの絞り込み"><option value="">すべて</option><option value="札">札</option><option value="移">移動</option><option value="カ">カウンター</option><option value="脚">どこからともなく</option><option value="能">友好能力</option><option value="事">事件</option><option value="死">死亡</option></select><input id="logq" class="extra" placeholder="人物名" aria-label="人物名で絞り込み" size="7"></div><div class="body"><div id="log"></div><div id="loglive" class="sr" aria-live="polite"></div></div></section>
   </main>
   <div id="panes">
@@ -657,7 +691,7 @@ function fxLog(t, k, p, cur) {
 }
 // 主人公行動フェイズの手順（リーダーから時計回りに1人1枚）と、置けない置き先（ほかの主人公がすでに置いた場所。主人公の書 印刷p22）
 const pcOrder = () => { const i = 'ABC'.indexOf(S.leader || 'A'); return [0, 1, 2].map(k => 'ABC'[(i + k) % 3]); };
-let guideMsg = '', trayP = null, zoomArea = null;
+let guideMsg = '', trayP = null, zoomArea = null, lastPlaced = null;
 document.addEventListener('click', e => { const z = e.target.closest('[data-zoom]'); if (!z) return; e.stopPropagation(); zoomArea = zoomArea === z.dataset.zoom ? null : z.dataset.zoom;
   $('board').classList.toggle('zoomed', !!zoomArea); render(); }, true);
 document.addEventListener('click', e => { const t = e.target.closest('[data-tray]'); if (t) { trayP = t.dataset.tray; render(); } });
@@ -666,7 +700,7 @@ function handGuide() {
   if ((S.waiting || {}).kind !== 'cards' || viewing) return '';
   const done = new Set(pending.filter(q => q.type === 'card').map(q => q.actor)), next = pcOrder().find(p => !done.has(p));
   return `<div class="hguide" role="status">${next ? `いま <b>主人公${next}</b>${next === S.leader ? '（リーダー）' : ''}の番 ― ${done.size + 1}/3。札を選んでから置き先のキャラクターかエリアを押す（ドラッグでも置ける）`
-    : '3枚そろった。『確定して送る』で送信'}${guideMsg ? `<div style="color:var(--warn)">${esc(guideMsg)}</div>` : ''}</div>`;
+    : '3枚そろった。『確定して送る』で送信'}${lastPlaced ? `<div class="lastp">置いた: 主人公${lastPlaced.actor} ${esc(lastPlaced.card)} → <b>${esc(tgtName(lastPlaced.target))}</b></div>` : ''}${guideMsg ? `<div style="color:var(--warn)">${esc(guideMsg)}</div>` : ''}</div>`;
 }
 // 演出はいつでも飛ばせる（Space・盤面のクリック。設計資料 1章）: 動いている演出を終わらせ、たまった場面は最新まで送る
 function fxBusyMark() {  // 帯の小さな表示「演出中 ― Esc で飛ばす」
@@ -710,7 +744,8 @@ function renderMain() {
   const w = S.waiting || {};
   document.body.classList.toggle('mode-ai', S.mode === 'ai' || canStart);
   document.body.classList.toggle('watching', !!S.watch);
-  document.body.classList.toggle('timegap', (S.waiting || {}).kind === 'time_gap');  // 観戦: 操作の欄は観戦の欄に（手札・送信・友好能力は出さない）  // 開始画面のあるサーバー＝対AIモード（試合の前も）
+  document.body.classList.toggle('timegap', (S.waiting || {}).kind === 'time_gap');
+  document.body.classList.toggle('phase-ability', (S.waiting || {}).kind === 'ability');  // 観戦: 操作の欄は観戦の欄に（手札・送信・友好能力は出さない）  // 開始画面のあるサーバー＝対AIモード（試合の前も）
   if ($('welcome').classList.contains('on') && $('wl-close').style.display) $('wl-cont').style.display = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '' : 'none';
   $('band').innerHTML = S.loop ? `<span>ループ <b>${S.loop}</b>/${S.loops}</span><span>日 <b>${S.day ?? '-'}</b>/${S.days}</span>
     <span class="ph">${esc(S.phaseName)}</span><span>リーダー <b>${esc(S.leader)}</b></span>
@@ -739,6 +774,10 @@ function renderMain() {
       <button class="azoom" data-zoom="${name}" title="${name}を大きく" aria-label="${name}を大きく表示">⤢</button><span class="alabel">${name}</span><div class="slots ${side}">${slots}</div><div class="acards ${side}">${cards}</div><div class="chars">${chars}</div>${turf}</div>`;
   }).join(''));
   fxPlay(fxPrev);
+  // 置き場所を文字で（ボードかキャラクターか。狭い画面で駒とボードの印が見分けにくかった。ユーザー指摘）
+  const cs = allCards(), mmc = cs.filter(c => c.owner === 'M'), pcc = cs.filter(c => c.owner !== 'M');
+  setHTML('placeline', mmc.length || pcc.length ? (mmc.length ? `<span><b>脚本家の伏せ札</b> ${mmc.map(c => esc(tgtName(c.target)) + (c.card ? '=' + esc(c.card) : '')).join('・')}</span>` : '')
+    + (pcc.length ? `<span><b>主人公</b> ${pcc.map(c => `${c.owner} ${esc(c.card || '')} → ${esc(tgtName(c.target))}`).join('・')}</span>` : '') : '');
   const turnP = (S.waiting || {}).kind === 'cards' ? pcOrder().find(p => !pending.some(q => q.type === 'card' && q.actor === p)) : null;
   const trayShow = trayP || turnP;  // トレイで見る主人公（既定は置く番の主人公。A・B・C で切り替え。設計資料 7.1、順には縛らない）
   $('hands').classList.toggle('placing', !!trayShow);
@@ -1068,7 +1107,7 @@ function charTag(c) {
   const hasM = (S.cards || []).some(x => x.owner === 'M' && x.target === c.name);
   return `<div class="ch ${c.alive === false ? 'dead' : ''} ${hasM ? 'hasm' : ''} ${CHG.has(c.name) || noAnimChg.has(c.name) ? 'chg' : ''} ${noPlace(c.name) ? 'noplace' : ''}" data-char="${esc(c.name)}" tabindex="0" aria-label="${esc(c.name)}">
     <div class="ccards">${cards}</div>${noimg() ? '' : `<img class="st" src="${IMG}chara_stand/chara_stand_${c.card}${IMGX}">`}
-    ${c.role ? `<span class="rolec" title="${esc(roleWhen(c.name))}"><small>${esc(roleAt(c.name))}</small>${esc(ROLENAMES[c.role] || c.role)}</span>` : ''}<div class="nm">${esc(c.name)}</div><div class="cnt">${cnt}</div></div>`;
+    ${c.role ? `<span class="rolec" title="${esc(roleWhen(c.name))}"><small>${esc(roleAt(c.name))}</small>${esc(ROLENAMES[c.role] || c.role)}</span>` : ''}<div class="cap"><div class="nm${[...c.name].length >= 5 ? ' long' : ''}" style="--n:${[...c.name].length}">${esc(c.name)}</div><div class="cnt">${cnt}</div></div></div>`;
 }
 // キャラクターの説明（ポイントすると大きめのポップアップ。ブラウザの title の小さな吹き出しの代わり）
 const AREA_JA = { HOS: '病院', SHR: '神社', CIT: '都市', SCH: '学校' };
@@ -1264,8 +1303,9 @@ function renderLog() {
   const box = $('log').closest('.body');  // スクロールするのは欄の本体。最下部付近にいたときだけ最新へ送る（読み返し中は動かさない）
   if (logFollow) box.scrollTop = box.scrollHeight;
 }
+const tgtName = t => t.startsWith('board:') ? `${t.slice(6)}（ボード）` : t;  // 置き先がボードかキャラクターかを文字で（混んだエリアで分からなかった。ユーザー指摘）
 function describe(p) {
-  if (p.type === 'card') return `主人公${p.actor}: ${p.card} → ${p.target.replace('board:', '')}`;
+  if (p.type === 'card') return `主人公${p.actor}: ${p.card} → ${tgtName(p.target)}`;
   return JSON.stringify(p);
 }
 
@@ -1376,6 +1416,11 @@ function placeArmed(target) {
   pending = pending.filter(q => q.actor !== armed.actor);
   pending.push({ type: 'card', actor: armed.actor, card: armed.card, target });
   trayP = null;  // 置いたら、次の番の主人公のトレイへ
+  lastPlaced = { actor: armed.actor, card: armed.card, target };
+  requestAnimationFrame(() => {  // 置いた先を一瞬光らせる（ボードならエリアの枠、キャラクターなら駒）
+    const el = target.startsWith('board:') ? document.querySelector(`#board [data-area="${CSS.escape(target.slice(6))}"]`) : document.querySelector(`#board [data-char="${CSS.escape(target)}"]`);
+    el?.animate([{ boxShadow: '0 0 0 0 rgba(224,162,74,0)' }, { boxShadow: '0 0 0 4px rgba(224,162,74,1), inset 0 0 0 4px rgba(224,162,74,.9)' }, { boxShadow: '0 0 0 0 rgba(224,162,74,0)' }], { duration: 900 });
+  });
   armed = null; document.body.classList.remove('arming'); render();
 }
 document.addEventListener('click', e => {
@@ -1462,7 +1507,7 @@ async function post(a) {
   if (RP.on) return alert('リプレイの表示中は操作できません（『リプレイを終える』で戻る）');
   // 返事を待つ前に送信済みとして描く（待つ間に置いた札が盤面から消えていた。ユーザー指摘）
   const rec = { game: S.game, phaseId: S.phaseId, seq: '…', text: describeAction(a), placements: a.type === 'cards' ? a.placements : null };
-  noAnimChg.clear();
+  noAnimChg.clear(); lastPlaced = null;
   sent.push(rec); awaiting = Date.now(); dfSeen = LOG.length ? Math.max(...LOG.map(l => l.n || 0)) : 0; render(); renderToday();
   try {
     const r = await fetch('/action', { method: 'POST', body: JSON.stringify({ phaseId: S.phaseId, ...a }) });
