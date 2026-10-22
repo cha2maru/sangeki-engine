@@ -306,6 +306,13 @@ def _supply(state, targets):
 _DP = {}
 
 
+class OverBudget(Exception):
+    """WORK の上限を超えた（呼び出し側が「分からない」として扱う）。"""
+
+
+WORK = {'left': None}  # None なら上限なし。数で区切る（時間で区切ると、同じ種の試合が作り直せない＝リプレイが食い違う）
+
+
 def _dp(targets, route_need, days, idle, supply=(), pcab=()):
     # 不安は主人公の不安−1（ループに最大3枚）で減るので、必要量より3つ上まで余りを数える（切ると不安4 の余りが消える）
     cap = [max([n for _, need in route_need for i, n in need if i == j] or [0]) + (3 if k == 'par' else 0)
@@ -445,6 +452,10 @@ def _dp(targets, route_need, days, idle, supply=(), pcab=()):
 
     @lru_cache(maxsize=None)
     def win(day, vals, pl, i2, act=(), abl=()):
+        if WORK['left'] is not None:
+            WORK['left'] -= 1
+            if WORK['left'] < 0:
+                raise OverBudget()
         if day > days:
             return False, None
         for mm in mm_moves(i2):

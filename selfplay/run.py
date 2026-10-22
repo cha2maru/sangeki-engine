@@ -170,7 +170,13 @@ def play_game(script, player, log0, observers=(), on_day=None):
                     'territory': script.get('territory'), 'start': script.get('start', {}), **({'set': script['set']} if script.get('set') else {})},
          'chars': {c: {'area': a, 'alive': True, 'par': 0, 'gw': 0, 'int': 0, 'guard': 0} for c, a in script['init'].items()},
          'boards': {a: 0 for a in ph.AREAS}, 'used': {p: [] for p in 'MABC'}, 'ability_used_loop': [], 'incident_log': []}
+    final_ok = sets.load(script.get('set')).get('final_battle') is not False
     for loop in range(1, script['loops'] + 1):
+        # 時の狭間（ループの準備の最初。主人公の書 印刷p20）: 残りのループを飛ばして最後の戦いへ進める。聞くのは人の主人公だけ（time_gap を持つ）。
+        # 第1ループの前は聞かない（設計資料 決まったこと）。配置・カウンターの除去の前に聞く（決まったこと 22）
+        if loop > 1 and final_ok and hasattr(player, 'time_gap') and player.time_gap(s, loop) == 'final':
+            log('events', {'loop': loop, 'day': 0, 'phase': 'time_gap', 'events': [{'kind': 'skip_to_final', 'loops_left': script['loops'] - loop + 1}]})
+            break
         setup = player.loop_setup(s, script) if hasattr(player, 'loop_setup') else {}
         s, ev = ph.loop_start(s, script['init'], setup)
         # 初期エリアは公開（手先は脚本家がこのループに決めた場所。登場前のキャラクターはカードの初期エリア）
@@ -206,7 +212,7 @@ def play_game(script, player, log0, observers=(), on_day=None):
         if not loss and not reasons:
             return {'winner': 'protagonists', 'loop': loop}
     # 最後の戦いの無い惨劇セット（First Steps: 全てのループで主人公が敗北したら直ちに脚本家の勝利。主人公の書 印刷p29）
-    if sets.load(script.get('set')).get('final_battle') is False:
+    if not final_ok:
         return {'winner': 'mastermind', 'loop': loop}
     # 全ループで敗北 → 最後の戦い（主人公の書 印刷p25 §6）。盤面を初期状態に戻して、1人ずつ役職を宣言する
     setup = player.loop_setup(s, script) if hasattr(player, 'loop_setup') else {}
@@ -244,6 +250,7 @@ def play_day(s, player, loop, day, log, box, mm_override=None):
     box['s'] = s
     log('events', {'loop': loop, 'day': day, 'phase': 'actions', 'events': ev})
     # 能力を持つ者（ファクターは学校に暗躍2以上でミスリーダーの能力を得る＝早見表）
+    nowhere = []
     for actor, abl in [(c, a) for c in s['chars'] for a in ('KUROMAKU', 'MISLEADER')
                        if s['chars'][c]['alive'] and ph.has_ability(s, c, a)]:
         try:
@@ -252,7 +259,10 @@ def play_day(s, player, loop, day, log, box, mm_override=None):
             t = player.mm_ability(s, actor)
         log('decisions', {'loop': loop, 'day': day, 'phase': 'mm_ability', 'who': 'M', 'kind': 'mm_ability', 'actor': actor, 'choice': t})
         if t:
-            log('events', {'loop': loop, 'day': day, 'phase': 'mm_ability', 'events': ph.mm_ability(s, actor, t, abl)})
+            nowhere += ph.mm_ability(s, actor, t, abl)
+    if nowhere:  # 持ち主（非公開）の順で並べると手がかりになるので、対象（公開）の順で1度に出す（B13）
+        log('events', {'loop': loop, 'day': day, 'phase': 'mm_ability',
+                       'events': sorted(nowhere, key=lambda e: str(e.get('target', '')) if isinstance(e, dict) else '')})
     if hasattr(player, 'mm_extra_uses'):  # 医者[友好2] を脚本家が使う・ご神木の強制の特性
         uses = player.mm_extra_uses(s)
         if uses or ph.tree_forced(s):

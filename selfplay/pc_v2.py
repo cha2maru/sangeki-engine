@@ -10,6 +10,7 @@
   - 1ループ1回の札（移動禁止・不安−1・友好+2）には温存の費用 hold を付ける。
     ただし、使うと評価が hold 以上に良くなるなら使う。
 """
+import json
 import math
 import copy
 
@@ -173,7 +174,7 @@ def incident_info(after, day_incs, cands):
 
 
 class ReadingBlocker(DeductiveBlocker):
-    def __init__(self, rng, hyps=40, beta=0.7, hold=0.15, null_cost=0.1, model_mm=True, tt_weight=1.0, soft_gamma=0.0, pairs=True, memory=0.0, info_sched=False, loops=3, info_last=None, intent=0.0, urgency=0.3, reach=True, crit=False, info_adapt=9.0, reach_mv=False, safe=0.0, chain=False, zero=0.0, obs=0.0, clear=False, defense=0.0, itarget=False, probe=0.0, reveal=True, nulled=0.3, defplan=False, lookday=False, recall_mm=0.0, reach_info=0.0, board_waste=0.0, probe_broad=False, cut_w=0.0, lock_block=0.0, lock_probe=0.0, lock_danger=0.0, danger_lr=4.0, card_lr=0.0, prio=0.0, lost_th=0.05, prio_info=1.0, prio_gate=0.0, split=0.0, split_info=2.0, split_known=False, assume=0.0, calc_block=False, ability_lr=0.0, bluff_read=False, inc_guard=0.0, pos_moves=False, safe_worst=False, **kw):
+    def __init__(self, rng, hyps=40, beta=0.7, hold=0.15, null_cost=0.1, model_mm=True, tt_weight=1.0, soft_gamma=0.0, pairs=True, memory=0.0, info_sched=False, loops=3, info_last=None, intent=0.0, urgency=0.3, reach=True, crit=False, info_adapt=9.0, reach_mv=False, safe=0.0, chain=False, zero=0.0, obs=0.0, clear=False, defense=0.0, itarget=False, probe=0.0, reveal=True, nulled=0.3, defplan=False, lookday=False, recall_mm=0.0, reach_info=0.0, board_waste=0.0, probe_broad=False, cut_w=0.0, lock_block=0.0, lock_probe=0.0, lock_danger=0.0, danger_lr=4.0, card_lr=0.0, prio=0.0, lost_th=0.05, prio_info=1.0, prio_gate=0.0, split=0.0, split_info=2.0, split_known=False, assume=0.0, calc_block=False, ability_lr=0.0, bluff_read=False, inc_guard=0.0, pos_moves=False, safe_worst=False, safe_work=60000, **kw):
         super().__init__(rng, hyps=hyps, **kw)
         # nulled: 脚本家の不安禁止・友好禁止で打ち消された (対象, 禁止) の回数を覚え、同じ対象へ不安±・友好の札を置く手を回数×nulled 減点する（ループをまたいで残す）。
         # 中身を知る Claude が脚本家の d27（seed 51）: 無関係の C07 に毎ループ不安禁止を置かれ、不安−1 を4回打ち消されて学者を守る札が足りなくなった
@@ -223,6 +224,7 @@ class ReadingBlocker(DeductiveBlocker):
         self.card_lr, self._card_seen = card_lr, set()
         # prio: 優先順で選ぶ（このループの勝ち目 → 従来の評価）。値は勝ち目の許容差（0 で使わない）。lost_th 未満なら情報に（prio_info 倍）
         self.prio, self.lost_th, self.prio_info, self.prio_gate = prio, lost_th, prio_info, prio_gate
+        self.safe_work = safe_work  # 1手の守りの判定（_safe）の計算の量の上限（route_calc の win の呼び出し回数）
         # split: ループを途中で終わらせる筋だけを評価し（score_cut）、その脅威が届く世界の割合が split 未満なら情報に（重み split_info 倍）
         self.split, self.split_info, self.split_known = split, split_info, split_known
         # assume: 仮定ごとに世界を枝分かれさせる（脚本家が置いたカウンターから仮定を立て、否定されたら捨てる）。値は足す世界の割合
@@ -650,6 +652,7 @@ class ReadingBlocker(DeductiveBlocker):
                 tw += wt
             return tot / (tw or 1.0)
         calc_recs = []
+        self._safe_left = self.safe_work  # この手の守りの判定（_safe）に使える計算の量
         for pc in cands:
             if len({x['target'] for x in pc}) < len(pc):
                 continue
@@ -658,7 +661,7 @@ class ReadingBlocker(DeductiveBlocker):
             tt_bonus = sum(ptt.get(x['target'], 0) * min(3 - s['chars'][x['target']]['gw'], 2 if x['card'] == 'GW2' else 1)
                            for x in pc if x['card'] in ('GW1', 'GW2') and x['target'] in s['chars'] and s['chars'][x['target']]['gw'] < 3)
             vals, wsum = [], 0.0
-            safe_w, info_w, safe_min = 0.0, 0.0, 1.0
+            info_w, afters = 0.0, []
             for sc, w, wt in worlds:
                 try:
                     after, _ = resolve_actions(dict(s, script=sc), w + pc)
@@ -672,10 +675,8 @@ class ReadingBlocker(DeductiveBlocker):
                 ip = info_progress_targeted(after, ent_of, s.get('ability_used_loop', [])) if self.itarget else info_progress(after, s.get('ability_used_loop', []))
                 vals.append(((score_cut(after, getattr(self, '_known_fn', None), sc) if self.split else score(after)) + z - iw * ip - o, wt))
                 wsum += wt
-                if self.prio:
-                    sf = self._safe(after)
-                    safe_w += wt * sf
-                    safe_min = min(safe_min, sf)
+                if self.prio:  # 守りの判定（_safe）は重いので、全部の手の評価が出てから良い手の順に（下）
+                    afters.append((after, wt))
                     info_w += wt * (iw * ip + o)
             if not vals:
                 continue
@@ -732,11 +733,20 @@ class ReadingBlocker(DeductiveBlocker):
             if inc_t:
                 v -= self.inc_guard * sum(inc_t.get(x['target'], 0.0) for x in pc if x['card'] == 'PAR-')
             if self.prio:
-                recs.append((safe_min if self.safe_worst else safe_w / wsum, v, info_w / wsum, pc))
+                recs.append([None, v, info_w / wsum, pc, afters, wsum])
             if self.calc_block and lock_w:
                 calc_recs.append((worst_of(pc), v, pc))
             if best_v is None or v < best_v:
                 best, best_v = pc, v
+        if self.prio and recs:
+            # 守りの判定は従来の評価の良い手から順に。計算の量の上限（safe_work）に達したら、残りの手は判定しない（比べる対象から外す）。
+            # 以前は手の並び順のまま判定し、上限で良い手が判定されずに残った（上限を入れた対戦表で守って勝つ数が 16 → 13）
+            for r in sorted(recs, key=lambda r: r[1]):
+                sfs = [(self._safe(a), wt) for a, wt in r[4]]
+                if any(x is None for x, _ in sfs):
+                    break
+                r[0] = min((x for x, _ in sfs), default=1.0) if self.safe_worst else sum(x * wt for x, wt in sfs) / r[5]
+            recs = [r for r in recs if r[0] is not None]
         if self.prio and recs:
             # 優先順（脚本家の calcG と同じ形。ユーザー合意 2026-10-09）: ① このループの勝ち目（今日の後で脚本家が必ず取れるとは
             # 言えない世界の割合）が最大に近い手 ② その中で従来の評価。勝ち目がどの手でも無いなら、このループは捨てて情報（ル構-06）
@@ -772,7 +782,25 @@ class ReadingBlocker(DeductiveBlocker):
         days = after['script'].get('days') or 8
         if after['day'] >= days:
             return 0.0 if ph.loop_end_loss(copy_state(after)) else 1.0
-        return 0.0 if forced_plan(dict(after, day=after['day'] + 1), days)['forced'] else 1.0
+        # 候補の手×仮説の世界ごとに呼ばれ、解決後の盤面が同じになることが多い（d07 で1手に数百回・1回5秒で、1試合が40分を超えた）。盤面と脚本の中身で覚えておく
+        key = json.dumps(after, sort_keys=True, default=str)  # 盤面ぜんぶ（脚本の中身も）。forced_plan が読む項目を拾い漏らさないように
+        cache = self.__dict__.setdefault('_safe_cache', {})
+        if key not in cache:
+            if len(cache) > 20000:
+                cache.clear()
+            # 1手あたりの計算の量に上限（d07 で1回5秒・1手で数百回になり、1試合が40分を超えた）。超えたら None（分からない）。
+            # ponytail: 上限を超えた分の手は守りの判定から外れる。速い近似（筋の数を絞るなど）が要れば足す
+            from engine import route_calc
+            route_calc.WORK['left'] = self._safe_left
+            try:
+                cache[key] = 0.0 if forced_plan(dict(after, day=after['day'] + 1), days)['forced'] else 1.0
+            except route_calc.OverBudget:
+                route_calc.WORK['left'] = 0
+                return None  # 分からない（上限）
+            finally:
+                self._safe_left = max(0, route_calc.WORK['left'])
+                route_calc.WORK['left'] = None
+        return cache[key]
 
     def _known_route_fn(self, s, th=0.7):
         """主人公が「知っている」途中で終わる負け筋かを判定する関数 known(r, sc) を返す。

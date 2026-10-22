@@ -52,6 +52,7 @@
         const a = body();
         if (started) { worker.terminate(); boot(); }  // 試合の途中は Python が操作を待って止まっているので、Worker ごと作り直す
         started = true; store.state = '{}'; store.log = []; store.snaps = []; store.deduce = '{}';
+        try { localStorage.removeItem(NOTES); } catch {}  // 前の試合の推理の書き込みを残さない（サーバー版と同じ。B12）
         const msg = { type: 'new', ...a };
         if (ready) worker.postMessage(msg); else pendingNew = msg;
         return reply('{}');

@@ -45,7 +45,8 @@ INC_EFFECT = {v['name']: v['effect'] for v in json.load(open(os.path.join(HERE, 
 SET_JA = {'BTX': 'Basic Tragedy X'}
 SECRET = ('role', 'actor', 'cause', 'by', 'culprit', 'reason')  # 公開ログに出さない項目（役職や理由を含みうる）
 END_ABILITY = '能力の宣言を終える'
-END_FINAL = '指摘を終える'
+END_FINAL = '宣言を終える（残りはパーソン）'
+GAP_NEXT, GAP_FINAL = '次のループへ', '最後の戦いへ進む（残りのループを飛ばす）'
 
 
 COUNTER_JA = {'par': '不安', 'gw': '友好', 'int': '暗躍', 'guard': '護衛'}
@@ -59,7 +60,7 @@ def name(c):
 
 PHASE_JA = {'loop_start': 'ループの準備', 'turn_start': 'ターン開始フェイズ', 'mm_cards': '脚本家行動フェイズ', 'pc_cards': '主人公行動フェイズ',
             'actions': '行動解決フェイズ', 'mm_ability': '脚本家能力フェイズ', 'ability': '主人公能力フェイズ', 'incident': '事件フェイズ',
-            'turn_end': 'ターン終了フェイズ', 'loop_end_check': 'ループ終了時の判定'}
+            'turn_end': 'ターン終了フェイズ', 'loop_end_check': 'ループ終了時の判定', 'time_gap': '時の狭間'}
 
 
 class Table:
@@ -71,6 +72,7 @@ class Table:
         self.n, self.phase_id, self.read = 0, 0, 0
         self.game = int(time.time())  # 試合の識別子（盤面が前の試合の送信済みを出さないため）
         self.s, self.placed, self.phase_name = None, [], '準備'
+        self.watch = False  # 自動同士（観戦）: 盤面は場面を1つずつ見せる
         self.waiting = {'kind': 'none', 'text': '脚本家の番', 'options': []}
         self.reveal = None  # ゲーム終了後の非公開シート（盤面のダイアログ）
         self.reply = ''  # 「脚本家の返答」の欄（反則の置き方などの知らせ。公開ログには書かない＝振り返りに出さない）
@@ -106,7 +108,10 @@ class Table:
         if (loop, day, key) == self.last_phase or key not in PHASE_JA:
             return
         self.last_phase = (loop, day, key)
+        if key not in ('actions', 'pc_cards', 'mm_cards') and any(x.get('open') for x in self.placed):
+            self.placed = []  # 解決した札は持ち主の手札に戻る（主人公の書 印刷p22）。何が出たかは当日の流れ・ログに残る（設計資料 決まったこと 2・18）
         where = f'L{min(loop, self.script["loops"])}' + (f'D{day}' if day else '') if loop else ''
+        self.phase_name = (f'L{min(loop, self.script["loops"])}' + (f' {day}日目' if day else '') + ' ' if loop else '') + PHASE_JA[key]
         self.log(f'── {where} {PHASE_JA[key]} ──' + (f' {extra}' if extra else ''))
 
     def _write(self, f, obj):
@@ -139,11 +144,16 @@ class Table:
         if bump:
             self.phase_id += 1
         pub = project(self.s, self.placed)
+        rev = {name(c): r for c, r in self.s.get('revealed_roles', {}).items()}  # 公開された役職（友好能力・フレンドの死亡。ループをまたいで公開のまま）を駒に残す（B6）
+        for ch in pub['characters']:
+            if ch['name'] in rev:
+                ch['role'] = rev[ch['name']]
         for i in pub['incidents']:
             i['effect'] = INC_EFFECT.get(i['name'], '')
             r = self.inc_result.get((self.s['loop'], i['day']))
             if r:
                 i['result'] = r
+            i['results'] = {L: x for (L, d), x in sorted(self.inc_result.items()) if d == i['day']}  # 過去のループの分も（公開シート帯）
         sc = self.script
         # 公開シートに書かれること（惨劇セット・ループ数・日数・事件予定・特殊ルール）。テリトリーはゲームの準備で縄張りトークンを置くので公開（大物の特性）。
         # 神格・転校生の登場の時期は脚本作成時に脚本家が決める非公開の情報（カードの特性、wiki/concepts/script.md）。以前は出していた（ユーザー指摘 2026-10-10）
@@ -152,7 +162,7 @@ class Table:
                               'special': sc.get('special') or ''}
         pub['loop'] = min(pub['loop'], self.script['loops'])  # 最後の戦いではエンジンのループ番号が1つ進んでいる
         pub['live'] = self.replay is None  # 記録から作り直している間は False（途中から再開する盤面が、作り直しの終わりを待つ）
-        pub.update({'mode': 'ai', 'reply': self.reply, 'reveal': self.reveal,  # 対AIモード（盤面は手動モード用の欄＝脚本家に伝える・ハッシュ・異議を出さない）
+        pub.update({'mode': 'ai', 'watch': self.watch, 'reply': self.reply, 'reveal': self.reveal,  # 対AIモード（盤面は手動モード用の欄＝脚本家に伝える・ハッシュ・異議を出さない）
                     'game': self.game, 'phaseId': self.phase_id, 'phaseName': self.phase_name, 'waiting': self.waiting,
                     'loops': self.script['loops'], 'days': self.script['days'],
                     # 盤面は「キャラクター名#番号」で使用済みを判定する（エンジンは「C07#0」）
@@ -279,6 +289,8 @@ def describe(e):
     if k == 'move':
         src = f'{AREA_JA.get(e["from"], e["from"])} → ' if e.get('from') else ''  # 行方不明の移動には移動元が無い
         return f'{name(e["char"])} が {src}{AREA_JA.get(e.get("to"), e.get("to"))} へ移動'
+    if k == 'skip_to_final':
+        return f'時の狭間: 主人公は残り {e["loops_left"]} ループを飛ばして、最後の戦いへ進んだ'
     if k == 'mm_ability':
         # 脚本家は理由を説明しない。役職の能力は「どこからともなく」と伝える（主人公の書 印刷p23）
         if e.get('role') == 'DOCTOR':  # 医者[2] を脚本家が使った（使ったこと自体は公開）
@@ -512,21 +524,54 @@ class HumanProtagonist:
     def ability_candidates(self, s):
         return []
 
+    def time_gap(self, s, loop):
+        """時の狭間: 次のループへ進むか、残りのループを飛ばして最後の戦いへ進むか（主人公の書 印刷p20）。"""
+        t = self.t
+        if t.replay is not None and t.replay['h'] and not t.replay['h'][0].get('tg'):
+            return 'next'  # 時の狭間で止めていなかった頃の記録（そのまま次のループへ）
+        left = t.script['loops'] - loop + 1
+        t.show(s, f'L{loop - 1} 時の狭間', {'kind': 'time_gap', 'text': f'ループ{loop - 1}が終わった（時の狭間）。次のループへ進むか、'
+                                          f'残り {left} ループを飛ばして最後の戦いへ進むかを選ぶ', 'options': [GAP_NEXT, GAP_FINAL]})
+        rec = t.take(('option',))
+        t.record['h'][-1]['tg'] = True  # 記録に印（古い記録との見分け）
+        t._write(t.record_file, t.record)
+        return 'final' if rec.get('choice') == GAP_FINAL else 'next'
+
     def final_guesses(self, s):
+        """1人ずつ宣言 → その場で判定 → 正解なら次（主人公の書 印刷p25 §6、wiki/concepts/final-battle.md）。
+        正解だったという判定は次の宣言の材料になる（以前は全員分を集めてから判定していた。不具合 B11）。外れたらそこで終わり。
+        『宣言を終える』は、まだ宣言していない人をパーソンとして1人ずつ宣言したことにする。"""
+        from engine.abilities import final_battle_answer
         order, first = [], True
+        pair = lambda c: {'C32', 'C33'} if c in ('C32', 'C33') else {c}  # アルバイトとアルバイト？は2人で1回の宣言（裁定）
+
+        def judge(c, r):
+            ok = final_battle_answer(s, c, r)
+            order.append({'char': c, 'role': r})
+            self.t.log(f'宣言: {name(c)} は {ROLE_JA.get(r, r)} ― ' + ('正解' if ok else '不正解'))
+            return ok
         while True:
-            left = [c for c in s['chars'] if c not in {g['char'] for g in order}]
-            self.t.show(s, '最後の戦い', {'kind': 'final', 'text': '右クリックで役職を1人ずつ指摘（宣言順に判定。外れた時点で脚本家の勝ち）。'
-                                         f'残り {len(left)} 人。全員を指摘したら『{END_FINAL}』', 'options': [END_FINAL]}, bump=first)
+            done = set().union(*[pair(g['char']) for g in order]) if order else set()
+            left = [c for c in s['chars'] if c not in done and not (c == 'C33' and 'C32' in s['chars'])]
+            if not left:
+                self.guesses = order
+                return order
+            self.t.show(s, '最後の戦い', {'kind': 'final', 'text': '右クリックで1人選んで役職を宣言する（その場で判定。外れた時点で脚本家の勝ち）。'
+                                         f'残り {len(left)} 人。残りを全員パーソンとするなら『{END_FINAL}』', 'options': [END_FINAL]}, bump=first)
             first = False
             rec = self.t.take(('final', 'option'))
             if rec['type'] == 'option':
-                self.guesses = order + [{'char': c, 'role': 'PERSON'} for c in left]  # 終了後の非公開シートで答え合わせに使う
-                return self.guesses
+                for c in left:
+                    if not judge(c, 'PERSON'):
+                        break
+                self.guesses = order  # 終了後の非公開シートで答え合わせに使う
+                return order
             c, r = NAME2C.get(rec['char']), JA2ROLE.get(rec['role'])
-            if c in s['chars'] and r:
-                order = [g for g in order if g['char'] != c] + [{'char': c, 'role': r}]
-                self.t.log(f'指摘: {rec["char"]} は {rec["role"]}')
+            if c == 'C33' and 'C32' in s['chars']:
+                c = 'C32'
+            if c in left and r and not judge(c, r):
+                self.guesses = order
+                return order
 
 
 class Narrator:
@@ -552,7 +597,7 @@ class Narrator:
                 if line:
                     self.t.log(line)
         self.pub.observe(s, phase, events)
-        # 行動解決の後は、公開された6枚（脚本家の札も表向き）を盤面に残す（その日のターン終了フェイズまで。リプレイでも見える）
+        # 行動解決では、公開された6枚（脚本家の札も表向き）を盤面に出す。次のフェイズの区切りで手札に戻す（Table.phase）
         rev = next((e['cards'] for e in events if isinstance(e, dict) and e.get('kind') == 'revealed'), None)
         self.t.show(s, placed=[dict(x, open=True) for x in rev] if rev else [] if phase in ('actions', 'turn_end', 'loop_start') else None)
         self.deduce(s)
@@ -675,8 +720,10 @@ def blind_count():
     return sum(1 for i in RECOMMENDED if glob_scripts(i + '.json')) + len(glob_scripts('generated/*.json'))
 
 
-THINK = {'loop_setup': 'ループの準備', 'mm_cards': '伏せ札', 'mm_ability': '脚本家能力', 'incident_choice': '事件の対象',
-         'refuse': '友好能力を拒否するか', 'killer_pick': '任意能力', 'choose_rule_x': 'ルールの選択'}
+# 脚本家能力（mm_ability）と友好能力の拒否（refuse）は出さない: 前者はクロマク・ミスリーダーの能力を持つ生存者がいる日だけ、
+# 後者は任意の友好無視の役職のときだけ呼ばれるので、「考え中」が出ること自体が役職の手がかりになる（設計資料の敵対的レビュー R1、2026-10-21）
+THINK = {'loop_setup': 'ループの準備', 'mm_cards': '伏せ札', 'incident_choice': '事件の対象',
+         'killer_pick': '任意能力', 'choose_rule_x': 'ルールの選択'}
 
 
 def _thinking(t, what, f):
@@ -809,6 +856,7 @@ def run(a, table_cls=None):
     t.record.update({'s': '' if a.script == 'user' else a.script, 'c': getattr(a, 'code', '') or '', 'mm': a.mm})
     auto_pc = getattr(a, 'pc', '') or ''
     if auto_pc:  # 自動同士（ユーザー 2026-10-17）: 主人公も自動。記録に種類と乱数の種を残し、再生で作り直す
+        t.watch = True
         t.record.update({'pc': auto_pc, 'seed': a.seed})
     if rp:
         t.replay = {'h': [{k: v for k, v in x.items() if k != 'n'} for x in rp.get('h', [])], 'resume': bool(getattr(a, 'resume', False))}
@@ -856,7 +904,7 @@ def run(a, table_cls=None):
             t.log('脚本家の札が公開された: ' + '、'.join(f'{name(x["target"])}={CARD_UI.get(x["card"], x["card"])}' for x in rec['choice']))
         if rec.get('phase') == 'final_battle':
             t.log('最後の戦い: ' + ('主人公の勝ち' if rec['result']['winner'] == 'protagonists' else
-                                 f'{rec["result"].get("stopped_at", 0) + 1} 人目の指摘で外れた。脚本家の勝ち'))
+                                 f'{rec["result"].get("stopped_at", 0) + 1} 人目の宣言で外れた。脚本家の勝ち'))
     try:
         r = play_game(script, player, log0, observers=(nar,))
     except ReplayEnd:  # 共有したときの位置まで再生した（試合の途中）

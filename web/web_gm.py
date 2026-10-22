@@ -28,7 +28,7 @@ class WebTable(ai_gm.Table):
 
 
 def start(script, mm, seed, blind, code='', replay='', resume=False, pc=''):
-    if pc and pc not in ('read2', 'read', 'oread', 'oreadKQL'):
+    if pc and pc not in ('read2', 'read', 'lockQA', 'oread', 'oreadKQL'):
         raise ValueError('主人公の型が不正')
     ai_gm.run(SimpleNamespace(script=script, mm=mm, pc=pc or '', seed=int(seed or 0), blind=bool(blind), dir='/tmp/game', code=code or '',
                               replay=json.loads(replay) if replay else None, resume=bool(resume)), WebTable)

@@ -117,8 +117,10 @@ def _make(kind, rng, script=None):
             p.prio, p.card_lr = 0.02, 3.0
         elif rest == 'QB':  # lockQB: 優先順＋ブラフか真かの推理（伏せ札・どこからともなく置かれたカウンター。bluff_read）
             p.prio, p.bluff_read = 0.02, True
-        elif rest in ('QA', 'QCA'):  # lockQA: 優先順＋どこからともなく置かれたカウンターの置き先を手がかりに（ability_lr 3）。QCA は札の手がかり（card_lr 3）も
+        elif rest in ('QA', 'QCA', 'QAX'):  # lockQA: 優先順＋どこからともなく置かれたカウンターの置き先を手がかりに（ability_lr 3）。QCA は札の手がかり（card_lr 3）も。QAX は守りの判定の計算量に上限なし（比べる用）
             p.prio, p.ability_lr = 0.02, 3.0
+            if rest == 'QAX':
+                p.safe_work = 10**9
             if rest == 'QCA':
                 p.card_lr = 3.0
         elif rest == 'KC':  # lockKC: 知っている筋だけ守る（0.3・0.4）＋脚本家が置いたカウンターで推理を更新（card_lr 3）

@@ -264,3 +264,69 @@ def test_auto_protagonist_game_and_replay(tmp_path):
     run('--replay', str(tmp_path / 'a' / 'record.json'), '--dir', str(tmp_path / 'b'))
     log = lambda d: [json.loads(x)['text'] for x in open(tmp_path / d / 'log.jsonl', encoding='utf-8')]  # noqa: E731
     assert log('a') == log('b') and any(t.startswith('ゲーム終了') for t in log('a'))
+
+
+def test_final_battle_judges_each_declaration(tmp_path):
+    """最後の戦いは1人ずつ宣言 → その場で判定 → 正解なら次、外れたらそこで終わり（主人公の書 印刷p25 §6。不具合 B11）。"""
+    import json
+    import random
+    from types import SimpleNamespace
+    import ai_gm
+    from engine.project import CARD_UI
+
+    class SimTable(ai_gm.Table):
+        rng = random.Random(5)
+        said = 0
+
+        def wait(self, types):
+            if 'cards' in types:
+                alive = [c for c, v in self.s['chars'].items() if v['alive'] and v.get('present', True) and c != 'C20']
+                return {'type': 'cards', 'phaseId': self.phase_id, 'placements': [
+                    {'actor': a, 'target': ai_gm.name(t), 'card': CARD_UI[k]} for a, t, k in zip('ABC', self.rng.sample(alive, 3), ('PAR+', 'PAR+', 'MV_H'))]}
+            if 'final' in types:
+                roles = self.s['script']['roles']
+                c = sorted(roles)[0]
+                if self.said == 0:  # 1人目は正解、2人目はわざと外す
+                    self.said = 1
+                    return {'type': 'final', 'phaseId': self.phase_id, 'char': ai_gm.name(c), 'role': ai_gm.ROLE_JA[roles[c]]}
+                other = next(x for x in self.s['chars'] if x != c and roles.get(x, 'PERSON') == 'PERSON')
+                return {'type': 'final', 'phaseId': self.phase_id, 'char': ai_gm.name(other), 'role': ai_gm.ROLE_JA[roles[c]]}
+            return {'type': 'option', 'phaseId': self.phase_id, 'option': 'end'}
+    d = str(tmp_path / 'a')
+    ai_gm.run(SimpleNamespace(script='s01_seal', mm='route', seed=3, blind=False, dir=d, code=''), SimTable)
+    log = [json.loads(x)['text'] for x in open(d + '/log.jsonl')]
+    said = [t for t in log if t.startswith('宣言: ')]
+    if not said:  # 主人公がループを守りきった（最後の戦いにならない）
+        return
+    assert said[0].endswith('― 正解') and said[1].endswith('― 不正解') and len(said) == 2
+    assert any(t == '最後の戦い: 2 人目の宣言で外れた。脚本家の勝ち' for t in log)
+
+
+def test_time_gap_can_skip_to_final_battle(tmp_path):
+    """時の狭間で残りのループを飛ばして最後の戦いへ進める（主人公の書 印刷p20）。記録から再生しても同じ。"""
+    import json
+    import random
+    from types import SimpleNamespace
+    import ai_gm
+    from engine.project import CARD_UI
+
+    class SimTable(ai_gm.Table):
+        rng = random.Random(5)
+
+        def wait(self, types):
+            if 'cards' in types:
+                alive = [c for c, v in self.s['chars'].items() if v['alive'] and v.get('present', True) and c != 'C20']
+                return {'type': 'cards', 'phaseId': self.phase_id, 'placements': [
+                    {'actor': a, 'target': ai_gm.name(t), 'card': CARD_UI[k]} for a, t, k in zip('ABC', self.rng.sample(alive, 3), ('PAR+', 'PAR+', 'MV_H'))]}
+            if (self.waiting or {}).get('kind') == 'time_gap':
+                return {'type': 'option', 'phaseId': self.phase_id, 'choice': ai_gm.GAP_FINAL}
+            return {'type': 'option', 'phaseId': self.phase_id, 'option': 'end'}
+    d1, d2 = str(tmp_path / 'a'), str(tmp_path / 'b')
+    ai_gm.run(SimpleNamespace(script='s01_seal', mm='route', seed=3, blind=False, dir=d1, code=''), SimTable)
+    log = lambda d: [json.loads(x)['text'] for x in open(d + '/log.jsonl')]  # noqa: E731
+    if not any(t.startswith('時の狭間: ') for t in log(d1)):  # ループ1を守りきった
+        return
+    assert not any(t.startswith('── L2D1') for t in log(d1)) and any(t.startswith('最後の戦い: ') for t in log(d1))
+    rec = json.load(open(d1 + '/record.json'))
+    ai_gm.run(SimpleNamespace(script='', mm='', seed=None, blind=False, dir=d2, code='', replay=rec))
+    assert log(d1) == log(d2)
