@@ -120,7 +120,7 @@ def death(name):
 def role_public(name, role):
     """役職の公開（友好能力・フレンドの死亡など）。駒に役職の札が付き、ループの記録に残る。"""
     s = load()
-    _hist(s)['roles'].append({'name': name, 'role': role})
+    _hist(s)['roles'].append({'name': name, 'role': role, 'day': s.get('day')})
     for c in s.get('characters', []):
         if c['name'] == name:
             c['role'] = role

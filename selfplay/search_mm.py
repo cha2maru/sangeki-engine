@@ -1468,7 +1468,7 @@ class SearchMastermind(RouteMastermind):
         hstate = self._block_state(s) if getattr(self, 'human_block', None) else None
         results = self._par_tables(s, order, jobs)
         for i_ts, ((ts, cands), (replies, table)) in enumerate(zip(jobs, results)):
-            self._prog(0.05 + 0.75 * i_ts / max(1, len(tss)), f'伏せ札の置き場所を比べています（{i_ts + 1}/{len(tss)} 組）')
+            self._prog(0.05 + 0.75 * i_ts / max(1, len(tss)), '伏せ札の置き場所を比べています')  # 候補の組の数（N）は出さない（盤面の読みの手がかりになりうる。設計資料 4.12）。進み具合は割合のバーで
             # 主人公は札の中身を知らない: 中身の候補の平均で脚本家の評価が最小の応手を選ぶ
             nw = getattr(self, 'naive_w', 0)
             hb = getattr(self, 'human_block', None)

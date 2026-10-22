@@ -72,6 +72,7 @@ summary { cursor:pointer; color:var(--acc); }
   #p-sheet { position:fixed; left:0; right:0; bottom:0; z-index:20; max-height:75vh; box-shadow:0 -6px 18px #000; }
   #p-sheet.closed > .body { display:none; } body { padding-bottom:40px; }
   .azoom { display:block; }
+  body.timegap #p-ops .sec-send { position:fixed; top:var(--bandh, 52px); left:0; right:0; z-index:12; background:#1e1d1b; border-bottom:2px solid var(--acc); padding:6px 8px; }  /* 時の狭間の選択は帯の直下に（決まったこと 21） */
   #sheetbar .days { display:none; } #sheetbar.open .days { display:grid; }  /* 公開シート帯は1行。押すと日の列 */
   /* 帯は2行まで（日・フェイズ／誰の番）。長い文は省略（全文は操作の欄にある） */
   #band { gap:2px 10px; padding:4px 8px; } #band .ph { font-size:14px; }
@@ -259,6 +260,12 @@ span.card { display:inline-flex; align-items:center; justify-content:center; tex
   background:#2a4f7a; box-sizing:border-box; padding:1px; overflow:hidden; }
 span.card.o-B { background:#246b70; } span.card.o-C { background:#41438f; } span.card.mm { background:#7a2626; }
 span.card.back { background:repeating-linear-gradient(45deg, #4a4a4a 0 4px, #353535 4px 8px); color:#ddd; }
+body.watching #p-ops .sec-hands, body.watching #p-ops .sec-send, body.watching #abilsec { display:none; }
+body.timegap #send, body.timegap #clear, body.timegap #p-ops .sec-hands, body.timegap #pending { display:none; }  /* 時の狭間は選ぶだけ */
+/* 推理の区切りは見出しで畳め、📌 で一番上に固定できる（設計資料 8.3 ①・8.8） */
+#p-sheet .body > section.fold > :not(h3) { display:none; } #p-sheet .body > section > h3 { cursor:pointer; } #p-sheet .body { display:flex; flex-direction:column; }
+#p-sheet .body > section.pinned { order:-1; border:1px solid var(--acc); border-radius:4px; } #p-sheet h3 .pin { float:right; font-size:11px; padding:0 4px; opacity:.6; } #p-sheet section.pinned h3 .pin { opacity:1; }
+#watchbar { background:#14202a; border:1px solid #2c4a5c; border-radius:6px; padding:6px 8px; } #watchbar h3 { margin:0 0 4px; } #watchbar .row { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
 #sheetbar { background:#191714; border:1px solid var(--line); border-radius:6px; padding:6px 8px; }
 #sheetbar .row { display:flex; flex-wrap:wrap; gap:4px 14px; align-items:center; } #sheetbar .lbl { color:var(--mut); font-size:12px; }
 #sheetbar .lp { display:inline-block; min-width:1.4em; text-align:center; border:1px solid #5c5447; border-radius:3px; margin-right:2px; }
@@ -343,6 +350,7 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
   </main>
   <div id="panes">
    <section class="pane" id="p-ops"><div class="ph"><button class="tog" aria-expanded="true">操作</button></div><div class="body">
+    <section id="watchbar" aria-label="観戦"></section>
     <section id="sheetbar" aria-label="公開シート"></section>
     <section id="dayflow"><h3>当日の流れ <span class="mut" id="today-h"></span> <span id="df-nav"></span></h3><div id="today"></div></section>
     <section class="sec-send"><h3>送信待ち</h3><ul id="pending"></ul><div id="sent"></div>
@@ -411,6 +419,7 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
   <h3>連絡先</h3>
   <div>作者: cha2maru（X: <a href="https://x.com/withoutcane" target="_blank" rel="noopener">@withoutcane</a> ／ GitHub: <a href="https://github.com/cha2maru/sangeki-engine" target="_blank" rel="noopener">cha2maru/sangeki-engine</a>）</div>
   <div class="mut">不具合や裁定の誤りは GitHub の Issue か X へ。報告のときは、ディスクのメニューの『リプレイの URL をコピー』で作ったリプレイの URL（試合の途中なら『この場面から再開する URL』）を添えてもらえると、とても助かります。</div>
+  <div style="margin-top:8px">演出の速さ（あとで ⚙ でも変えられます）: <select id="wl-speed"><option value="normal">ふつう</option><option value="fast">速い</option><option value="none">なし</option></select></div>
   <div class="btns"><a href="editor.html" target="_blank" rel="noopener" class="mut" style="align-self:center" title="非公開シートを作って、この対戦で試す（新しいタブ）">シナリオを作る ↗</a><button id="wl-replay" style="margin-right:auto" onclick="$('rp-file').click()" title="書き出したリプレイ（JSON）を開いて見返す">リプレイを見る…</button><button id="wl-close" style="display:none">閉じる</button><button id="wl-cont" style="display:none">続きから遊ぶ</button><button class="go" id="wl-start">ゲームを始める</button></div>
 </div></div>
 <div id="reveal"><div class="box" id="rv-body"></div></div>
@@ -443,6 +452,7 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
   <label>初めての案内（1日目のフェイズごとの1行） <select data-ux="hints"><option value="first">初めての試合だけ</option><option value="on">いつも</option><option value="off">出さない</option></select></label>
   <label>簡単表示（ログと推理を畳む） <input type="checkbox" data-ux="simple"></label>
   <label>人物×役職の見出しに「必要 n」（自分の印から） <input type="checkbox" data-ux="need"></label>
+  <label>確定前の確認（1ループ1回の札など、気づきがあるときだけ） <input type="checkbox" data-ux="confirm"></label>
   <label>画像 <select data-ux="img"><option value="auto">自動</option><option value="on">あり</option><option value="off">なし（文字）</option></select></label>
   <div class="mut">URL に ?ux=off で演出を全部切る（試験用）、?ux=fast で速く、?img=off で文字の表示。</div>
 </div>
@@ -614,7 +624,8 @@ function fxPlay(prev) {
       { duration: 500 * k, delay: n * 60 * k, easing: 'ease-in', fill: 'both' }).onfinish = () => g.remove();
   });
   const tl = fxLog(t0 + 300 * k, k, p, cur);
-  fxBusyUntil = Math.max(fxBusyUntil, Date.now() + Math.max(t0 + 950, tl));  // 浮く数字（900ms）・見出しまで
+  fxBusyUntil = Math.max(fxBusyUntil, Date.now() + Math.max(t0 + 950, tl));
+  fxBusyMark();  // 浮く数字（900ms）・見出しまで
 }
 // ログの行から作る演出（盤面の差では分からないもの）。文は公開ログのまま使い、非公開の情報（犯人・役職の持ち主）は指さない
 function fxLog(t, k, p, cur) {
@@ -656,6 +667,11 @@ function handGuide() {
     : '3枚そろった。『確定して送る』で送信'}${guideMsg ? `<div style="color:var(--warn)">${esc(guideMsg)}</div>` : ''}</div>`;
 }
 // 演出はいつでも飛ばせる（Space・盤面のクリック。設計資料 1章）: 動いている演出を終わらせ、たまった場面は最新まで送る
+function fxBusyMark() {  // 帯の小さな表示「演出中 ― Esc で飛ばす」
+  let m = document.getElementById('fxbusy'); if (!m) { m = document.createElement('span'); m.id = 'fxbusy'; m.className = 'mut'; m.textContent = '演出中 ― Esc で飛ばす'; }
+  if (!m.isConnected) $('band').appendChild(m);
+  clearTimeout(fxBusyMark.t); m.style.display = ''; fxBusyMark.t = setTimeout(() => { m.style.display = 'none'; }, Math.max(0, fxBusyUntil - Date.now()));
+}
 function fxSkip() {
   if (Date.now() >= fxBusyUntil && !watchQ.length) return false;
   for (const a of document.getAnimations()) { const t = a.effect && a.effect.target; if (t && (t.closest?.('#board') || t.classList?.contains('fxf') || t.classList?.contains('fxghost') || t.id === 'board')) a.finish(); }
@@ -666,10 +682,16 @@ function fxSkip() {
 }
 document.addEventListener('keydown', e => { if (e.key === ' ' && !e.target.closest('input, textarea, select, button, [role="button"], [data-cell], [tabindex]') && fxSkip()) e.preventDefault(); });
 // キーボード（設計資料 7.1）: 1〜8 で札を選ぶ（トレイの主人公）、Ctrl+Enter で確定、Esc で演出を飛ばす、? で一覧
-const KEYHELP = 'キーボード:\n1〜8: 手札の札を選ぶ（いまの番の主人公。トレイの A・B・C で切り替え）\nTab・矢印: 置き先へ移る／Enter: 置く・メニュー\nCtrl+Enter: 確定して送る\nEsc: 選択の解除・メニューを閉じる・演出を飛ばす\nSpace: 演出を飛ばす\n?: この一覧';
+const KEYHELP = 'キーボード:\n.: いまの場面の演出だけ終える\n1〜8: 手札の札を選ぶ（いまの番の主人公。トレイの A・B・C で切り替え）\nTab・矢印: 置き先へ移る／Enter: 置く・メニュー\nCtrl+Enter: 確定して送る\nEsc: 選択の解除・メニューを閉じる・演出を飛ばす\nSpace: 演出を飛ばす\n?: この一覧';
 document.addEventListener('keydown', e => {
   if (e.target.closest('input, textarea, select')) return;
-  if (e.key === 'Escape' && fxSkip()) return;
+  if (e.key === 'Escape') { ctip.style.display = 'none'; ctipFor = null; if (fxSkip()) return; }
+  if (e.key === '.' && Date.now() < fxBusyUntil) {  // いまの場面の演出だけ終える（たまった場面は残す。設計資料 4.13）
+    for (const a of document.getAnimations()) { const t = a.effect && a.effect.target; if (t && (t.closest?.('#board') || t.classList?.contains('fxf') || t.classList?.contains('fxghost') || t.id === 'board')) a.finish(); }
+    document.querySelectorAll('.fxf, .fxghost').forEach(x => x.remove()); fxBusyUntil = 0;
+    if (watchT && watchQ.length) { clearTimeout(watchT); watchT = setTimeout(watchStep, 50); }
+    return;
+  }
   if (e.key === '?') { e.preventDefault(); alert(KEYHELP); return; }
   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !$('send').disabled) { e.preventDefault(); $('send').click(); return; }
   if (/^[1-8]$/.test(e.key) && (S.waiting || {}).kind === 'cards' && !e.ctrlKey && !e.altKey && !e.metaKey) {
@@ -679,18 +701,21 @@ document.addEventListener('keydown', e => {
     document.querySelector(`.card[data-armp="${p}"][data-armc="${CSS.escape(n)}"]`)?.focus();
   }
 });
-$('board').addEventListener('pointerdown', e => { if (Date.now() < fxBusyUntil && fxSkip()) { e.stopPropagation(); } }, true);
+$('board').addEventListener('pointerdown', () => { if (Date.now() < fxBusyUntil) fxSkip(); }, true);  // 演出を飛ばし、その入力もそのまま行う（レビュー R18）
 const lastHTML = {};
 function setHTML(id, h) { if (lastHTML[id] !== h) { lastHTML[id] = h; $(id).innerHTML = h; } }
 function renderMain() {
   const w = S.waiting || {};
-  document.body.classList.toggle('mode-ai', S.mode === 'ai' || canStart);  // 開始画面のあるサーバー＝対AIモード（試合の前も）
+  document.body.classList.toggle('mode-ai', S.mode === 'ai' || canStart);
+  document.body.classList.toggle('watching', !!S.watch);
+  document.body.classList.toggle('timegap', (S.waiting || {}).kind === 'time_gap');  // 観戦: 操作の欄は観戦の欄に（手札・送信・友好能力は出さない）  // 開始画面のあるサーバー＝対AIモード（試合の前も）
   if ($('welcome').classList.contains('on') && $('wl-close').style.display) $('wl-cont').style.display = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '' : 'none';
   $('band').innerHTML = S.loop ? `<span>ループ <b>${S.loop}</b>/${S.loops}</span><span>日 <b>${S.day ?? '-'}</b>/${S.days}</span>
     <span class="ph">${esc(S.phaseName)}</span><span>リーダー <b>${esc(S.leader)}</b></span>
     <span class="wait ${myTurn() ? 'mine' : ''}">${esc(w.text || '入力待ちなし')}</span><span class="tools"><button id="helpbtn" title="遊び方・クレジット">？</button><button id="filebtn" title="ゲーム・リプレイ・共有（新しいゲーム、シナリオを作る、書き出し・読み込み、URL）" aria-label="ゲーム・リプレイ・共有"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-2px"><path fill="currentColor" d="M4 3h13l4 4v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm2 2v5h10V5H6zm6 8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></button><button id="uxbtn" title="表示の設定">⚙</button></span>`
     : '状態を読み込み中… <span class="tools"><button id="helpbtn" title="遊び方・クレジット">？</button><button id="filebtn" title="ゲーム・リプレイ・共有（新しいゲーム、シナリオを作る、書き出し・読み込み、URL）" aria-label="ゲーム・リプレイ・共有"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-2px"><path fill="currentColor" d="M4 3h13l4 4v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm2 2v5h10V5H6zm6 8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></button><button id="uxbtn" title="表示の設定">⚙</button></span>';
   if (S.reveal) $('band').insertAdjacentHTML('beforeend', '<button onclick="openReveal()">非公開シート</button>');
+  if (Date.now() < fxBusyUntil) fxBusyMark();
   if ((S.phaseName || '').startsWith('ゲーム終了') && canStart) $('band').insertAdjacentHTML('beforeend', '<button class="go" onclick="openStart()">新しいゲーム</button>');
   if (S.reveal && revealShown !== S.game && !viewing) { revealShown = S.game; setTimeout(openReveal, 400); }
   renderThink();
@@ -721,7 +746,7 @@ function renderMain() {
       `draggable="true" tabindex="0" role="button" aria-pressed="${!!(armed && armed.actor === p && armed.card === n)}" data-armp="${p}" data-armc="${n}" title="${n}${lim ? '（1ループ1回）' : ''} ― 選んでからキャラクターかエリアをクリックすると置ける"`)).join('') + '</div></div>').join('')
     + (armed ? `<div class="mut">選択中: 主人公${armed.actor} の ${esc(armed.card)} ― 置き先をクリック（Esc で解除）</div>` : '')
     + `<div class="hand"><span class="who">脚本家</span><span class="mut">使用済み: ${esc((S.used?.M || []).join('・') || 'なし')}</span></div>`);
-  renderSheetbar(); renderToday();
+  renderWatchbar(); renderSheetbar(); renderToday();
   $('reply').textContent = S.reply || '—';
   // 友好能力の一覧。used は脚本家が state に書く: abilityUsedToday / abilityUsedLoop に "キャラ#番号"
   $('abilsec').classList.toggle('now', w.kind === 'ability');
@@ -820,8 +845,29 @@ const LOSS = [
   ['ウィッチの初期エリアに暗躍2以上', 'ループ終了時', '巨大時限爆弾Xの存在', ['rule','巨大時限爆弾Xの存在']],
   ['事件の効果で主人公死亡・キーパーソン死亡', '事件フェイズ', '事件（殺人事件・遠隔殺人・病院の事件・自殺 など）', null],
 ];
+// 推理の区切りの開け閉めとピン（このブラウザに覚える）
+let secFold = [], secPin = null; try { secFold = JSON.parse(localStorage.getItem('sec-fold') || 'null') ?? (innerWidth > 900 && innerWidth < 1300 ? ['ルール', '事件 ― 誰が犯人か', 'ループの記録'] : []); secPin = localStorage.getItem('sec-pin'); } catch {}  // 900〜1300px は縮めて始める（8.8）
+function applySecs() {
+  document.querySelectorAll('#p-sheet .body > section').forEach((sec, i) => {
+    const h = sec.querySelector('h3'); if (!h) return;
+    const key = h.firstChild.textContent.trim(); sec.dataset.sec = key;
+    if (!h.querySelector('.pin')) h.insertAdjacentHTML('beforeend', '<button class="pin" title="一番上に固定">📌</button>');
+    sec.classList.toggle('fold', secFold.includes(key)); sec.classList.toggle('pinned', secPin === key);
+    h.setAttribute('aria-expanded', String(!secFold.includes(key)));
+  });
+}
+document.addEventListener('click', e => {
+  const h = e.target.closest('#p-sheet .body > section > h3'); if (!h) return;
+  const key = h.parentElement.dataset.sec;
+  if (e.target.closest('.pin')) secPin = secPin === key ? null : key;
+  else if (!e.target.closest('button, select, input, a')) secFold = secFold.includes(key) ? secFold.filter(x => x !== key) : [...secFold, key];
+  else return;
+  try { localStorage.setItem('sec-fold', JSON.stringify(secFold)); secPin ? localStorage.setItem('sec-pin', secPin) : localStorage.removeItem('sec-pin'); } catch {}
+  applySecs();
+});
 function rpOn() { try { return RP.on; } catch { return false; } }  // RP は後で定義される（読み込みの途中でも呼ばれる）
 function renderSheet() {
+  applySecs();
   if (S.game && NOTES._game && NOTES._game !== S.game && !viewing && !rpOn()) { dropGameNotes(); NOTES._game = S.game; }  // 前の試合の書き込みは出さない
   if (document.activeElement && document.activeElement.closest && document.activeElement.closest('#p-sheet table:not(.rg)')) return;  // 書いている途中は描き直さない
   const d = DED || {}, has = !!d.roles;
@@ -873,7 +919,11 @@ function renderSheet() {
   const fe = document.activeElement?.dataset?.cell;
   // 列の見出しに「必要 n」（ルールの欄の自分の印 × 早見表の員数。エンジンは使わない。設計資料 8.3 ②・R24）。印が全部「不明」なら出さない
   const marks = rr.map(([id, r]) => [r, NOTES['g.rule.' + id] || '不明']), anyMark = marks.some(([, m]) => m !== '不明');
-  const need = k => { if (!anyMark || k === 'PERSON' || !ux('need')) return '';
+  const capAll = k => { const y = Math.max(0, ...rr.filter(([, r]) => r.type === 'Y').map(([, r]) => (r.roles || {})[k] || 0));
+    const xs = rr.filter(([, r]) => r.type === 'X').map(([, r]) => (r.roles || {})[k] || 0).sort((a, b) => b - a); return y + (xs[0] || 0) + (xs[1] || 0); };  // ルールY 1つ・X 2つで最大何人
+  const need = k => { if (k === 'PERSON' || !ux('need')) return '';
+    if (!anyMark) { const got = (S.characters || []).filter(c => cell(c.name, k) === '◎').length, cap = capAll(k);
+      return got > cap ? `<div class="need bad" title="この役職は多くても ${cap} 人（ルールの組み合わせの最大）。◎ は ${got}">! 多い</div>` : ''; }
     const lo = marks.filter(([, m]) => m === '確定').reduce((a, [r]) => a + ((r.roles || {})[k] || 0), 0), hi = lo + marks.filter(([, m]) => m === '候補').reduce((a, [r]) => a + ((r.roles || {})[k] || 0), 0);
     const got = (S.characters || []).filter(c => cell(c.name, k) === '◎').length;
     return `<div class="need${got > hi ? ' bad' : ''}" title="あなたの印から（ルールの欄の確定・候補 × 早見表の員数）。この列の◎は ${got}">${got > hi ? '! ' : ''}${lo === hi ? '必要 ' + lo : lo + '〜' + hi}</div>`; };
@@ -940,6 +990,7 @@ $('sheetbar').addEventListener('click', e => {
 let gridView = null;
 // 盤面・ログ・推理のつながり（設計資料 8.3 ③）: 格子の人物名 → メモ欄、格子の行に触れる → 駒が光る、駒のメニュー → 格子のその行に枠
 $('p-sheet').addEventListener('click', e => { const h = e.target.closest('#sh-grid th.rowh'); if (!h) return;
+  if ((S.waiting || {}).kind === 'final') { const r = h.getBoundingClientRect(); return finalMenu(r.right, r.top, h.textContent); }  // 最後の戦いでは、格子の人物名からも宣言できる
   const m = document.querySelector(`#sh-chars [data-note="g.memo.${CSS.escape(h.textContent)}"]`); if (m) { m.scrollIntoView({ block: 'center' }); m.focus(); } });
 $('p-sheet').addEventListener('mouseover', e => { const r = e.target.closest('#sh-grid tr[data-row]');
   document.querySelectorAll('#board .ch.hl').forEach(x => x.classList.remove('hl')); if (r) document.querySelector(`#board [data-char="${CSS.escape(r.dataset.row)}"]`)?.classList.add('hl'); });
@@ -1001,6 +1052,12 @@ function badge(k, n, tail = '', cls = '') {
     + `${noimg() ? '' : `<img class="tk" src="${IMG}tokens/${img}${IMGX}" alt="">`}<span class="k2">${k2}</span><span class="k1">${k1}</span> ${n}${tail}`
     + `${crit ? '<span class="cr"> 臨界</span>' : ''}</span>`;
 }
+// 役職の札に公開の時点（設計資料 4.9。妄想拡大ウイルスなどで変わった役職は、最後の戦いの答えではない）
+function roleAt(name) { for (const h of S.loopHistory || []) { const r = (h.roles || []).find(x => x.name === name); if (r) return `L${h.loop}${r.day ? '·' + r.day + '日' : ''} `; } return ''; }
+function roleWhen(name) {
+  for (const h of S.loopHistory || []) { const r = (h.roles || []).find(x => x.name === name); if (r) return `公開された役職（ループ${h.loop}${r.day ? ' ' + r.day + '日目' : ''}に公開。公開の時点の役職）`; }
+  return '公開された役職（公開の時点の役職）';
+}
 function charTag(c) {
   const par = c.paranoia || 0, crit = par >= c.limit;
   const cnt = [badge('p', par, `/${c.limit}`, crit ? 'crit' : par ? (par + 1 >= c.limit ? 'near' : '') : 'zero'),
@@ -1009,12 +1066,26 @@ function charTag(c) {
   const hasM = (S.cards || []).some(x => x.owner === 'M' && x.target === c.name);
   return `<div class="ch ${c.alive === false ? 'dead' : ''} ${hasM ? 'hasm' : ''} ${CHG.has(c.name) || noAnimChg.has(c.name) ? 'chg' : ''} ${noPlace(c.name) ? 'noplace' : ''}" data-char="${esc(c.name)}" tabindex="0" aria-label="${esc(c.name)}">
     <div class="ccards">${cards}</div>${noimg() ? '' : `<img class="st" src="${IMG}chara_stand/chara_stand_${c.card}${IMGX}">`}
-    ${c.role ? `<span class="rolec" title="公開された役職">${esc(ROLENAMES[c.role] || c.role)}</span>` : ''}<div class="nm">${esc(c.name)}</div><div class="cnt">${cnt}</div></div>`;
+    ${c.role ? `<span class="rolec" title="${esc(roleWhen(c.name))}"><small>${esc(roleAt(c.name))}</small>${esc(ROLENAMES[c.role] || c.role)}</span>` : ''}<div class="nm">${esc(c.name)}</div><div class="cnt">${cnt}</div></div>`;
 }
 // キャラクターの説明（ポイントすると大きめのポップアップ。ブラウザの title の小さな吹き出しの代わり）
 const AREA_JA = { HOS: '病院', SHR: '神社', CIT: '都市', SCH: '学校' };
 // 公開シート帯: 惨劇セット・ループ・リーダー・特殊ルール・日の列と事件予定（過去のループの結果も）・フェイズの進み・脚本家の1ループ1回の札（設計資料 6章）
 const PHASES9 = ['ターン開始', '脚本家行動', '主人公行動', '行動解決', '脚本家能力', '主人公能力', '事件', 'リーダー交代', 'ターン終了'];
+// 観戦の欄（自動同士。設計資料 8.7 ⑥・決まったこと 24）: 演出の速さ・止める・最後まで・追いつきの遅れ。何を考えているかは出さない
+let watchPaused = false;
+function renderWatchbar() {
+  if (!S.watch) { $('watchbar').innerHTML = ''; $('watchbar').style.display = 'none'; return; }
+  $('watchbar').style.display = '';
+  setHTML('watchbar', `<h3>観戦</h3><div class="row">演出の速さ <select id="wb-speed">${[['slow', 'ゆっくり'], ['normal', 'ふつう'], ['fast', '速い'], ['none', 'なし']].map(([v, l]) => `<option value="${v}" ${ux('speed') === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+    <button id="wb-pause">${watchPaused ? '▶ 続ける' : '⏸ 止める'}</button> <button id="wb-end" title="たまった場面を飛ばして最新へ">最後まで ⏭</button>
+    <span class="mut">${watchQ.length ? `遅れ ${watchQ.length} 場面` : '追いついている'}</span></div>`);
+}
+document.addEventListener('change', e => { if (e.target.id === 'wb-speed') { UX.speed = e.target.value; try { localStorage.setItem('ux', JSON.stringify(UX)); } catch {} applyUX(); render(); } });
+document.addEventListener('click', e => {
+  if (e.target.id === 'wb-pause') { watchPaused = !watchPaused; if (!watchPaused && !watchT && watchQ.length) watchStep(); render(); }
+  else if (e.target.id === 'wb-end') { watchPaused = false; fxSkip(); render(); }
+});
 function renderSheetbar() {
   const ps = S.publicSheet || {}, L = S.loops || ps.loops, D = S.days || ps.days;
   if (!L || !D) { $('sheetbar').innerHTML = ''; return; }
@@ -1140,14 +1211,15 @@ function renderToday() {
     const next = l => 'ABC'['ABC'.indexOf(l) + 1] || 'A';
     const note = virt[p] || (p === 'リーダー交代' ? (i > nowI ? (S.leader ? `主人公${S.leader} → 主人公${next(S.leader)}` : '') : ldNow ? `主人公${ldNow} → 主人公${ldNext || next(ldNow)}` : '')
       : i > nowI ? (p === '事件' && inc ? `事件予定: ${inc.name}` : '') : i < nowI ? '（なし）' : '');  // いまのフェイズはまだ終わっていない
-    const key = at.join('-') + p, more = body.length > 2 && !dfOpen.has(key);
+    const keep = isLive && (S.waiting || {}).kind === 'ability' && i < nowI ? 1 : 2;  // 友好能力の宣言中は、済んだ行を1行ずつに縮める（決まったこと 20）
+    const key = at.join('-') + p, more = body.length > keep && !dfOpen.has(key);
     const last = ls.length ? ls[ls.length - 1].n : null;
     return `<div class="dfp ${i === nowI ? 'now' : i > nowI ? 'later' : ''}"><div class="tph"><span class="mk">${mark}</span><span class="pn">${esc(p)}</span>`
       + (!ls.length && note ? ` <span class="mut nt">${esc(note)}</span>` : '')
       + (last != null ? `<button class="snapbtn" data-fx="${ls[0].n - 1},${last}" title="このフェイズの演出をもう一度">▶ 演出</button><button class="snapbtn" data-snap="${last}" title="このフェイズの終わりの盤面を見る">盤面</button>` : '') + '</div>'
       + (isLive && i === nowI && at[0] === 1 && at[1] === 1 && DF_HINT[p] && hintsOn() ? `<div class="dfhint">${esc(DF_HINT[p])}</div>` : '')
-      + (ls.length ? `<ul class="tday">${(more ? body.slice(0, 2) : body).join('')}</ul>` : '')
-      + (body.length > 2 ? `<button class="dfmore" data-dfkey="${esc(key)}">${more ? `残り ${body.length - 2} 行を開く` : '畳む'}</button>` : '') + '</div>';
+      + (ls.length ? `<ul class="tday">${(more ? body.slice(0, keep) : body).join('')}</ul>` : '')
+      + (body.length > keep ? `<button class="dfmore" data-dfkey="${esc(key)}">${more ? `残り ${body.length - keep} 行を開く` : '畳む'}</button>` : '') + '</div>';
   }).join('') + (!isLive && myTurn() ? '<button class="go" data-df="0">今日へ戻る（あなたの番）</button>' : '');
 }
 // ログの行の種類の印（文字つき。設計資料 7.4）。公開ログの文から決める
@@ -1239,13 +1311,20 @@ function targetMenu(x, y, target) {
     opts.push({ label: 'キャラクターの説明を見る', go: () => { ctipFor = target; ctip.innerHTML = charTipHTML(target);
       ctip.style.display = 'block'; ctip.style.left = Math.max(4, (innerWidth - ctip.offsetWidth) / 2) + 'px'; ctip.style.top = '4px'; } });
     opts.push({ label: '役職を宣言する（最後の戦い）…', dim: kind !== 'final', go: () =>
-      menu(x, y, `${target} の役職は`, ROLES.map(r => ({ label: r, go: () => post({ type: 'final', char: target, role: r }) }))) });
+      finalMenu(x, y, target) });
   }
   opts.sort((a, b) => (a.dim ? 1 : 0) - (b.dim ? 1 : 0));  // いまのフェイズで意味のある項目を上に（設計資料 7.1）
   menu(x, y, who, opts);
 }
+// 最後の戦いの宣言: 役職の札に自分の格子の印（◎・○・✕）を添える（格子は候補の手伝いで、まとめて送る下書きにはしない。設計資料 8.7 ⑤）
+function finalMenu(x, y, name) {
+  const id = r => Object.keys(ROLENAMES).find(k => ROLENAMES[k] === r) || (r === 'パーソン' ? 'PERSON' : r);
+  const mk = r => NOTES[`g.cell.${name}.${id(r)}`] || '';
+  const rank = r => ({ '◎': 0, '○': 1, '': 2, '✕': 3 })[mk(r)], rs = [...ROLES].sort((a, b) => rank(a) - rank(b));  // ◎ → ○ → 印なし → ✕
+  menu(x, y, `${name} の役職を宣言する（その場で判定）`, rs.map(r => ({ label: (mk(r) ? mk(r) + ' ' : '') + r, dim: mk(r) === '✕', go: () => post({ type: 'final', char: name, role: r }) })));
+}
 function ability(x, y, char, idx, label, arg) {
-  const send = extra => post({ type: 'ability', char, ability: idx, label, ...extra });
+  const send = extra => { if (/★/.test(label) && ux('confirm') && !confirm(`${char} の ${label} は1ループ1回。宣言しますか？`)) return; post({ type: 'ability', char, ability: idx, label, ...extra }); };
   // 対AIモードでは、エンジンが「いま合法」とした対象だけを出す（同じエリア・本人以外などの条件。手動モードでは全員）
   const legal = S.abilityOptions ? S.abilityOptions[char + '#' + idx] : undefined;
   if (S.abilityOptions && !legal) return menu(x, y, `${label}`, [{ label: 'いまは使えない（友好・場所・対象・回数を確認）', dim: true, go: () => {} }]);
@@ -1391,7 +1470,17 @@ async function post(a) {
     S.reply = `送信しました（#${seq}）。脚本家の処理を待っています…`; $('reply').textContent = S.reply; render();
   } catch { sent.splice(sent.indexOf(rec), 1); render(); alert('送信に失敗しました。サーバーが動いているか確認してください。'); }
 }
-$('send').onclick = () => { if (!pending.length) return; post({ type: 'cards', placements: pending }); pending = []; render(); };
+$('send').onclick = () => {
+  if (!pending.length) return;
+  // 気づき（あるときだけ確かめる。設計資料 8.8・7.1）: 1ループ1回の札、暗躍禁止が2枚以上（全部無効）、ボードに暗躍禁止以外（ボードで効くのは暗躍禁止だけ）
+  const cards = pending.filter(q => q.type === 'card'), once = cards.filter(q => (PCARDS.find(c => c[0] === q.card) || [])[2]);
+  const notes = [...once.map(q => `主人公${q.actor} の ${q.card} は1ループ1回（このループではもう使えなくなる）`),
+    ...(cards.filter(q => q.card === '暗躍禁止').length > 1 ? ['暗躍禁止が2枚以上: 主人公どうしの暗躍禁止は全部無効になる'] : []),
+    ...cards.filter(q => q.target.startsWith('board:') && q.card !== '暗躍禁止').map(q => `${q.target.slice(6)} に ${q.card}: ボードで効くのは暗躍禁止だけ`)];
+  const sum = cards.map(q => `${q.actor} ${q.target.replace('board:', '')} ← ${q.card}${(PCARDS.find(c => c[0] === q.card) || [])[2] ? '★' : ''}`).join(' ／ ');
+  if (notes.length && ux('confirm') && !confirm(`${sum}\n\n確かめ（事実だけ）:\n・` + notes.join('\n・') + '\n\nこの3枚で確定しますか？（キャンセルで直す）')) return;
+  post({ type: 'cards', placements: pending }); pending = []; render();
+};
 $('clear').onclick = () => { pending = []; render(); };
 let showAllAbil = false;
 $('abil').onclick = e => { e.stopPropagation(); if (e.target.id === 'abilmore') { showAllAbil = !showAllAbil; render(); return; }
@@ -1477,13 +1566,16 @@ async function watchQueue(v) {
   return true;
 }
 function watchStep() {
+  if (watchPaused && watchLatest && watchLatest.watch) { watchT = null; renderWatchbar(); return; }  // 観戦で止めている
   const next = watchQ.shift(), k = SPEED[ux('speed')] ?? 1;
   if (!next || viewing) { watchT = null; if (watchLatest && !viewing) { S = watchLatest; render(); renderOptions(); } return; }
   fxLines = LOG.filter(l => l.n > (next.prev_n ?? 0) && l.n <= next.log_n);
   S = { ...next.state, waiting: watchLatest.waiting, phaseId: watchLatest.phaseId, watch: watchLatest.watch }; render();
   const mine = !watchLatest.watch && ['cards', 'ability', 'final', 'time_gap'].includes((watchLatest.waiting || {}).kind);
   // 次の場面はこの場面の演出が終わってから（先に描き直すと、遅れて始まる演出が消える）
-  watchT = setTimeout(watchStep, Math.max(250, (mine ? 500 : watchQ.length > 8 ? 600 : 1200) * k, fxBusyUntil - Date.now()));
+  const lagDays = new Set(watchQ.map(x => `${x.state.loop}-${x.state.day}`)).size;  // たまった日の数
+  const catchup = watchQ.length >= 2 ? (lagDays >= 2 ? 0.25 : 0.5) : 1;  // 追いつき（設計資料 4.13）
+  watchT = setTimeout(watchStep, Math.max(250, (mine ? 500 : 1200 * catchup) * k, fxBusyUntil - Date.now()));
 }
 async function poll() {
   try {
@@ -1516,13 +1608,15 @@ document.addEventListener('mouseout', e => { if (e.target.closest('img.card')) z
 // ---- 人が遊ぶための表示（設定・考え中・自分の番・場面カード・画像なし）----
 // 設定はこの端末に保存。URL の ?ux=off（演出を全部切る＝試験用）・?ux=fast・?img=off|on は保存した設定より優先（そのページだけ）
 // 端末で「視差効果を減らす」（prefers-reduced-motion）なら演出の速さの既定は「なし」（保存した設定が優先）
-const UXDEF = { need: true, hints: 'first', simple: false, scene: true, speed: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'none' : 'normal', autoclose: 5, think: true, img: 'auto' };
+const UXDEF = { confirm: true, need: true, hints: 'first', simple: false, scene: true, speed: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'none' : 'normal', autoclose: 5, think: true, img: 'auto' };
 let UX = { ...UXDEF }; try { Object.assign(UX, JSON.parse(localStorage.getItem('ux') || '{}')); } catch {}
 const UXQ = {}; { const q = new URLSearchParams(location.search);
   if (q.get('ux') === 'off') Object.assign(UXQ, { scene: false, speed: 'none', think: false });
   if (q.get('ux') === 'fast') UXQ.speed = 'fast';
   if (q.get('img')) UXQ.img = q.get('img') === 'off' ? 'off' : 'on'; }
-const ux = k => (k in UXQ ? UXQ[k] : UX[k]);
+const ux = k => (k in UXQ ? UXQ[k] : k === 'speed' && S && S.watch && !uxSaved('speed') ? 'fast' : UX[k]);  // 観戦の既定は「速い」（決定3）
+document.addEventListener('change', e => { if (e.target.id === 'wl-speed') { UX.speed = e.target.value; try { localStorage.setItem('ux', JSON.stringify(UX)); } catch {} applyUX(); } });
+function uxSaved(k) { try { return k in JSON.parse(localStorage.getItem('ux') || '{}'); } catch { return false; } }
 let imgOK = null;  // 画像が読めるか（自動のとき、1枚読んでみる）
 const noimg = () => ux('img') === 'off' || (ux('img') === 'auto' && imgOK === false);
 function applyUX() {

@@ -622,7 +622,7 @@ class Narrator:
                 h['deaths'].append({'day': s.get('day'), 'name': name(e['char'])})
             elif k == 'role_public' or (k == 'ability' and 'reveal_role' in e):
                 for c, r in ({e['char']: e['role']} if k == 'role_public' else e['reveal_role']).items():
-                    h['roles'].append({'name': name(c), 'role': ROLE_JA.get(r, r)})
+                    h['roles'].append({'name': name(c), 'role': ROLE_JA.get(r, r), 'day': s.get('day')})
             elif k == 'loop_end':
                 ph_ja = PHASE_JA.get(e.get('at_phase'), '')
                 h['end'] = {'day': s.get('day'), 'text': (f'{s.get("day")}日目 {ph_ja}に' if ph_ja else '') + ('主人公死亡' if e.get('reason') == '主人公死亡' else '敗北')}
