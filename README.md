@@ -11,7 +11,7 @@
 自動の脚本家はブラウザを動かしている PC で計算するので、速さは PC の性能に左右されます。いちばん強い脚本家 `calcGBxhd`（既定）は1手に数秒〜数十秒かかります（各ループの1日目がいちばん重い。補助の Web Worker で並列に計算します）。
 自分の PC でサーバーを動かして遊ぶこともできます（[はじめての1試合](#はじめての1試合対aiモード)）。
 
-> 原作「惨劇RoopeR」は BakaFire Party の作品です。本リポジトリは BakaFire Party とは関係のないファンの制作物で、
+> 原作「惨劇RoopeR」は BakaFire Party様の作品です。本リポジトリは BakaFire Party様とは関係のないファンの制作物で、
 > 公式の「二次創作のガイドライン」に従って公開しています（[原作と出典](#原作と出典)）。
 > **遊ぶにはルールを知っている必要があります。** ルールの説明は含みません。製品版をお持ちの方を想定しています。
 
@@ -286,15 +286,15 @@ PYTHONPATH=../sangeki-engine python -m selfplay.tune positions/*.json --side mm 
 
 ## 原作と出典
 
-- **原作**: 惨劇RoopeR（BakaFire Party）
+- **原作**: 惨劇RoopeR（BakaFire Party様）
   公式サイト: http://bakafire.main.jp/rooper/sr_top.htm
 - **二次創作のガイドライン**: http://bakafire.main.jp/rooper/sr_dl_04_sozai.htm
   ガイドラインの具体例「Basic Tragedy Χ やカード中に記載された能力を転載したうえでネット対戦ツールを作成する場合」に従い、
   転載した部分の出典と原作を以下に明記します。
 - **転載・要約したデータの出典**: `engine/data/*.json` と、コード中のルール・能力の説明は、
-  惨劇RoopeR（BakaFire Party）の主人公の書・脚本家の書・早見表（Basic Tragedy Χ）・各キャラクターカード・行動カードによります。
+  惨劇RoopeR（BakaFire Party様）の主人公の書・脚本家の書・早見表（Basic Tragedy Χ）・各キャラクターカード・行動カードによります。
 - **盤面の画像**: 惨劇コモンズ5th（リポジトリには含みません。`setup_images.sh` が公式の配布ページから取得します）
-  惨劇コモンズ作成: **BakaFire**、**NEKOG(紺ノ玲)** ／ [CC BY-SA 2.1 JP](http://creativecommons.org/licenses/by-sa/2.1/jp/) ／
+  惨劇コモンズ作成: **BakaFire**様、**NEKOG(紺ノ玲)**様 ／ [CC BY-SA 2.1 JP](http://creativecommons.org/licenses/by-sa/2.1/jp/) ／
   http://bakafire.main.jp/rooper/sr_dl_04_sozai.htm
 
 ## 連絡先
@@ -304,7 +304,7 @@ PYTHONPATH=../sangeki-engine python -m selfplay.tune positions/*.json --side mm 
 ## ライセンス
 
 このプロジェクトで書いたコードは **MIT ライセンス**（[`LICENSE`](LICENSE)）です。
-ゲームのルール・カードの文面・画像の権利は原作者（BakaFire Party）にあります。転載したデータの利用は、上記のガイドラインに従ってください。
+ゲームのルール・カードの文面・画像の権利は原作者（BakaFire Party様）にあります。転載したデータの利用は、上記のガイドラインに従ってください。
 
 ---
 

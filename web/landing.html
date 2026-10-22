@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+  // 共有したリプレイ・途中から再開の URL（#p= ・?replay= ・?resume= など）は、対戦画面（play/）へそのまま送る
+  if (location.hash || location.search) location.replace('play/' + location.search + location.hash);
+</script>
+<title>惨劇RoopeR ソリティア（非公式）｜ブラウザで自動の脚本家と対戦</title>
+<meta name="description" content="ボードゲーム「惨劇RoopeR」の非公式の二次創作ツール。ブラウザで主人公3人を操作して、自動の脚本家と1人で対戦できます（インストール不要・無料）。盤面の演出、推理の欄、リプレイの共有、自動同士の観戦も。">
+<link rel="canonical" href="https://cha2maru.github.io/sangeki-engine/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="惨劇RoopeR ソリティア（非公式）">
+<meta property="og:title" content="惨劇RoopeR ソリティア（非公式）">
+<meta property="og:description" content="ブラウザで主人公3人を操作して、自動の脚本家と1人で対戦する非公式ツール。インストール不要・無料。">
+<meta property="og:url" content="https://cha2maru.github.io/sangeki-engine/">
+<meta property="og:image" content="https://cha2maru.github.io/sangeki-engine/og.jpg">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@withoutcane">
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "WebApplication", "name": "惨劇RoopeR ソリティア（非公式）",
+ "url": "https://cha2maru.github.io/sangeki-engine/", "applicationCategory": "GameApplication", "operatingSystem": "Chrome, Edge（ブラウザ）",
+ "inLanguage": "ja", "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "JPY"},
+ "description": "ボードゲーム「惨劇RoopeR」（BakaFire Party）の非公式の二次創作ツール。ブラウザで主人公3人を操作して、自動の脚本家と対戦する。",
+ "author": {"@type": "Person", "name": "cha2maru", "url": "https://github.com/cha2maru"},
+ "isBasedOn": {"@type": "Game", "name": "惨劇RoopeR", "publisher": {"@type": "Organization", "name": "BakaFire Party"}}}
+</script>
+<style>
+:root { --bg:#141312; --fg:#ece8e0; --mut:#a39d91; --line:#3d3a35; --panel:#1e1d1b; --acc:#e0a24a; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.75 system-ui, sans-serif; }
+a { color:var(--acc); }
+header { text-align:center; padding:40px 16px 24px; background:radial-gradient(ellipse at top, #3a1414 0%, var(--bg) 70%); }
+h1 { font-size:clamp(24px, 5vw, 36px); margin:12px 0 4px; }
+.lead { color:var(--mut); max-width:720px; margin:0 auto 20px; }
+.cta { display:inline-block; background:var(--acc); color:#1a1208; font-weight:800; font-size:20px; padding:12px 28px; border-radius:8px; text-decoration:none; }
+.cta:hover { filter:brightness(1.1); }
+.ctas { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; }
+.cta2 { display:inline-block; border:2px solid var(--acc); color:var(--acc); font-weight:700; font-size:18px; padding:10px 22px; border-radius:8px; text-decoration:none; }
+.cta2:hover { background:rgba(224,162,74,.12); } .sub { font-size:13px; color:var(--mut); margin-top:8px; }
+main { max-width:880px; margin:0 auto; padding:8px 16px 48px; }
+section { border-top:1px solid var(--line); padding:20px 0; }
+h2 { color:var(--acc); font-size:20px; margin:0 0 10px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px; }
+.card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px 14px; }
+.card h3 { margin:0 0 4px; font-size:16px; }
+.card p { margin:0; color:#d6d0c4; font-size:14px; }
+ol li, ul li { margin:4px 0; }
+.credit { font-size:12px; color:var(--mut); margin-top:4px; text-align:right; }
+.hero { width:100%; height:auto; border-radius:8px; border:1px solid var(--line); margin-top:16px; }
+footer { border-top:1px solid var(--line); color:var(--mut); font-size:13px; padding:20px 16px 40px; max-width:880px; margin:0 auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>惨劇RoopeR ソリティア（非公式）</h1>
+  <p class="lead">ボードゲーム「惨劇RoopeR」を、ブラウザで1人で遊べる非公式のファンツールです。主人公3人を自分で操作して、自動の脚本家と対戦します。インストール不要・無料。</p>
+  <div class="ctas"><a class="cta" href="play/">ブラウザで遊ぶ</a><a class="cta2" href="play/editor.html">シナリオを作る</a></div>
+  <div class="sub">Chrome・Edge の最近の版。初回は約30MB の読み込み（2回目からは速くなります）</div>
+  <img class="hero" src="hero.jpg" alt="惨劇RoopeR の盤面（病院・神社・都市・学校）" width="1200" height="850" loading="lazy">
+  <div class="credit">画像: <a href="http://bakafire.main.jp/rooper/sr_dl_04_sozai.htm">惨劇コモンズ5th</a>（惨劇コモンズ作成: BakaFire様・NEKOG(紺ノ玲)様、CC BY-SA 2.1 JP）</div>
+</header>
+<main>
+  <section>
+    <h2>できること</h2>
+    <div class="grid">
+      <div class="card"><h3>自動の脚本家と対戦</h3><p>主人公3人の札を置き、友好能力を宣言して、脚本家の惨劇を防ぎます。脚本家は探索と計算で手を選ぶ、LLM を使わない自動のプレイヤーです。</p></div>
+      <div class="card"><h3>おすすめの脚本を伏せて</h3><p>選び抜いた脚本を、中身を伏せたまま遊べます。<a href="play/editor.html">シナリオを作る</a>画面で自分の脚本を作り、その場で試すこともできます。</p></div>
+      <div class="card"><h3>盤面の演出</h3><p>行動解決はルールの順（めくる → 移動 → カウンター → 札が手札へ）に見せます。演出なしにもできます。</p></div>
+      <div class="card"><h3>推理の欄</h3><p>人物×役職の格子、ルールの印、ループの記録、当日の流れ。公開された事実だけを並べ、推理は自分で。行き詰まったら『エンジンの候補』で、公開された出来事からルール上ありうる組み合わせの割合（役職・ルール・犯人の見込み）をヒントとして重ねられます。</p></div>
+      <div class="card"><h3>最後の戦い・時の狭間</h3><p>最後の戦いは1人ずつ宣言してその場で判定。時の狭間で最後の戦いへ進むこともできます。</p></div>
+      <div class="card"><h3>リプレイと観戦</h3><p>試合を URL で共有したり、途中から再開したり。主人公も自動にして自動同士の試合を観ることもできます。</p></div>
+    </div>
+  </section>
+  <section>
+    <h2>はじめかた</h2>
+    <ol>
+      <li><a href="play/">遊ぶページ</a>を開き、案内の『ゲームを始める』から脚本と脚本家を選んで開始します。</li>
+      <li>毎日、リーダーから順に、手札の札を押してから置き先のキャラクターかエリアを押し（ドラッグでも置けます）、3枚そろったら『確定して送る』。</li>
+      <li>何が起きたかは盤面の演出と「当日の流れ」にまとまります。推理の欄に自分の印を付けながら、惨劇を防ぎましょう。</li>
+    </ol>
+    <p>遊ぶには惨劇RoopeR のルールの知識が必要です（ルールの説明は含みません。製品版をお持ちの方を想定しています）。くわしい使い方は <a href="https://github.com/cha2maru/sangeki-engine/blob/main/docs/browser.md">ブラウザ版の説明</a>へ。</p>
+  </section>
+  <section>
+    <h2>よくある質問</h2>
+    <ul>
+      <li><b>ルールは？</b> このツールにルールの説明は含みません。遊ぶには惨劇RoopeR のルールを知っている必要があります。
+        ボードゲーム版（<a href="https://bakafire.main.jp/rooper/sr_top.htm">BakaFire Party様の公式サイト</a>）か、ブラウザで遊べる<a href="https://ccfolia.com/games/zxItFiUBzDNsYeG2QGt9">ココフォリア版</a>（<a href="https://bakafire.main.jp/rooper/sr_news_250219.htm">公式の案内</a>）をお求めのうえ、ルールブックで確かめてください。</li>
+      <li><b>公式のツールですか？</b> いいえ。BakaFire Party様とは関係のないファンの制作物で、公式の「二次創作のガイドライン」に従って公開しています。</li>
+      <li><b>自動の脚本家の考える時間は？</b> 計算はブラウザを動かしている PC で行うので、PC の性能に左右されます。いちばん強い脚本家は1手に数秒〜数十秒かかることがあります。</li>
+      <li><b>推理のヒントはありますか？</b> あります。推理の欄の『エンジンの候補』を押すと、エンジンが公開された出来事だけから数えた「ありうる組み合わせの割合」を重ねて出します（役職・ルール・事件の犯人の見込み、脚本家の伏せ札から狙いを読んだ見込みも）。答えに近い情報なので、押したときだけ出し、初めて押すときに確かめます。</li>
+      <li><b>スマホで遊べますか？</b> 画面は 375px 幅でも遊べるように作っていますが、計算が重いので PC をおすすめします。</li>
+      <li><b>ソースコードは？</b> <a href="https://github.com/cha2maru/sangeki-engine">GitHub（MIT ライセンス）</a>で公開しています。不具合や裁定の誤りは Issue か X（<a href="https://x.com/withoutcane">@withoutcane</a>）へ。</li>
+    </ul>
+  </section>
+</main>
+<footer>
+  <p>原作「惨劇RoopeR」は <b>BakaFire Party</b>様の作品です。本ツールは非公式の二次創作で、BakaFire Party様とは関係ありません。
+    公式の<a href="http://bakafire.main.jp/rooper/sr_dl_04_sozai.htm">二次創作のガイドライン</a>に従って公開しています。</p>
+  <p>画像: <a href="http://bakafire.main.jp/rooper/sr_dl_04_sozai.htm">惨劇コモンズ5th</a>（惨劇コモンズ作成: BakaFire様・NEKOG(紺ノ玲)様、CC BY-SA 2.1 JP）。</p>
+  <p>制作: cha2maru（<a href="https://github.com/cha2maru/sangeki-engine">GitHub</a> ／ <a href="https://x.com/withoutcane">X @withoutcane</a>）</p>
+</footer>
+</body>
+</html>

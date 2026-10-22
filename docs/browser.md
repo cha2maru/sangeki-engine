@@ -72,7 +72,7 @@ Python（エンジンと自動の脚本家）をブラウザの中で動かす�
 
 ```bash
 bash web/build.sh                      # web/dist に組み立てる（画像は assets/ があれば写す。--no-img で写さない）
-cd web/dist && python3 -m http.server 8784
+cd web/dist && python3 -m http.server 8784   # http://localhost:8784/ がトップページ、/play/ が対戦画面
 # → http://localhost:8784/
 ```
 
@@ -82,6 +82,7 @@ cd web/dist && python3 -m http.server 8784
   手は並べない場合と同じです。手元の計測（ヘッドレスの Chrome、calcGBxhd の1日目。いちばん重い手）で 22秒 → 16秒。補助の読み込みが終わるまでは1つで計算します。
   補助1つにつきメモリが 200MB 前後増えます。数は `?helpers=N` で変えられます（既定 2、最大 4、`?helpers=0` で使わない）
 - CDN に届かない環境では `PYODIDE_DIR=<npm の pyodide パッケージ> bash web/build.sh --local-pyodide` で同梱し、`?pyodide=local` を付けて開きます
+- 根（`web/dist/index.html`）は検索向けのトップページ（`web/landing.html`。題名・説明・OGP・構造化データ・`robots.txt`・`sitemap.xml`）で、対戦画面は `web/dist/play/` です。根に `#p=` や `?replay=` などが付いた URL（以前に共有したリプレイ・再開の URL）は、そのまま `play/` へ送ります。共有の画像（`og.jpg`）とトップページの絵（`hero.jpg`）は組み立てのときに惨劇コモンズ5th から作ります（Pillow が要る）
 - 盤面の状態・ログはブラウザのメモリの中だけにあります（再読み込みすると試合は消えます）。推理シートの書き込みはブラウザに保存されます
 
 ## 2. 画面の見方

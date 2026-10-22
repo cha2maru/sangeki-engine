@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # ブラウザ版（Pyodide）を web/dist に組み立てる。サーバー版（server.mjs ＋ ai_gm.py）はそのまま。
 #   bash web/build.sh [--no-img]   → web/dist を静的に配信する（例: cd web/dist && python3 -m http.server 8784）
+# 根（web/dist/index.html）は検索向けのトップページ（web/landing.html）、対戦画面は web/dist/play/。共有したリプレイの URL（#p= など）は根から play/ へ送る
 # 画像は play/assets（setup_images.sh）か originals/ の惨劇コモンズ5th から、盤面が使う4つのフォルダだけ写す（--no-img で写さない＝文字の表示）
 set -euo pipefail
-WEB="$(cd "$(dirname "$0")" && pwd)"; PLAY="$(dirname "$WEB")"; OUT="$WEB/dist"
+WEB="$(cd "$(dirname "$0")" && pwd)"; PLAY="$(dirname "$WEB")"; ROOT="$WEB/dist"; OUT="$ROOT/play"
 mkdir -p "$OUT/data"
+cp "$WEB/landing.html" "$ROOT/index.html"
+printf 'User-agent: *\nAllow: /\nSitemap: https://cha2maru.github.io/sangeki-engine/sitemap.xml\n' > "$ROOT/robots.txt"
+printf '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n<url><loc>https://cha2maru.github.io/sangeki-engine/</loc></url>\n</urlset>\n' > "$ROOT/sitemap.xml"
 # 画像は表示の大きさに縮めた WebP にする（原寸の PNG は盤面1枚 1MB・合計 16MB で、読み込みが遅かった。ユーザー指摘 2026-10-22）。Pillow が無ければ原寸の PNG のまま
 IMGX=.png; python3 -c 'import PIL' 2>/dev/null && IMGX=.webp
 # 盤面: サーバー版と同じ board.html に shim.js を先に読み込ませ、画像を相対パスにする
@@ -83,6 +87,17 @@ for d, (side, n) in SIZE.items():
         if k < 1:
             im = im.resize((round(im.width * k), round(im.height * k)), Image.LANCZOS)
         im.save(os.path.join(out, d, f[:-4] + '.webp'), 'WEBP', quality=82, method=6)
+# 共有したときのカード表示（OGP 1200×630）とトップページの絵: 惨劇コモンズ5th の盤面4枚を並べる（ロゴは使わない。画像はリポジトリに入れず、組み立てで作る）
+from PIL import ImageOps
+boards = [Image.open(os.path.join(src, 'board', b + '.png')).convert('RGB') for b in ['hospital', 'shrine', 'city', 'school']]
+# トップページの絵: 盤面の縦横比（1519:1076）のまま 2×2 に並べる。共有の画像: 1200×630 の枠に合わせ、各盤面を縦横比を保って中央で切り取る（引き伸ばさない）
+hero = Image.new('RGB', (1200, 850), (20, 19, 18))
+og = Image.new('RGB', (1200, 630), (20, 19, 18))
+for i, t in enumerate(boards):
+    hero.paste(t.resize((600, 425), Image.LANCZOS), ((i % 2) * 600, (i // 2) * 425))
+    og.paste(ImageOps.fit(t, (600, 315), Image.LANCZOS), ((i % 2) * 600, (i // 2) * 315))
+hero.save(os.path.join(os.path.dirname(os.path.dirname(out)), 'hero.jpg'), 'JPEG', quality=82, optimize=True)
+og.save(os.path.join(os.path.dirname(os.path.dirname(out)), 'og.jpg'), 'JPEG', quality=85, optimize=True)
 PY
       else
         for d in action_cards board tokens chara_stand; do cp -r "$src/$d" "$OUT/img/"; done
@@ -91,4 +106,4 @@ PY
     fi
   done
 fi
-echo "→ $OUT"
+echo "→ $ROOT（トップページ）・$OUT（対戦画面）"
