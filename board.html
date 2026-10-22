@@ -342,7 +342,7 @@ body.noimg .ch .rolec { position:static; order:0; width:100%; text-align:center;
 .fxf { position:fixed; z-index:40; pointer-events:none; font-weight:900; font-size:16px; color:#fff; text-shadow:0 0 3px #000, 0 0 6px #000; }
 .fxf.rew { font-size:26px; color:var(--acc); white-space:nowrap; } .fxf.ban { font-size:24px; white-space:nowrap; padding:4px 14px; background:rgba(0,0,0,.7); border-radius:6px; }
 .fxf.death { color:#ff7a6a; } .fxf.arrow { font-size:26px; color:#fff; } .fxf.arrow.combo { font-size:15px; white-space:nowrap; } .fxf.ok { color:#7be39a; } .fxf.lead { color:var(--acc); font-size:14px; white-space:nowrap; }
-.fxf.ban.inc { color:#ff8a7a; border:2px solid #ff5a4a; } .fxf.ban.incno { color:#ddd; border:1px solid #777; } .fxf.nul { color:#ffcf70; font-size:13px; } .fxghost { position:fixed; z-index:39; pointer-events:none; } .fxghost > * { width:100%; height:100%; } .fxf.p { color:#e2b6ff; } .fxf.g { color:#ffb3cc; } .fxf.i { color:#ddd; } .fxf.gd { color:#9fd4ff; } span.card .ow { font-size:.75em; opacity:.8; margin-right:2px; }
+.fxf.ban.inc { color:#ff8a7a; border:2px solid #ff5a4a; } .fxf.ban.mm { color:#ff6b5e; border:2px solid #b00; background:rgba(40,0,0,.85); letter-spacing:.05em; } .fxf.mmf { font-size:22px; color:#ff8a7a; } .fxf.ban.incno { color:#ddd; border:1px solid #777; } .fxf.nul { color:#ffcf70; font-size:13px; } .fxghost { position:fixed; z-index:39; pointer-events:none; } .fxghost > * { width:100%; height:100%; } .fxf.p { color:#e2b6ff; } .fxf.g { color:#ffb3cc; } .fxf.i { color:#ddd; } .fxf.gd { color:#9fd4ff; } span.card .ow { font-size:.75em; opacity:.8; margin-right:2px; }
 .ccards span.card { font-size:clamp(8px,2.4cqi,12px); } .hand span.card { font-size:10px; }
 span.turf { position:absolute; right:6px; bottom:6px; background:#6b5a1a; color:#fff; font-weight:700; font-size:12px; padding:2px 8px; border-radius:10px; }
 /* 開始画面（server.mjs を SANGEKI_AI=1 で起動したとき）*/
@@ -468,12 +468,12 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
   <h3>連絡先</h3>
   <div>作者: cha2maru（X: <a href="https://x.com/withoutcane" target="_blank" rel="noopener">@withoutcane</a> ／ GitHub: <a href="https://github.com/cha2maru/sangeki-engine" target="_blank" rel="noopener">cha2maru/sangeki-engine</a>）</div>
   <div class="mut">不具合や裁定の誤りは GitHub の Issue か X へ。報告のときは、ディスクのメニューの『リプレイの URL をコピー』で作ったリプレイの URL（試合の途中なら『この場面から再開する URL』）を添えてもらえると、とても助かります。</div>
-  <div style="margin-top:8px">演出の速さ（あとで ⚙ でも変えられます）: <select id="wl-speed"><option value="normal">ふつう</option><option value="fast">速い</option><option value="none">なし</option></select></div>
-  <div class="btns"><a href="editor.html" target="_blank" rel="noopener" class="mut" style="align-self:center" title="非公開シートを作って、この対戦で試す（新しいタブ）">シナリオを作る ↗</a><button id="wl-replay" style="margin-right:auto" onclick="$('rp-file').click()" title="書き出したリプレイ（JSON）を開いて見返す">リプレイを見る…</button><button id="wl-close" style="display:none">閉じる</button><button id="wl-cont" style="display:none">続きから遊ぶ</button><button class="go" id="wl-start">ゲームを始める</button></div>
+  <div class="btns"><a href="editor.html" target="_blank" rel="noopener" class="mut" style="align-self:center" title="非公開シートを作って、この対戦で試す（新しいタブ）">シナリオを作る ↗</a><button id="wl-replay" style="margin-right:auto" onclick="$('rp-file').click()" title="書き出したリプレイ（JSON）を開いて見返す">リプレイを見る…</button><button id="wl-close">閉じる</button><button class="go" id="wl-start">ゲームを始める</button></div>
 </div></div>
 <div id="reveal"><div class="box" id="rv-body"></div></div>
 <div id="start"><form id="startf">
   <h2>新しいゲーム</h2>
+  <div class="note" style="margin-bottom:6px">惨劇RoopeR（BakaFire Party様）の非公式のファンツールです。ルールの説明は含みません。遊び方・クレジットは帯の <b>？</b> から。</div>
   <div class="row"><input type="checkbox" id="st-blind" checked><label for="st-blind" style="margin:0">脚本を伏せて遊ぶ（おすすめ）</label></div>
   <div class="note" id="st-blind-note">おすすめの脚本から、遊んだことのないものを選びます（遊び尽くしたら自動生成の脚本から）。</div>
   <div id="st-pick" style="display:none"><label for="st-script">脚本を選ぶ</label><select id="st-script"></select>
@@ -485,7 +485,8 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
   <label for="st-pc">主人公</label><select id="st-pc"><option value="">あなた（人が遊ぶ）</option><option value="read2">自動 read2（推理する）</option><option value="read">自動 read（推理する・速い）</option><option value="lockQA">自動 lockQA（推理する・強い）</option><option value="oreadKQL">自動 oreadKQL（脚本を知っている）</option></select>
   <div class="note">主人公を自動にすると、自動同士で最後まで進みます（観戦。終わったら『リプレイを保存』『URL をコピー』でログを残せます）。</div>
   <label for="st-seed">乱数の種</label><div class="row"><input type="number" id="st-seed" min="0"><button type="button" id="st-rand">ランダム</button></div>
-  <div class="btns"><button type="button" id="st-cancel">やめる</button><button class="go" type="submit">開始</button></div>
+  <label for="wl-speed">演出の速さ（あとで ⚙ でも変えられます）</label><select id="wl-speed"><option value="normal">ふつう</option><option value="fast">速い</option><option value="none">なし</option><option value="slow">ゆっくり</option></select>
+  <div class="btns"><button type="button" style="margin-right:auto" onclick="$('rp-file').click()" title="書き出したリプレイ（JSON）を開いて見返す">リプレイを見る…</button><button type="button" id="st-cancel">やめる</button><button class="go" type="submit">開始</button></div>
 </form></div>
 <div id="rpbuild"><div class="box">リプレイを再生しています…<br><span class="mut">ブラウザ版は初回だけ Python の準備に数十秒かかります</span></div></div>
 <div id="rpbar"><span class="t">リプレイ</span><span id="rp-title" class="mut"></span>
@@ -631,7 +632,9 @@ function fxPlay(prev) {
     const mv = Object.values(cur.cards).filter(c => c.target === n && /^移動(↑↓|←→|斜め)$/.test(c.card || '')).map(c => SHORT[c.card] || c.card);
     if (arrow) fxFloat(el, mv.length > 1 ? `${mv.join('＋')} → ${arrow}` : arrow, mv.length > 1 ? 'arrow combo' : 'arrow', tMove);
   });
-  const t0 = tMove + (moved ? 500 * k : 0);
+  let t0 = tMove + (moved ? 500 * k : 0);
+  // 脚本家能力フェイズ（どこからともなく置かれたカウンター）は見出しを先に出してから数字を動かす（ユーザー要望: もっと目立つように）
+  if (fxLines.some(l => MMLINE.test(l.text || ''))) { fxBanner('脚本家能力 ― どこからともなく…', 'mm', t0, 1300 * k); t0 += 800 * k; }
   // ③ カウンター: 数字がはずみ、増減が浮く（解決し終えた値だけを見せる。途中の値で臨界の印を出さない＝レビュー R10）
   const keys = { paranoia: 'p', goodwill: 'g', intrigue: 'i', guard: 'gd' };
   document.querySelectorAll('#board [data-char]').forEach(el => {
@@ -677,6 +680,7 @@ function fxPlay(prev) {
   fxBusyMark();  // 浮く数字（900ms）・見出しまで
 }
 // ログの行から作る演出（盤面の差では分からないもの）。文は公開ログのまま使い、非公開の情報（犯人・役職の持ち主）は指さない
+const MMLINE = /^どこからともなく |^脚本家が.+?の能力を使った/;
 function fxLog(t, k, p, cur) {
   const lines = fxLines; fxLines = [];
   const ch = n => document.querySelector(`#board [data-char="${CSS.escape(n)}"]`);
@@ -693,6 +697,11 @@ function fxLog(t, k, p, cur) {
     }
     else if ((m = /^(.+?) の移動は禁止エリアのため無効/.exec(x))) { const el = ch(m[1]); if (el) fxFloat(el, '禁止エリア', 'nul', t); }
     else if ((m = /^(.+?) への移動は移動禁止で止まった/.exec(x))) { const el = ch(m[1]); if (el) fxFloat(el, '移動禁止', 'nul', t); }
+    else if ((m = /^どこからともなく (.+?) に(.+?\+\d+)$/.exec(x))) {  // 置かれた先（駒かボード）を赤く2回光らせ、大きく「暗躍+1」。持ち主は指さない（設計資料 4.6）
+      const el = ch(m[1]) || document.querySelector(`#board [data-area="${CSS.escape(m[1])}"]`);
+      if (el) { el.animate([{ boxShadow: 'none' }, { boxShadow: '0 0 0 4px #ff3b3b, 0 0 26px 8px #ff3b3b' }, { boxShadow: 'none' }], { duration: 700 * k, delay: t - 300 * k, iterations: 2, fill: 'backwards' });
+        fxFloat(el, m[2], 'mmf', t - 300 * k); }
+    }
     else if ((m = /^脚本家が(.+?)の能力を使った/.exec(x))) glow(ch(m[1]), '#ff5a4a', t);
     else if ((m = /^(.+?) の友好能力は拒否された/.exec(x))) { const el = ch(m[1]); if (el) fxFloat(el, '拒否', 'nul', t); }
     else if ((m = /^(.+?) の死亡は護衛で防がれた/.exec(x))) { const el = ch(m[1]); if (el) { glow(el, '#4aa3e0', t); fxFloat(el, '護衛', 'gd', t); } }
@@ -718,7 +727,8 @@ function handGuide() {
 // 演出はいつでも飛ばせる（Space・盤面のクリック。設計資料 1章）: 動いている演出を終わらせ、たまった場面は最新まで送る
 function fxBusyMark() {  // 帯の小さな表示「演出中 ― Esc で飛ばす」
   let m = document.getElementById('fxbusy'); if (!m) { m = document.createElement('span'); m.id = 'fxbusy'; m.className = 'mut'; m.textContent = '演出中 ― Esc で飛ばす'; }
-  if (!m.isConnected) $('band').appendChild(m);
+  const tools = $('band').querySelector('.tools');  // ボタンの左に置く（右に足すとボタンが動いた。ユーザー指摘）
+  if (tools && m.parentNode !== tools) tools.prepend(m); else if (!tools && !m.isConnected) $('band').appendChild(m);
   clearTimeout(fxBusyMark.t); m.style.display = ''; fxBusyMark.t = setTimeout(() => { m.style.display = 'none'; }, Math.max(0, fxBusyUntil - Date.now()));
 }
 function fxSkip() {
@@ -726,7 +736,7 @@ function fxSkip() {
   for (const a of document.getAnimations()) { const t = a.effect && a.effect.target; if (t && (t.closest?.('#board') || t.classList?.contains('fxf') || t.classList?.contains('fxghost') || t.id === 'board')) a.finish(); }
   document.querySelectorAll('.fxf, .fxghost').forEach(x => x.remove());
   fxBusyUntil = 0; fxLines = [];
-  if (watchQ.length) { watchQ = []; clearTimeout(watchT); watchT = null; if (watchLatest && !viewing) { fxLast = null; S = watchLatest; render(); renderOptions(); } }
+  if (watchQ.length) { watchQ = []; clearTimeout(watchT); watchT = null; if (watchLatest && !viewing) { fxLast = null; shownN = Infinity; S = watchLatest; render(); renderOptions(); renderLog(); } }
   return true;
 }
 document.addEventListener('keydown', e => { if (e.key === ' ' && !e.target.closest('input, textarea, select, button, [role="button"], [data-cell], [tabindex]') && fxSkip()) e.preventDefault(); });
@@ -754,21 +764,23 @@ $('board').addEventListener('pointerdown', () => { if (Date.now() < fxBusyUntil)
 const lastHTML = {};
 function setHTML(id, h) { if (lastHTML[id] !== h) { lastHTML[id] = h; $(id).innerHTML = h; } }
 let lastKind;
+// 帯に足す印・ボタンは右端のボタン（？・ディスク・⚙）の左に入れる（後ろに足すとボタンが動いた。ユーザー指摘）
+const bandAdd = h => { const t = $('band').querySelector('.tools'); t ? t.insertAdjacentHTML('beforebegin', h) : $('band').insertAdjacentHTML('beforeend', h); };
 function renderMain() {
   const w = S.waiting || {};
   document.body.classList.toggle('mode-ai', S.mode === 'ai' || canStart);
   document.body.classList.toggle('watching', !!S.watch);
+  if ($('start').classList.contains('on')) $('st-cancel').textContent = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '続きから遊ぶ' : 'やめる';
   document.body.classList.toggle('timegap', (S.waiting || {}).kind === 'time_gap');
   if (w.kind !== lastKind) { lastKind = w.kind; $('p-ops').querySelector('.body').scrollTop = 0; }  // 選ぶものが変わったら、上に来た一覧が見えるように
   document.body.classList.toggle('phase-ability', (S.waiting || {}).kind === 'ability');  // 観戦: 操作の欄は観戦の欄に（手札・送信・友好能力は出さない）  // 開始画面のあるサーバー＝対AIモード（試合の前も）
-  if ($('welcome').classList.contains('on') && $('wl-close').style.display) $('wl-cont').style.display = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '' : 'none';
   $('band').innerHTML = S.loop ? `<span>ループ <b>${S.loop}</b>/${S.loops}</span><span>日 <b>${S.day ?? '-'}</b>/${S.days}</span>
     <span class="ph">${esc(S.phaseName)}</span><span>リーダー <b>${esc(S.leader)}</b></span>
     <span class="wait ${myTurn() ? 'mine' : ''}">${esc(w.text || '入力待ちなし')}</span><span class="tools"><button id="helpbtn" title="遊び方・クレジット">？</button><button id="filebtn" title="ゲーム・リプレイ・共有（新しいゲーム、シナリオを作る、書き出し・読み込み、URL）" aria-label="ゲーム・リプレイ・共有"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-2px"><path fill="currentColor" d="M4 3h13l4 4v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm2 2v5h10V5H6zm6 8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></button><button id="uxbtn" title="表示の設定">⚙</button></span>`
     : '状態を読み込み中… <span class="tools"><button id="helpbtn" title="遊び方・クレジット">？</button><button id="filebtn" title="ゲーム・リプレイ・共有（新しいゲーム、シナリオを作る、書き出し・読み込み、URL）" aria-label="ゲーム・リプレイ・共有"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-2px"><path fill="currentColor" d="M4 3h13l4 4v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm2 2v5h10V5H6zm6 8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></button><button id="uxbtn" title="表示の設定">⚙</button></span>';
-  if (S.reveal) $('band').insertAdjacentHTML('beforeend', '<button onclick="openReveal()">非公開シート</button>');
+  if (S.reveal) bandAdd('<button onclick="openReveal()">非公開シート</button>');
   if (Date.now() < fxBusyUntil) fxBusyMark();
-  if ((S.phaseName || '').startsWith('ゲーム終了') && canStart) $('band').insertAdjacentHTML('beforeend', '<button class="go" onclick="openStart()">新しいゲーム</button>');
+  if ((S.phaseName || '').startsWith('ゲーム終了') && canStart) bandAdd('<button class="go" onclick="openStart()">新しいゲーム</button>');
   if (S.reveal && revealShown !== S.game && !viewing) { revealShown = S.game; setTimeout(openReveal, 400); }
   renderThink();
   // 盤面・手札は中身が変わったときだけ作り直す（考え中・待ちの文だけの更新で駒が作り直されない。演出の土台、設計資料 段階1.5）
@@ -822,7 +834,7 @@ function renderMain() {
     `<tr class="${ok ? 'ok' : 'off'}"><td>${esc(c.name)}</td><td>${esc(label)}</td><td>${ok ? '✔ 使える' : st}</td>
       <td><button data-abil="${idx}" data-ch="${esc(c.name)}" class="${ok ? 'go' : ''}">宣言</button></td></tr>`).join('')
     + (offN ? `<tr><td colspan="4"><button id="abilmore" aria-expanded="${showAllAbil}">${showAllAbil ? '使えない能力を隠す' : `使えない能力も表示（${offN}件）`}</button></td></tr>` : '');
-  if (okN) $('band').insertAdjacentHTML('beforeend', `<span class="okbadge">友好能力 ${okN}件 使える</span>`);
+  if (okN) bandAdd(`<span class="okbadge">友好能力 ${okN}件 使える</span>`);
   $('commits').innerHTML = (S.commitments || []).map(c => `${esc(c.label)}<br>${esc(c.sha256)}${c.revealed ? ' ✔公開済' : ''}`).join('<hr>');
   renderSent();
   const dupT = pending.map(p => p.target).filter((t, i, a) => a.indexOf(t) !== i);
@@ -1200,14 +1212,19 @@ function ruleTipHTML(id) {
   return `<div class="h">ルール${esc(r.type)} ${esc(r.name)}</div><table><tr><th>加わる役職</th><td>${esc(roles)}</td></tr></table>`
     + `<div class="h2">追加ルール</div>` + (r.text ? r.text.split('\n').map(x => `<div>${esc(x)}</div>`).join('') : '<div class="mut">なし（役職を加えるだけ）</div>');
 }
-function showRuleTip(el, x, y) { ctip.innerHTML = ruleTipHTML(el.dataset.rule); ctipFor = 'rule:' + el.dataset.rule; ctip.style.display = 'block';
+function showRuleTip(el, x, y) { ctip.innerHTML = ruleTipHTML(el.dataset.rule); ctipFor = 'rule:' + el.dataset.rule; placeTip(el, x, y); }
+// 推理の欄の title（役職の能力・狙い込み・必要 n）は、マウスの無いスマホでは押して読む
+function showTextTip(el) { ctip.innerHTML = `<div style="white-space:pre-line">${esc(el.title)}</div>`; ctipFor = 'title'; placeTip(el); }
+function placeTip(el, x, y) { ctip.style.display = 'block';
   const r = el.getBoundingClientRect(), w = ctip.offsetWidth, h = ctip.offsetHeight;
   ctip.style.left = Math.max(4, Math.min(x ?? r.left, innerWidth - w - 8)) + 'px';
   ctip.style.top = Math.max(4, (y ?? r.bottom) + 8 + h > innerHeight ? r.top - h - 8 : (y ?? r.bottom) + 8) + 'px'; }
 document.addEventListener('mouseover', e => { const el = e.target.closest('[data-rule]'); if (el) showRuleTip(el, e.clientX + 12, e.clientY + 8); });
 document.addEventListener('focusin', e => { const el = e.target.closest('[data-rule]'); if (el) showRuleTip(el); });
-document.addEventListener('mouseout', e => { const el = e.target.closest('[data-rule]'); if (el && !el.contains(e.relatedTarget)) { ctip.style.display = 'none'; ctipFor = null; } });
-document.addEventListener('focusout', e => { if (e.target.closest('[data-rule]')) { ctip.style.display = 'none'; ctipFor = null; } });
+// タッチでは押した直後に疑似の mouseout・focusout が来て吹き出しを消すので、タッチの間は次に押した所の click で閉じる
+let lastPtr = 'mouse'; document.addEventListener('pointerdown', e => { lastPtr = e.pointerType; }, true);
+document.addEventListener('mouseout', e => { const el = e.target.closest('[data-rule]'); if (el && lastPtr !== 'touch' && !el.contains(e.relatedTarget)) { ctip.style.display = 'none'; ctipFor = null; } });
+document.addEventListener('focusout', e => { if (e.target.closest('[data-rule]') && lastPtr !== 'touch') { ctip.style.display = 'none'; ctipFor = null; } });
 let logFollow = true;
 // 今日の出来事: 公開ログのうち、いちばん新しい日の分をフェイズごとにまとめて操作欄に出す（ログだけだと見づらい。ユーザー要望）
 // 当日の流れ（設計資料 8.4）: その日の公開ログを 9 つのフェイズの枠に入れる。済んだ ✓・いま ▶・これから ・（色だけにしない）。
@@ -1230,7 +1247,12 @@ const DF_HINT = {
   '事件': 'その日に予定の事件は、犯人が生存していて、犯人の不安が不安臨界以上なら必ず起きる',
 };  // dfAt: 見ている日 [ループ, 日]（null＝今日）。dfSeen: 最後に操作したときのログの番号
 const dfOpen = new Set();
-function dfDays() { const ds = []; for (const l of LOG) if (l.loop != null && l.day != null && !ds.some(d => d[0] === l.loop && d[1] === l.day)) ds.push([l.loop, l.day]); return ds; }
+// 観戦で演出が遅れている間は、盤面に出している場面までのログだけを使う（当日の流れ・ログの欄が盤面より先のループ・日を出していた。ユーザー指摘）
+let shownN = Infinity; const LOGV = () => shownN === Infinity ? LOG : LOG.filter(l => l.n <= shownN);
+function dfDays() { const ds = []; for (const l of LOGV()) if (l.loop != null && l.day != null && !ds.some(d => d[0] === l.loop && d[1] === l.day)) ds.push([l.loop, l.day]);
+  const last = ds[ds.length - 1];  // 新しいループの準備の間は、その日の行がまだ無い（盤面はもう次のループ）。盤面の日を足す
+  if (S.loop && S.day && (!last || S.loop > last[0] || (S.loop === last[0] && S.day > last[1]))) ds.push([S.loop, S.day]);
+  return ds; }
 function renderToday() {
   const ds = dfDays(), live = ds[ds.length - 1];
   if (!live) { $('today').innerHTML = '<span class="mut">—</span>'; $('df-nav').innerHTML = ''; $('today-h').textContent = ''; return; }
@@ -1239,7 +1261,7 @@ function renderToday() {
   $('df-nav').innerHTML = `<button data-df="-1" ${k > 0 ? '' : 'disabled'}>◀ 前の日</button>${isLive ? '' : '<button data-df="0">今日</button>'}<button data-df="1" ${k < ds.length - 1 ? '' : 'disabled'}>次の日 ▶</button>`;
   // その日の行（ループの準備の行は、そのループの最初の日に付ける）
   const first = ds.find(d => d[0] === at[0]);
-  const rows = LOG.filter(l => !l.kind && l.loop === at[0] && (l.day === at[1] || (l.day == null && first === at)));
+  const rows = LOGV().filter(l => !l.kind && l.loop === at[0] && (l.day === at[1] || (l.day == null && first === at)));
   const groups = new Map(), extra = [];
   let cur = rows.length && rows[0].day == null ? 'ループの準備' : 'ターン開始';
   for (const l of rows) {
@@ -1259,7 +1281,7 @@ function renderToday() {
   const nowI = isLive ? Math.max(order.indexOf(ph), ...[...groups.keys()].map(g => order.indexOf(g))) : order.length;
   const inc = isLive ? (S.incidents || []).find(i => i.day === at[1]) : null;
   // リーダー交代はログに区切りが無い（B8。足すと共有したリプレイの照合と再開の位置がずれる）。主人公行動フェイズの区切りの「リーダー X」から読む
-  const leaderOf = d => { if (!d) return null; const h = LOG.find(l => l.loop === d[0] && l.day === d[1] && /^── L\d+D\d+ 主人公行動フェイズ ── リーダー ([ABC])/.test(l.text || ''));
+  const leaderOf = d => { if (!d) return null; const h = LOGV().find(l => l.loop === d[0] && l.day === d[1] && /^── L\d+D\d+ 主人公行動フェイズ ── リーダー ([ABC])/.test(l.text || ''));
     return h ? /リーダー ([ABC])/.exec(h.text)[1] : null; };
   const ldNow = leaderOf(at), ldNext = leaderOf(ds[k + 1]);
   $('today').innerHTML = order.map((p, i) => {
@@ -1306,10 +1328,10 @@ $('logf').onchange = () => renderLog();  // ログの絞り込み（種類・人
 function renderLog() {
   // 過去の盤面へは行の端の小さな『盤面』ボタンだけで切り替える（行のクリックだと誤って切り替わり、今の伏せ札が消えたように見えた）
   const f = $('logf').value, q = $('logq').value.trim();
-  const shown = LOG.filter(l => (!f || (f === 'カ' ? ['カ', '脚'].includes(logKind(l.text)) : logKind(l.text) === f)) && (!q || (l.text || '').includes(q)));
+  const shown = LOGV().filter(l => (!f || (f === 'カ' ? ['カ', '脚'].includes(logKind(l.text)) : logKind(l.text) === f)) && (!q || (l.text || '').includes(q)));
   // 新しい行は、その行だけを小さなライブリージョンで読み上げる（欄を丸ごと作り直すと全文が読み直されるため。レビュー R15）
-  const lastN = LOG.length ? LOG[LOG.length - 1].n : 0;
-  if (liveN != null && lastN > liveN) $('loglive').textContent = LOG.filter(l => l.n > liveN && !/^──/.test(l.text || '')).map(l => l.text).slice(-3).join('。');
+  const lastN = LOGV().length ? LOG[LOGV().length - 1].n : 0;
+  if (liveN != null && lastN > liveN) $('loglive').textContent = LOGV().filter(l => l.n > liveN && !/^──/.test(l.text || '')).map(l => l.text).slice(-3).join('。');
   liveN = lastN;
   // 日ごとの見出しで畳む（設計資料 7.4）。最新の日は開き、前の日は畳む（開け閉めは覚える）。絞り込み中はすべて開く
   const lineHTML = l => l.kind === 'rej' ? `<div class="rej"><span class="n">L${l.loop ?? '-'}D${l.day ?? '-'}</span>受け付けなかった操作: ${esc(l.what)} ― ${esc(l.why)}</div>` : `<div data-log="${l.n}" class="${l.kind === 'correction' ? 'fix' : ''}"><span class="n">#${l.n} L${l.loop ?? '-'}D${l.day ?? '-'}</span>${logKind(l.text) ? `<b class="lk">［${logKind(l.text)}］</b>` : ''}${esc(l.text)}${l.basis ? `<span class="basis">根拠: ${esc(l.basis)}</span>` : ''}<button class="snapbtn" data-quote="${l.n}" title="この行を人物のメモに引用する">＋メモ</button><button class="snapbtn" data-snap="${l.n}" title="この行の処理の直後の盤面を見る">盤面</button></div>`;
@@ -1351,7 +1373,12 @@ $('menu').addEventListener('keydown', e => {
   else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); document.activeElement.click(); }
   else if (e.key === 'Escape') { e.stopPropagation(); hide(); }
 });
-document.addEventListener('click', e => { if (!$('menu').contains(e.target)) { hide(); if (!e.target.closest('#chartip')) ctip.style.display = 'none'; } });
+document.addEventListener('click', e => { if (!$('menu').contains(e.target)) { hide();
+  // ルール名・推理の欄の title は押しても読める（スマホ。以前は focus で出た吹き出しを、この click がすぐ消していた）
+  const r = e.target.closest('[data-rule]'), t = !r && e.target.closest('#p-sheet [title]:not(button):not([role=button]):not(select):not(input)');
+  if (r) return showRuleTip(r);
+  if (t) return showTextTip(t);
+  if (!e.target.closest('#chartip')) ctip.style.display = 'none'; } });
 
 const alive = () => (S.characters || []).filter(c => c.alive !== false);
 const charOpts = go => (S.characters || []).map(c => ({ label: c.name + (c.alive === false ? '（死亡）' : ''), go: () => go(c.name) }));
@@ -1626,7 +1653,9 @@ async function watchQueue(v) {
   watchLatest = v;
   const first = watchGame !== v.game; watchGame = v.game;  // 開いた時・新しい試合: 昔の場面は流さず、ここから
   if (first) { watchQ = []; watchN = 0; }
+  const prevN = watchN;
   try { const sn = await snapshots(); if (!first) watchQ.push(...sn.filter(x => x.log_n > watchN)); watchN = sn.length ? sn[sn.length - 1].log_n : 0; } catch { return false; }
+  if (!first && watchQ.length && shownN === Infinity) shownN = prevN;  // 最初の場面を見せるまでの間も、ログは盤面の場面まで
   if (first) return false;
   if (watchQ.length > 24) watchQ.splice(0, watchQ.length - 24);  // 追いつき
   if (!watchT) watchT = setTimeout(watchStep, 300);  // 公開ログの読み込み（同じ poll の後半）を待ってから
@@ -1635,9 +1664,10 @@ async function watchQueue(v) {
 function watchStep() {
   if (watchPaused && watchLatest && watchLatest.watch) { watchT = null; renderWatchbar(); return; }  // 観戦で止めている
   const next = watchQ.shift(), k = SPEED[ux('speed')] ?? 1;
-  if (!next || viewing) { watchT = null; if (watchLatest && !viewing) { S = watchLatest; render(); renderOptions(); } return; }
+  if (!next || viewing) { watchT = null; if (watchLatest && !viewing) { shownN = Infinity; S = watchLatest; render(); renderOptions(); renderLog(); } return; }
   fxLines = LOG.filter(l => l.n > (next.prev_n ?? 0) && l.n <= next.log_n);
-  S = { ...next.state, waiting: watchLatest.waiting, phaseId: watchLatest.phaseId, watch: watchLatest.watch }; render();
+  shownN = next.log_n;  // 追いついたら（次が無い・飛ばした）Infinity に戻す
+  S = { ...next.state, waiting: watchLatest.waiting, phaseId: watchLatest.phaseId, watch: watchLatest.watch }; render(); renderLog();
   const mine = !watchLatest.watch && ['cards', 'ability', 'final', 'time_gap'].includes((watchLatest.waiting || {}).kind);
   // 次の場面はこの場面の演出が終わってから（先に描き直すと、遅れて始まる演出が消える）
   const lagDays = new Set(watchQ.map(x => `${x.state.loop}-${x.state.day}`)).size;  // たまった日の数
@@ -2071,22 +2101,21 @@ fetch('/scripts').then(r => r.ok ? r.json() : null).then(d => {
   }
   openWelcome();
 }).catch(() => {});
-// 初めの案内（タイトル・免責事項・遊び方）。開始画面のあるとき（SANGEKI_AI=1）に、ページを開くたびに出す。?ux=off では出さない
+// ページを開いたら、開始の欄だけを出す（紹介・免責はトップページと帯の ？ に。以前は案内 → 開始の2つのダイアログだった。ユーザー指摘）
 function openWelcome() {
-  if (RP.on || /^#[rp]=/.test(location.hash) || ['p', 'resume'].some(k => new URLSearchParams(location.search).get(k))) return;  // リプレイを開いたとき（?replay=・#r=・#p=）は案内を出さない
-  if (new URLSearchParams(location.search).get('ux') === 'off') { if (!S.loop) openStart(); return; }
-  $('wl-cont').style.display = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '' : 'none';
-  $('wl-close').style.display = 'none'; $('wl-start').style.display = '';
-  $('welcome').classList.add('on');
+  if (RP.on || /^#[rp]=/.test(location.hash) || ['p', 'resume'].some(k => new URLSearchParams(location.search).get(k))) return;  // リプレイを開いたとき（?replay=・#r=・#p=）は出さない
+  if (new URLSearchParams(location.search).get('ux') === 'off' && S.loop) return;  // 試験用: 試合の途中なら何も出さない
+  openStart();
 }
 $('wl-start').onclick = () => { $('welcome').classList.remove('on'); openStart(); };
-$('wl-cont').onclick = $('wl-close').onclick = () => $('welcome').classList.remove('on');
+$('wl-close').onclick = () => $('welcome').classList.remove('on');
 // 帯の「？」: 初めの案内をいつでも開き直す（クレジットもここ）。閉じるボタンを出し、開始画面の無い手動モードでは「ゲームを始める」を隠す
 function openHelp() {
-  $('wl-cont').style.display = 'none'; $('wl-close').style.display = ''; $('wl-start').style.display = canStart ? '' : 'none';
+  $('wl-start').style.display = canStart ? '' : 'none';
   $('uxpanel').classList.remove('on'); $('welcome').classList.add('on');
 }
-function openStart() { if (canStart) { $('start').classList.add('on'); $('uxpanel').classList.remove('on'); $('filepanel').classList.remove('on'); } }
+function openStart() { if (canStart) { $('wl-speed').value = ux('speed') || 'normal';
+  $('st-cancel').textContent = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '続きから遊ぶ' : 'やめる'; $('start').classList.add('on'); $('uxpanel').classList.remove('on'); $('filepanel').classList.remove('on'); } }
 $('st-rand').onclick = () => { $('st-seed').value = Math.floor(Math.random() * 10000); };
 // 伏せて遊ぶときは「脚本を選ぶ」を出さない（題名が見えないように）
 const syncPick = () => { $('st-pick').style.display = $('st-blind').checked ? 'none' : ''; };
