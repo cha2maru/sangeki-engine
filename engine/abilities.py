@@ -165,7 +165,7 @@ def check_declaration(state, cid, idx, arg, ignore_gw=False, proxy=False):
         raise IllegalPlacement("医者[2] は 'place'（置く）か 'remove'（取り除く）")
     if kind == 'ruleX':
         # 宣言は、使っている惨劇セットのルールXの名前（印刷p39 情報屋）
-        if sets.rule(state, arg.get('declare')).get('type') != 'X':
+        if (sets.rule(state, (arg or {}).get('declare')) or {}).get('type') != 'X':
             raise IllegalPlacement('情報屋が宣言できるのは惨劇セットのルールXの名前だけ（印刷p39）')
     if kind == 'incident':
         if not any(i['id'] == arg['incident'] and arg.get('day', d) == d for i, d in _occurred_this_loop(state)):
@@ -383,17 +383,6 @@ def final_battle(state, guesses):
     return {'winner': 'protagonists', 'stopped_at': None}
 
 
-def _simple_args(state, cid, idx):
-    """妹[5] の代理の使用で試す引数（対象を取る能力は同一エリアの生存者、それ以外は None）。"""
-    kind = ABILITIES[(cid, idx)][2]
-    here = alive_in(state, state['chars'][cid]['area'])
-    if kind in ('char', 'student'):
-        return [{'target': x} for x in here]
-    if kind == 'doctor':
-        return [{'target': x, 'mode': m} for x in here for m in ('place', 'remove')]
-    return [None]
-
-
 def _occurred_this_loop(state):
     """このループで発生した事件の [(記録, 日付)]。日付の記録が無い古い状態では日付は None。"""
     log, days = state.get('incident_log', []), state.get('incident_day_log', [])
@@ -401,69 +390,109 @@ def _occurred_this_loop(state):
     return [(i, d) for i, d in zip(log, days) if i['loop'] == state['loop'] and i['occurred']]
 
 
-def declaration_options(state):
-    """いま合法な宣言 (cid, idx, arg) の一覧（主人公能力フェイズ。公開情報だけで決まる）。自己対戦のプレイヤーが使う。"""
+def _incident_choices(state, iid, cul, alive):
+    """A.I.[3] でリーダーが決める事件効果の選択の全通り（phases.incident_effect の choice の形）。"""
     from .phases import AREAS
+    here = [c for c in alive_in(state, state['chars'][cul]['area'])]
+    if iid == 'MURDER':
+        return [{'target': x} for x in here if x != cul] or [None]
+    if iid == 'SPREAD':
+        return [{'par_target': p, 'int_target': i} for p in alive for i in alive if p != i]
+    if iid == 'REMOTE':
+        return [{'target': x} for x in alive if state['chars'][x]['int'] >= 2] or [None]
+    if iid == 'MISSING':
+        return [{'board': b} for b in AREAS]
+    if iid == 'RUMOR_SPREAD':
+        return [{'from': f, 'to': t} for f in alive for t in alive if f != t]
+    if iid == 'BUTTERFLY':
+        return [{'target': x, 'counter': k} for x in here for k in ('gw', 'par', 'int')]
+    return [None]
+
+
+def _effect_ok(state, iid, cul, choice):
+    """その選択で事件効果を解決できるか（禁止エリアへの行方不明などを、写しで試して除く）。"""
+    from .phases import incident_effect, LoopEnd
+    try:
+        incident_effect(copy_state(state), iid, cul, choice, [])
+    except IllegalPlacement:
+        return False
+    except LoopEnd:  # 主人公死亡・キーパーソンの死亡でループが終わる選択も合法（病院の事件など）
+        pass
+    return True
+
+
+def _args(state, cid, idx, full=False):
+    """友好能力 (cid, idx) の引数の候補（合法かどうかは check_declaration で確かめる）。"""
+    from .phases import AREAS
+    kind = ABILITIES[(cid, idx)][2]
+    area = state['chars'][cid]['area']
+    here = alive_in(state, area)
+    alive = [c for c, v in state['chars'].items() if v['alive'] and v.get('present', True)]
+    dead = [c for c, v in state['chars'].items() if not v['alive']]
+    if kind == 'doctor' or (cid, idx) == ('C23', 0):  # 教師[3] は学生が対象でも置く／取り除くを選ぶ（先に見ないと 'student' に吸われて候補が0だった）
+        args = [{'target': x, 'mode': m} for x in here for m in ('place', 'remove')]
+    elif kind in ('char', 'student'):
+        args = [{'target': x} for x in here]
+    elif kind == 'any':
+        args = [{'target': x} for x in alive]
+    elif kind == 'char_or_board':
+        args = [{'target': x} for x in here] + [{'target': 'B:' + area}]
+    elif kind == 'corpse':
+        args = [{'target': x} for x in dead if state['chars'][x]['area'] == area]
+    elif kind == 'corpse_any':
+        args = [{'target': x} for x in dead]
+    elif kind == 'incident':
+        args = [{'incident': i['id'], 'day': d} for i, d in _occurred_this_loop(state)]
+    elif kind == 'ruleX':
+        args = [{'declare': x} for x, v in sets.of(state)['rules'].items() if v['type'] == 'X']
+    elif kind == 'card':
+        args = [{'card': c} for c in state['used'][state['leader']]]
+    elif kind == 'transfer':
+        others = [x for x in here if x != cid]
+        args = [{'from': f, 'to': t, 'counter': k} for f in others for t in others if f != t
+                for k in (*COUNTERS, None)]
+    elif kind == 'board':
+        args = [{'board': b} for b in AREAS]
+    elif kind == 'critical_any':
+        args = [{'target': x} for x in alive]
+    elif kind == 'critical_here':
+        args = [{'target': x} for x in here]
+    elif kind == 'sheet_incident':
+        incs = [(i['id'], i['day']) for i in state['script']['incidents']]
+        if cid == 'C22' and full:
+            args = [{'incident': i, 'day': d, 'choice': c} for i, d in incs for c in _incident_choices(state, i, cid, alive) if _effect_ok(state, i, cid, c)]
+        elif cid == 'C22':  # A.I.: 選択の要らない事件と、殺人事件（同一エリアの対象）だけを候補にする（ponytail: 全選択の列挙は自動のプレイヤーに重い）
+            args = [{'incident': i, 'day': d, 'choice': None} for i, d in incs if i in ('HOSPITAL', 'SUICIDE', 'CORRUPT')]
+            args += [{'incident': i, 'day': d, 'choice': {'target': x}} for i, d in incs if i == 'MURDER' for x in here if x != cid]
+        else:
+            args = [{'incident': i, 'day': d} for i, d in incs]
+    # 以下4つは対象の作り方が抜けていて、宣言の候補に一度も出ていなかった（ユーザーが対AIモードで大物[5] を宣言できなかった、2026-10-10）
+    elif kind == 'territory':  # 大物[5]: テリトリーにいる自身以外
+        args = [{'target': x} for x in alive if x != cid and state['chars'][x]['area'] == state['script'].get('territory')]
+    elif kind == 'char_to_board':  # 幻想[3]: 同一エリアの1人を任意のボードへ
+        args = [{'target': x, 'board': b} for x in here for b in AREAS]
+    elif kind == 'tree':  # ご神木: 同一エリアの他の1人に、自身の上のカウンター1つを
+        args = [{'target': x, 'counter': k} for x in here if x != cid for k in COUNTERS]
+    elif kind == 'any_other':  # 従者[4]: ボードにいる自身以外の生存者
+        args = [{'target': x} for x in alive if x != cid]
+    elif kind == 'proxy':  # 妹[5]: 大人の友好能力を、その能力の引数の全通りで（以前は対象を取る能力だけで、情報屋・刑事などが出ず、引数なしで落ちた）
+        args = [{'target': x, 'idx': j, 'arg': a2} for x in here if x != cid and '大人' in CHARS[x]['tags']
+                for (c2, j) in ABILITIES if c2 == x and ABILITIES[(c2, j)][2] != 'proxy'
+                for a2 in _args(state, x, j, full)]
+    else:
+        args = [None]
+    return args
+
+
+def declaration_options(state, full=False):
+    """いま合法な宣言 (cid, idx, arg) の一覧（主人公能力フェイズ。公開情報だけで決まる）。自己対戦のプレイヤーが使う。
+    full=True: A.I.[3] の事件効果の選択を全通り出す（人が選ぶ盤面用。自動のプレイヤーには重いので既定は絞る）。"""
     out = []
     for (cid, idx), (need, once, kind) in ABILITIES.items():
         ch = state['chars'].get(cid)
         if ch is None or not ch['alive'] or not ch.get('present', True):
             continue
-        area = ch['area']
-        here = alive_in(state, area)
-        alive = [c for c, v in state['chars'].items() if v['alive'] and v.get('present', True)]
-        dead = [c for c, v in state['chars'].items() if not v['alive']]
-        if kind == 'doctor' or (cid, idx) == ('C23', 0):  # 教師[3] は学生が対象でも置く／取り除くを選ぶ（先に見ないと 'student' に吸われて候補が0だった）
-            args = [{'target': x, 'mode': m} for x in here for m in ('place', 'remove')]
-        elif kind in ('char', 'student'):
-            args = [{'target': x} for x in here]
-        elif kind == 'any':
-            args = [{'target': x} for x in alive]
-        elif kind == 'char_or_board':
-            args = [{'target': x} for x in here] + [{'target': 'B:' + area}]
-        elif kind == 'corpse':
-            args = [{'target': x} for x in dead if state['chars'][x]['area'] == area]
-        elif kind == 'corpse_any':
-            args = [{'target': x} for x in dead]
-        elif kind == 'incident':
-            args = [{'incident': i['id'], 'day': d} for i, d in _occurred_this_loop(state)]
-        elif kind == 'ruleX':
-            args = [{'declare': x} for x, v in sets.of(state)['rules'].items() if v['type'] == 'X']
-        elif kind == 'card':
-            args = [{'card': c} for c in state['used'][state['leader']]]
-        elif kind == 'transfer':
-            others = [x for x in here if x != cid]
-            args = [{'from': f, 'to': t, 'counter': k} for f in others for t in others if f != t
-                    for k in (*COUNTERS, None)]
-        elif kind == 'board':
-            args = [{'board': b} for b in AREAS]
-        elif kind == 'critical_any':
-            args = [{'target': x} for x in alive]
-        elif kind == 'critical_here':
-            args = [{'target': x} for x in here]
-        elif kind == 'sheet_incident':
-            incs = [(i['id'], i['day']) for i in state['script']['incidents']]
-            if cid == 'C22':  # A.I.: 選択の要らない事件と、殺人事件（同一エリアの対象）だけを候補にする（ponytail: 全選択の列挙は重い）
-                args = [{'incident': i, 'day': d, 'choice': None} for i, d in incs if i in ('HOSPITAL', 'SUICIDE', 'CORRUPT')]
-                args += [{'incident': i, 'day': d, 'choice': {'target': x}} for i, d in incs if i == 'MURDER' for x in here if x != cid]
-            else:
-                args = [{'incident': i, 'day': d} for i, d in incs]
-        # 以下4つは対象の作り方が抜けていて、宣言の候補に一度も出ていなかった（ユーザーが対AIモードで大物[5] を宣言できなかった、2026-10-10）
-        elif kind == 'territory':  # 大物[5]: テリトリーにいる自身以外
-            args = [{'target': x} for x in alive if x != cid and state['chars'][x]['area'] == state['script'].get('territory')]
-        elif kind == 'char_to_board':  # 幻想[3]: 同一エリアの1人を任意のボードへ
-            args = [{'target': x, 'board': b} for x in here for b in AREAS]
-        elif kind == 'tree':  # ご神木: 同一エリアの他の1人に、自身の上のカウンター1つを
-            args = [{'target': x, 'counter': k} for x in here if x != cid for k in COUNTERS]
-        elif kind == 'any_other':  # 従者[4]: ボードにいる自身以外の生存者
-            args = [{'target': x} for x in alive if x != cid]
-        elif kind == 'proxy':
-            args = [{'target': x, 'idx': j, 'arg': a2} for x in here if x != cid and '大人' in CHARS[x]['tags']
-                    for (c2, j) in ABILITIES if c2 == x
-                    for a2 in _simple_args(state, x, j)]
-        else:
-            args = [None]
-        for a in args:
+        for a in _args(state, cid, idx, full):
             try:
                 check_declaration(state, cid, idx, a)
                 out.append((cid, idx, a))

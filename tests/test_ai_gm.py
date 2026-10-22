@@ -346,3 +346,69 @@ def test_public_ev_has_no_secret_fields(tmp_path):
         assert not ({'actor', 'cause', 'by', 'culprit', 'reason'} & set(e)), e
         assert 'role' not in e or e['kind'] == 'role_public', e
         assert not any(isinstance(v, str) and len(v) == 3 and v[0] == 'C' and v[1:].isdigit() for v in e.values()), e  # カード番号でなく名前
+
+
+def test_appeared_character_stays_on_the_sheet(tmp_path):
+    """一度登場した人物（転校生など）は、次のループでボードから居なくなっても seenChars で推理の欄に残る（ユーザー 2026-10-22）。"""
+    import json
+    t = ai_gm.Table(str(tmp_path), {'loops': 3, 'days': 4, 'set': 'BTX', 'rules': [], 'roles': {}, 'incidents': []})
+    s = _state()
+    s['chars']['C13'] = {'area': 'SCH', 'alive': True, 'par': 0, 'gw': 0, 'int': 0, 'guard': 0}
+    t.show(s=s)
+    st = lambda: json.load(open(tmp_path / 'state.json', encoding='utf-8'))  # noqa: E731
+    assert st()['seenChars'] == []
+    s['chars']['C13'] = dict(s['chars']['C13'], area=None, present=False)
+    t.show(s=s)
+    assert [c['name'] for c in st()['seenChars']] == ['神格'] and st()['seenChars'][0]['absent']
+
+
+def test_ai_incident_choices_are_listed_and_matched():
+    """A.I.[3]: 事件効果でリーダーが決めること（殺人事件の対象・不安拡大の2人・行方不明の先）を盤面に出し、選んだ通りに照合する。
+    以前は殺人事件が対象名なしで同じ表示のまま並び（照合は先頭の対象）、不安拡大などは候補に無かった（ユーザー 2026-10-22）。"""
+    s = _state()
+    s['chars']['C22'] = {'area': 'CIT', 'alive': True, 'par': 0, 'gw': 3, 'int': 0, 'guard': 0}
+    s['chars']['C27'] = {'area': 'CIT', 'alive': True, 'par': 0, 'gw': 0, 'int': 0, 'guard': 0}
+    s['script']['incidents'] = [{'id': 'MURDER', 'day': 3, 'culprit': 'C08'}, {'id': 'SPREAD', 'day': 2, 'culprit': 'C08'},
+                                {'id': 'MISSING', 'day': 4, 'culprit': 'C08'}]
+    ch = ai_gm.HumanProtagonist._options(s)['A.I.#0']['choices']
+    labs = [c['label'] for c in ch]
+    assert len(labs) == len(set(labs))  # 同じ表示が並ばない
+    murder = [c for c in ch if '殺人事件' in c['label']]
+    assert sorted(c['send']['choice']['target'] for c in murder) == ['C21', 'C27']
+    assert any('不安拡大' in x for x in labs)
+    assert [c['send']['choice'] for c in ch if '行方不明' in c['label']] == [{'board': 'CIT'}]  # A.I. の禁止エリアへは出さない
+    pick = murder[-1]['send']
+    got = ai_gm.HumanProtagonist._match(s, {'char': 'A.I.', 'ability': 0, **pick})
+    assert got[2]['choice'] == pick['choice']
+
+
+def test_every_ability_choice_round_trips():
+    """どの友好能力でも、盤面に出す1件（表示名と送る中身）を選ぶと、照合がその宣言そのものに戻り、同じ能力の中で表示名が重ならない。
+    A.I.[3] の事件の選択（2026-10-22）・妹[5] の使わせる能力のように、エンジンの引数の一部を送っていない能力を見つける水平展開。"""
+    import random
+    from engine import abilities as ab
+    from engine.resolve import CHARS
+    areas = ['HOS', 'SHR', 'CIT', 'SCH']
+    seen = set()
+    for seed in range(40):
+        r = random.Random(seed)
+        cast = r.sample(sorted(c for c in CHARS if c not in ('C33', 'C22', 'C31')), 8) + ['C22', 'C31']  # A.I.・妹は毎回入れる
+        s = {'loop': 1, 'day': 2, 'leader': 'A',
+             'script': {'rules': ['Y_SEAL', 'X_FRIENDS'], 'roles': {}, 'territory': 'CIT', 'set': 'BTX',
+                        'incidents': [{'id': i, 'day': d, 'culprit': cast[0]} for d, i in enumerate(['MURDER', 'SPREAD', 'MISSING', 'REMOTE', 'RUMOR_SPREAD', 'BUTTERFLY', 'HOSPITAL'], 1)]},
+             'boards': {a: r.randint(0, 2) for a in areas}, 'used': {p: ['PAR+1', 'GW+1'] for p in 'MABC'},
+             'chars': {c: {'area': r.choice(areas[:2]), 'alive': r.random() > .15, 'par': r.randint(0, 3), 'gw': 8, 'int': r.randint(0, 3), 'guard': r.randint(0, 1)} for c in cast},
+             'ability_used_today': [], 'ability_used_loop': []}
+        labels = {}
+        for c, i, a in ab.declaration_options(s, full=True):
+            send, lab = ai_gm._lab_send(a or {})
+            key = (c, i)
+            assert '・'.join(lab) not in labels.setdefault(key, set()), (seed, ai_gm.name(c), i, lab)
+            labels[key].add('・'.join(lab))
+            got = ai_gm.HumanProtagonist._match(s, {'char': ai_gm.name(c), 'ability': i, **send})
+            assert got == (c, i, a), (seed, ai_gm.name(c), i, a, got)
+            seen.add(key)
+    assert ('C22', 0) in seen and ('C31', 0) in seen and len(seen) > 30
+    # 妹[5] は大人の友好能力1つを使わせる（カード）。対象を取らない能力（情報屋のルールの宣言など）も候補に出る
+    s['chars'].update({'C31': dict(area='CIT', alive=True, par=0, gw=5, int=0, guard=0), 'C07': dict(area='CIT', alive=True, par=0, gw=0, int=0, guard=0)})
+    assert any(c == 'C31' and a['target'] == 'C07' and 'declare' in (a['arg'] or {}) for c, i, a in ab.declaration_options(s, full=True))

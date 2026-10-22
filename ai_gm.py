@@ -63,6 +63,17 @@ PHASE_JA = {'loop_start': 'ループの準備', 'turn_start': 'ターン開始�
             'turn_end': 'ターン終了フェイズ', 'loop_end_check': 'ループ終了時の判定', 'time_gap': '時の狭間'}
 
 
+def _choice_ja(c):
+    """A.I.[3] の事件効果の選択の表示名。"""
+    if 'par_target' in c:
+        return f"不安+2 {name(c['par_target'])}・暗躍+1 {name(c['int_target'])}"
+    if 'from' in c:
+        return f"友好2 {name(c['from'])} → {name(c['to'])}"
+    if 'board' in c:
+        return f"→ {AREA_JA.get(c['board'], c['board'])}"
+    return name(c['target']) + (f"に{COUNTER_JA.get(c['counter'], c['counter'])}+1" if c.get('counter') else '')
+
+
 class Table:
     """ゲームの置き場所（state.json・log.jsonl・inbox.jsonl・deduce.json）の読み書き。"""
 
@@ -77,6 +88,7 @@ class Table:
         self.reveal = None  # ゲーム終了後の非公開シート（盤面のダイアログ）
         self.reply = ''  # 「脚本家の返答」の欄（反則の置き方などの知らせ。公開ログには書かない＝振り返りに出さない）
         self.inc_result = {}
+        self.seen = {}  # 一度でもボードに登場した人物（名前 → 最後に見えた駒）。推理の欄に残す
         self.loop_hist = {}  # ループの記録（公開の事実だけ）: ループ → {incidents, deaths, roles, end}。盤面の推理の「ループの記録」
         self.last_phase = None
         self.ability_options = None
@@ -150,6 +162,9 @@ class Table:
         for ch in pub['characters']:
             if ch['name'] in rev:
                 ch['role'] = rev[ch['name']]
+        here = {ch['name'] for ch in pub['characters']}
+        self.seen.update({ch['name']: {k: ch[k] for k in ('name', 'limit') if k in ch} for ch in pub['characters']})
+        pub['seenChars'] = [dict(c, absent=True) for n, c in self.seen.items() if n not in here]
         for i in pub['incidents']:
             i['effect'] = INC_EFFECT.get(i['name'], '')
             r = self.inc_result.get((self.s['loop'], i['day']))
@@ -238,6 +253,44 @@ def ability_label(cid, idx):
     """友好能力の表示名（盤面のメニューと同じ「[友好]★ 文面」。公開のキャラクター情報から）。"""
     a = next((x for x in PUBCHARS.get(cid, {}).get('abilities', []) if x['idx'] == idx), None)
     return f"[{a['need']}]{'★' if a['once'] else ''} {a['text']}" if a else f'{cid}#{idx}'
+
+
+def _lab_send(a):
+    """合法な宣言1件の表示名（の部分）と、盤面が送る中身。盤面はこれを並べるだけ（plan/engine-api.md 3章: 合法な手はエンジンだけが出す）。"""
+    send, lab = {}, []
+    if a.get('target'):
+        send['target'] = name(a['target']) if a['target'] in CHARS else a['target']
+        lab.append(AREA_JA.get(a['target'][2:], a['target']) + '（ボード）' if a['target'].startswith('B:') else name(a['target']))
+    if 'from' in a:
+        send.update({'from': name(a['from']), 'to': name(a['to']), 'counter': COUNTER_JA.get(a.get('counter'))})
+        lab.append(f"{name(a['from'])} → {name(a['to'])}" + (f"（{COUNTER_JA.get(a.get('counter'))}）" if a.get('counter') else ''))
+    if a.get('mode'):
+        m = {'remove': '取り除く', 'place': '置く'}.get(a['mode'])
+        send['mode'] = m
+        lab.append(f'不安を{m}')
+    if a.get('board'):
+        send['board'] = a['board']
+        lab.append(f"→ {AREA_JA.get(a['board'], a['board'])}")
+    if a.get('counter') and 'from' not in a:
+        send['counter'] = COUNTER_JA.get(a['counter'], a['counter'])
+        lab.append(f"{COUNTER_JA.get(a['counter'], a['counter'])}を移す")
+    if a.get('declare'):
+        send['declare'] = RULE_JA.get(a['declare'], a['declare'])
+        lab.append(f"ルール「{send['declare']}」を宣言")
+    if a.get('incident'):
+        send.update({'incident': INC_JA.get(a['incident'], a['incident']), **({'day': a['day']} if a.get('day') else {})})
+        lab.append(f"{a.get('day', '')}日 {INC_JA.get(a['incident'], a['incident'])}")
+    if a.get('choice'):  # A.I.[3]: 事件効果でリーダーが決めること
+        send['choice'] = a['choice']
+        lab.append(_choice_ja(a['choice']))
+    if a.get('card'):
+        send['card'] = CARD_UI.get(a['card'], a['card'])
+        lab.append(f"札 {send['card']}")
+    if 'idx' in a:  # 妹[5]: 対象の大人の友好能力（番号と、その能力の引数）。以前は送らず、照合が対象の最初の能力になっていた
+        send.update({'idx': a['idx'], 'arg': a.get('arg')})
+        sub = _lab_send(a.get('arg') or {})[1]
+        lab.append(ability_label(a['target'], a['idx']) + (f"（{'・'.join(sub)}）" if sub else ''))
+    return send, lab
 
 
 class RecordingMM:
@@ -475,7 +528,7 @@ class HumanProtagonist:
     def _options(s):
         """いま合法な宣言を、盤面のメニュー向けに {'キャラ名#番号': {'targets': [...], 'modes': [...]}}。"""
         out = {}
-        for c, i, a in ab.declaration_options(s):
+        for c, i, a in ab.declaration_options(s, full=True):
             a = a or {}  # 引数の無い能力（巫女[3] など）は None
             o = out.setdefault(f'{name(c)}#{i}', {'targets': [], 'modes': []})
             t = a.get('target')
@@ -488,32 +541,7 @@ class HumanProtagonist:
             m = {'remove': '取り除く', 'place': '置く'}.get(a.get('mode'))
             if m and m not in o['modes']:
                 o['modes'].append(m)
-            # 合法な宣言1件ずつ（表示名と、盤面が送る中身）。盤面はこれを並べるだけ（plan/engine-api.md 3章: 合法な手はエンジンだけが出す）
-            send, lab = {}, []
-            if a.get('target'):
-                send['target'] = name(a['target']) if a['target'] in CHARS else a['target']
-                lab.append(AREA_JA.get(a['target'][2:], a['target']) + '（ボード）' if a['target'].startswith('B:') else name(a['target']))
-            if 'from' in a:
-                send.update({'from': name(a['from']), 'to': name(a['to']), 'counter': COUNTER_JA.get(a.get('counter'))})
-                lab.append(f"{name(a['from'])} → {name(a['to'])}" + (f"（{COUNTER_JA.get(a.get('counter'))}）" if a.get('counter') else ''))
-            if a.get('mode'):
-                send['mode'] = m
-                lab.append(f'不安を{m}')
-            if a.get('board'):
-                send['board'] = a['board']
-                lab.append(f"→ {AREA_JA.get(a['board'], a['board'])}")
-            if a.get('counter') and 'from' not in a:
-                send['counter'] = COUNTER_JA.get(a['counter'], a['counter'])
-                lab.append(f"{COUNTER_JA.get(a['counter'], a['counter'])}を移す")
-            if a.get('declare'):
-                send['declare'] = RULE_JA.get(a['declare'], a['declare'])
-                lab.append(f"ルール「{send['declare']}」を宣言")
-            if a.get('incident'):
-                send.update({'incident': INC_JA.get(a['incident'], a['incident']), **({'day': a['day']} if a.get('day') else {})})
-                lab.append(f"{a.get('day', '')}日 {INC_JA.get(a['incident'], a['incident'])}")
-            if a.get('card'):
-                send['card'] = CARD_UI.get(a['card'], a['card'])
-                lab.append(f"札 {send['card']}")
+            send, lab = _lab_send(a)
             o.setdefault('choices', []).append({'label': '・'.join(lab) or '（対象なし）', 'send': send})
         return out
 
@@ -540,9 +568,13 @@ class HumanProtagonist:
             want['incident'] = JA2INC.get(rec['incident'], rec['incident'])
         if rec.get('day'):  # 同じ名前の事件が2つある脚本（2日・4日の遠隔殺人など）
             want['day'] = rec['day']
+        if 'idx' in rec:  # 妹[5]: 使わせる能力（エンジンの形のまま送られる）
+            want.update({'idx': rec['idx'], 'arg': rec.get('arg')})
+        if rec.get('choice'):  # A.I.[3]: 事件効果の選択（エンジンの形のまま送られる）
+            want['choice'] = rec['choice']
         if rec.get('card'):  # 委員長[2]: 手札に戻す札（盤面は表示名で送る）。以前は見ておらず、使用済みの先頭の札が戻っていた
             want['card'] = UI2CARD.get(rec['card'], rec['card'])
-        for c, i, a in ab.declaration_options(s):
+        for c, i, a in ab.declaration_options(s, full=True):
             if c == cid and i == idx and all((a or {}).get(k) == v for k, v in want.items() if k in (a or {})):
                 return (c, i, a)
         return None

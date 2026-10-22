@@ -48,9 +48,9 @@ body.log-closed #board { --logh:38px; }
 .pane > .ph .tog { background:none; border:none; color:var(--acc); font-weight:700; padding:2px 4px; text-align:left; flex:1; }
 .pane > .ph .tog:focus-visible { outline:2px solid var(--acc); }
 .pane > .body { flex:1; overflow-y:auto; min-height:0; padding:6px; }
-/* 札を選ぶ間は手札と『確定して送る』、友好能力の間は友好能力の一覧を操作の列の上に（広い画面では公開シート帯だけその上） */
-#p-ops > .body { display:flex; flex-direction:column; } #p-ops .sec-hands { order:-2; } #p-ops .sec-send { order:-1; } body.phase-ability #abilsec { order:-3; }
-@media (min-width:1300px) { #watchbar, #sheetbar { order:-9; } }
+/* 操作の列: 公開シート帯 → 送信待ち（2番目で固定）→ 札を選ぶ間は手札、友好能力の間は友好能力の一覧（ユーザー指示） */
+#p-ops > .body { display:flex; flex-direction:column; } #watchbar, #sheetbar { order:-9; } #p-ops .sec-send { order:-8; }
+#p-ops .sec-hands { order:-7; } body.phase-ability #abilsec { order:-7; } body.phase-ability #p-ops .sec-hands { order:-6; }
 .pane.closed { width:30px; }
 .pane.closed > .body, .pane.closed > .ph .extra { display:none; }
 .pane.closed > .ph { flex-direction:column; height:100%; border-bottom:none; border-radius:4px; padding:6px 0; }
@@ -424,7 +424,7 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
     <section><h3>ルール <span class="mut">（Basic Tragedy X。印は自分で付ける）</span> <span id="rule-warn" class="warnm"></span></h3><table class="sh" id="sh-rules"></table></section>
     <section><h3>マトリクス ― ルールと役職の員数</h3><table class="sh" id="sh-mat"></table></section>
     <section><h3>役職の能力 <span class="mut">（早見表）</span></h3><table class="sh" id="sh-rabil"></table></section>
-    <section><h3>敗北条件 <span class="mut">（ループごとに、起きたかを自分で付ける）</span></h3><table class="sh" id="sh-loss"></table></section>
+    <section><h3>敗北条件 <span class="mut">（ループごとに、起きたかを自分で付ける）</span></h3><table class="sh" id="sh-loss"></table><div id="sh-lossend" class="mut"></div></section>
     <section><h3>事件 ― 誰が犯人か</h3><table class="sh" id="sh-inc"></table></section>
     <section><h3>資料 <span class="mut">（キャラクター・役職・ルール・事件の文面。言葉で探す）</span></h3><input id="refq" placeholder="例: 医者、暗躍、ループ終了時" aria-label="資料を探す" style="width:100%;box-sizing:border-box"><div id="refl" class="refl"></div></section>
     <section><h3>ループの記録 <span class="mut">（公開された事実だけ。終わり方は推理の大事な手がかり）</span></h3><div class="rgwrap"><table class="sh" id="sh-loops"></table></div></section>
@@ -923,6 +923,7 @@ document.addEventListener('click', e => {
 });
 function rpOn() { try { return RP.on; } catch { return false; } }  // RP は後で定義される（読み込みの途中でも呼ばれる）
 function renderSheet() {
+  const SC = [...(S.characters || []), ...(S.seenChars || [])];  // 一度登場した人物は、ボードから居なくなっても推理の欄に残す（転校生など）
   applySecs();
   if (S.game && NOTES._game && NOTES._game !== S.game && !viewing && !rpOn()) { dropGameNotes(); NOTES._game = S.game; }  // 前の試合の書き込みは出さない
   if (document.activeElement && document.activeElement.closest && document.activeElement.closest('#p-sheet table:not(.rg)')) return;  // 書いている途中は描き直さない
@@ -953,7 +954,10 @@ function renderSheet() {
   $('sh-loss').innerHTML = '<tr><th>敗北条件（いつ）</th><th>もと</th>' + Array.from({ length: loops }, (_, i) => `<th>L${i + 1}</th>`).join('') + '</tr>'
     + LOSS.map(([what, when, from, src], j) => `<tr><td>${esc(what)} <span class="mut">（${esc(when)}）</span></td><td class="mut">${esc(from)}${lossEng(src) ? `<div class="eng">エンジン ${lossEng(src)}</div>` : ''}</td>`
       + Array.from({ length: loops }, (_, i) => `<td>${noteSel(`g.loss.${j}.L${i + 1}`, ['—', '起きた', '起きていない'], ['—', '○', '×'])}</td>`).join('') + '</tr>').join('');
-  const names = (S.characters || []).map(c => c.name);
+  // 各ループの公開された終わり方と死亡（ループの記録と同じ中身）を表の下に。理由（どの敗北条件か）は公開されないので出さない
+  setHTML('sh-lossend', ((S.loopHistory || []).length ? '<div style="margin-top:4px">公開された終わり方（どの敗北条件かは公開されない）</div>' : '') + (S.loopHistory || []).map(h => `<div><b>L${h.loop}</b> ${esc(h.end ? h.end.text : h.loop === S.loop ? '（続いている）' : '—')}`
+    + `${(h.deaths || []).length ? '・死亡: ' + esc(h.deaths.map(x => (x.day ? x.day + '日 ' : '') + x.name).join('・')) : ''}</div>`).join(''));
+  const names = SC.map(c => c.name);
   const ps = S.publicSheet;
   $('sh-pub').innerHTML = ps ? `<b style="color:var(--fg)">${esc(ps.set)}</b>　ループ ${ps.loops} 回 × ${ps.days} 日`
     + (ps.territory ? `<br>テリトリー（大物）: ${esc(ps.territory)}` : '')
@@ -977,10 +981,10 @@ function renderSheet() {
   const capAll = k => { const y = Math.max(0, ...rr.filter(([, r]) => r.type === 'Y').map(([, r]) => (r.roles || {})[k] || 0));
     const xs = rr.filter(([, r]) => r.type === 'X').map(([, r]) => (r.roles || {})[k] || 0).sort((a, b) => b - a); return y + (xs[0] || 0) + (xs[1] || 0); };  // ルールY 1つ・X 2つで最大何人
   const need = k => { if (k === 'PERSON' || !ux('need')) return '';
-    if (!anyMark) { const got = (S.characters || []).filter(c => cell(c.name, k) === '◎').length, cap = capAll(k);
+    if (!anyMark) { const got = SC.filter(c => cell(c.name, k) === '◎').length, cap = capAll(k);
       return got > cap ? `<div class="need bad" title="この役職は多くても ${cap} 人（ルールの組み合わせの最大）。◎ は ${got}">! 多い</div>` : ''; }
     const lo = marks.filter(([, m]) => m === '確定').reduce((a, [r]) => a + ((r.roles || {})[k] || 0), 0), hi = lo + marks.filter(([, m]) => m === '候補').reduce((a, [r]) => a + ((r.roles || {})[k] || 0), 0);
-    const got = (S.characters || []).filter(c => cell(c.name, k) === '◎').length;
+    const got = SC.filter(c => cell(c.name, k) === '◎').length;
     return `<div class="need${got > hi ? ' bad' : ''}" title="あなたの印から（ルールの欄の確定・候補 × 早見表の員数）。この列の◎は ${got}">${got > hi ? '! ' : ''}${lo === hi ? '必要 ' + lo : lo + '〜' + hi}</div>`; };
   { const lim = /First Steps/.test((S.publicSheet || {}).set || '') ? { Y: 1, X: 1 } : /Basic Tragedy X/.test((S.publicSheet || {}).set || '') ? { Y: 1, X: 2 } : null;
     const n = t => marks.filter(([r, m]) => m === '確定' && r.type === t).length;
@@ -988,7 +992,7 @@ function renderSheet() {
   const abilOf = n => { const r = ROLE_ABIL.find(x => x[0] === n); return r ? `${n}（上限 ${r[1]}）: ${r[3]}` : n; };  // 役職名に触れると早見表の能力（資料の吹き出し）
   setHTML('sh-grid', '<tr><th>人物</th>' + cols.map(k => { const n = k === 'PERSON' ? 'パーソン' : ROLENAMES[k] || k;
     return `<th class="${colGone(k) ? 'gone' : ''}" title="${esc(abilOf(n))}">${esc(n)}${need(k)}${has && k !== 'PERSON' ? `<span class="eng">${engN(expRole(n))}</span>` : ''}</th>`; }).join('') + '</tr>'
-    + (S.characters || []).map((ch, i) => {
+    + SC.map((ch, i) => {
       const p = pick(ch.name);
       return `<tr data-row="${esc(ch.name)}"><th class="rowh" role="button" tabindex="-1" title="押すとメモ欄へ">${esc(ch.name)}</th>` + cols.map((k, j) => {
         const v = cell(ch.name, k), soft = !v && p && p !== k ? '·✕' : '', rn = k === 'PERSON' ? 'パーソン' : ROLENAMES[k] || k;
@@ -1004,7 +1008,7 @@ function renderSheet() {
   const ro = cols.map(k => `<option value="${k}">${esc(k === 'PERSON' ? 'パーソン' : ROLENAMES[k] || k)}</option>`).join('');
   if ($('gvrole').dataset.opts !== ro) { const v = $('gvrole').value; $('gvrole').innerHTML = ro; $('gvrole').dataset.opts = ro; if (v) $('gvrole').value = v; }
   const rk = $('gvrole').value || cols[0];
-  setHTML('sh-byrole', (S.characters || []).map(ch => { const v = cell(ch.name, rk), p = pick(ch.name), soft = !v && p && p !== rk;
+  setHTML('sh-byrole', SC.map(ch => { const v = cell(ch.name, rk), p = pick(ch.name), soft = !v && p && p !== rk;
     return `<button class="gc2 ${soft ? 'soft' : ''}" data-cell="${esc(ch.name + '|' + rk)}">${esc(ch.name)}<b>${v || (soft ? '·✕' : '')}</b></button>`; }).join(''));
   // ループの記録（設計資料 8.3 ④）。対AIモードは state.loopHistory、手動モードは gm.py の loop_end() などが書く。事件は incidentHistory でも可（古い手動の試合）
   const LH = S.loopHistory || [], incDays = (S.incidents || []).map(i => i.day);
@@ -1018,7 +1022,7 @@ function renderSheet() {
   const roleOpts = ['未定', ...Object.values(ROLENAMES)];
   const AJ = { HOS: '病院', SHR: '神社', CIT: '都市', SCH: '学校' };
   const areaJ = a => AJ[a] || a || '脚本家が決める';
-  $('sh-chars').innerHTML = '<tr><th>人物</th><th>臨界</th><th>役職（推測）</th><th>メモ</th><th class="eng">エンジン</th></tr>' + (S.characters || []).map(ch => {
+  $('sh-chars').innerHTML = '<tr><th>人物</th><th>臨界</th><th>役職（推測）</th><th>メモ</th><th class="eng">エンジン</th></tr>' + SC.map(ch => {
     const cp = CHARPUB[ch.name] || {};
     const card = cp.name ? `<details class="mut"><summary>初期 ${esc(areaJ(cp.start))}・禁止 ${esc((cp.forbidden || []).map(areaJ).join('・') || 'なし')}・${esc((cp.tags || []).join('・'))}</summary>`
       + (cp.traits ? `<div>特性: ${esc(cp.traits)}</div>` : '')
@@ -1028,7 +1032,7 @@ function renderSheet() {
     const top = e.slice(0, 3).map(([r, p]) => `<span class="${cls(p)}">${esc(r)}${p >= 0.999 ? '' : ' ' + pct(p)}</span>`).join(' ')
       + (e.length > 3 ? ` <span class="mut">他${e.length - 3}</span>` : '')
       + (ei.length && !(e[0] && e[0][1] >= 0.999) ? `<div class="mut" title="脚本家の伏せ札の対象から狙いを読んだ見込み">狙い込み: ${ei.slice(0, 2).map(([r, p]) => esc(r) + ' ' + pct(p)).join(' ')}</div>` : '');
-    return `<tr><td>${esc(ch.name)}${ch.alive === false ? ' <span class="mut">死亡</span>' : ''}${card}</td><td>${ch.limit}</td>
+    return `<tr><td>${esc(ch.name)}${ch.alive === false ? ' <span class="mut">死亡</span>' : ''}${ch.absent ? ' <span class="mut">ボードにいない</span>' : ''}${card}</td><td>${ch.limit}</td>
       <td>${pick(ch.name) ? esc(pick(ch.name) === 'PERSON' ? 'パーソン' : ROLENAMES[pick(ch.name)] || pick(ch.name)) : NOTES['g.role.' + ch.name] && NOTES['g.role.' + ch.name] !== '未定' ? `<span class="mut" title="前の書き込み（役職の選択）">${esc(NOTES['g.role.' + ch.name])}</span>` : '<span class="mut">（格子で ◎）</span>'}</td><td>${noteInp('g.memo.' + ch.name)}</td><td class="eng">${top}</td></tr>`;
   }).join('');
 }
@@ -1719,13 +1723,12 @@ const FLAVOR = ['事件の種をまいている', '誰かの不安を数えて�
   'ループの継ぎ目を確かめている', '古い手帳をめくっている', '窓の外の雨を見ている', '誰が何を知っているかを思い返している', '手札を1枚ずつ並べ替えている',
   '静かに笑っている', '町の地図を広げている', '暗がりで何かをつぶやいている', '昨日の出来事を思い返している', 'ろうそくの火を見つめている',
   'もつれた糸をほどいている', '主人公たちの顔を思い浮かべている', '次の一手を指先で転がしている', '物語の余白に書き込みをしている', '遠くの鐘の音を聞いている'];
-let flav = '', flavAt = 0, thinkSince = 0;
+let flav = '', flavAt = 0;
 function renderThink() {
   const w = S.waiting || {};
   const on = ux('think') && !viewing && (w.kind === 'thinking' || (awaiting && Date.now() - awaiting < 120000));
   document.body.classList.toggle('thinking', !!on);
-  if (!on) thinkSince = 0; else if (!thinkSince) thinkSince = Date.now();
-  $('think').classList.toggle('small', !!on && Date.now() - thinkSince > 3000);
+  $('think').classList.toggle('small', !!on);  // 最初から右上に（ユーザー指示。以前は3秒は画面中央）
   if (on) {
     const th = w.kind === 'thinking', since = th && w.since ? w.since * 1000 : awaiting;
     $('thinktxt').textContent = th ? (w.text || '脚本家が考えています') : S.loop ? '送信しました。処理を待っています' : 'ゲームを準備しています';

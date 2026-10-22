@@ -49,7 +49,9 @@ h2 { color:var(--acc); font-size:20px; margin:0 0 10px; }
 .card p { margin:0; color:#d6d0c4; font-size:14px; }
 ol li, ul li { margin:4px 0; }
 .credit { font-size:12px; color:var(--mut); margin-top:4px; text-align:right; }
-.hero { width:100%; height:auto; border-radius:8px; border:1px solid var(--line); margin-top:16px; }
+.shots { display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; max-width:1100px; margin:20px auto 0; }
+.shots a { color:var(--mut); font-size:13px; text-decoration:none; } .shots span { display:block; margin-top:2px; }
+.shots img { width:100%; height:auto; display:block; border-radius:6px; border:1px solid var(--line); }
 footer { border-top:1px solid var(--line); color:var(--mut); font-size:13px; padding:20px 16px 40px; max-width:880px; margin:0 auto; }
 </style>
 </head>
@@ -59,8 +61,13 @@ footer { border-top:1px solid var(--line); color:var(--mut); font-size:13px; pad
   <p class="lead">ボードゲーム「惨劇RoopeR」を、ブラウザで1人で遊べる非公式のファンツールです。主人公3人を自分で操作して、自動の脚本家と対戦します。インストール不要・無料。</p>
   <div class="ctas"><a class="cta" href="play/">ブラウザで遊ぶ</a><a class="cta2" href="play/editor.html">シナリオを作る</a></div>
   <div class="sub">Chrome・Edge の最近の版。初回は約30MB の読み込み（2回目からは速くなります）</div>
-  <img class="hero" src="hero.jpg" alt="惨劇RoopeR の盤面（病院・神社・都市・学校）" width="1200" height="850" loading="lazy">
-  <div class="credit">画像: <a href="http://bakafire.main.jp/rooper/sr_dl_04_sozai.htm">惨劇コモンズ5th</a>（惨劇コモンズ作成: BakaFire様・NEKOG(紺ノ玲)様、CC BY-SA 2.1 JP）</div>
+  <div class="shots">
+    <a href="shots/1-place.webp"><img src="shots/1-place.webp" alt="手札の札を選び、キャラクターに置いている画面" width="1600" height="900"><span>札を置く</span></a>
+    <a href="shots/2-resolve.webp"><img src="shots/2-resolve.webp" alt="脚本家の札がめくられ、行動解決が進む画面" width="1600" height="900"><span>行動解決の演出</span></a>
+    <a href="shots/3-incident.webp"><img src="shots/3-incident.webp" alt="事件が発生し、推理の欄にエンジンの見込みが出ている画面" width="1600" height="900" ><span>事件と推理の欄</span></a>
+    <a href="shots/4-loss.webp"><img src="shots/4-loss.webp" alt="ループの終わりに敗北した画面" width="1600" height="900" ><span>ループの終わり</span></a>
+  </div>
+  <div class="credit">画面の画像: <a href="http://bakafire.main.jp/rooper/sr_dl_04_sozai.htm">惨劇コモンズ5th</a>（惨劇コモンズ作成: BakaFire様・NEKOG(紺ノ玲)様、CC BY-SA 2.1 JP）</div>
 </header>
 <main>
   <section>
