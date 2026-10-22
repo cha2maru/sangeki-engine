@@ -165,7 +165,7 @@ class Table:
         pub['loop'] = min(pub['loop'], self.script['loops'])  # 最後の戦いではエンジンのループ番号が1つ進んでいる
         pub['live'] = self.replay is None  # 記録から作り直している間は False（途中から再開する盤面が、作り直しの終わりを待つ）
         pub['loopHistory'] = [self.loop_hist[k] for k in sorted(self.loop_hist)]
-        pub.update({'mode': 'ai', 'watch': self.watch, 'reply': self.reply, 'reveal': self.reveal,  # 対AIモード（盤面は手動モード用の欄＝脚本家に伝える・ハッシュ・異議を出さない）
+        pub.update({'mode': 'ai', 'watch': self.watch, 'blind': self.record_file != 'record.json' and not self.reveal,  # 伏せた脚本の試合の途中（判断の記録は非公開） 'reply': self.reply, 'reveal': self.reveal,  # 対AIモード（盤面は手動モード用の欄＝脚本家に伝える・ハッシュ・異議を出さない）
                     'game': self.game, 'phaseId': self.phase_id, 'phaseName': self.phase_name, 'waiting': self.waiting,
                     'loops': self.script['loops'], 'days': self.script['days'],
                     # 盤面は「キャラクター名#番号」で使用済みを判定する（エンジンは「C07#0」）

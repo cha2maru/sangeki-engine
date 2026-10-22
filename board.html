@@ -41,7 +41,6 @@ body.log-closed #board { --logh:38px; }
   #panes { flex-direction:column; width:clamp(260px, 26vw, 340px); }
   #panes .pane { width:auto; flex:1 1 0; resize:none; } #panes .pane.closed { flex:0 0 auto; }
   #panes .pane.closed > .ph { flex-direction:row; height:auto; } #panes .pane.closed > .ph .tog { writing-mode:horizontal-tb; flex:1; }
-  #p-ops > .body { display:flex; flex-direction:column; } #p-ops .sec-hands { order:-2; } #p-ops .sec-send { order:-1; }  /* 確定が画面に入るように */
   #panes #p-ops:not(.closed) { flex-grow:3; } #panes #p-sheet:not(.closed) { flex-grow:2; }
   #hands.placing .hand:not(.turn) { display:none; }
 }
@@ -49,6 +48,9 @@ body.log-closed #board { --logh:38px; }
 .pane > .ph .tog { background:none; border:none; color:var(--acc); font-weight:700; padding:2px 4px; text-align:left; flex:1; }
 .pane > .ph .tog:focus-visible { outline:2px solid var(--acc); }
 .pane > .body { flex:1; overflow-y:auto; min-height:0; padding:6px; }
+/* 札を選ぶ間は手札と『確定して送る』、友好能力の間は友好能力の一覧を操作の列の上に（広い画面では公開シート帯だけその上） */
+#p-ops > .body { display:flex; flex-direction:column; } #p-ops .sec-hands { order:-2; } #p-ops .sec-send { order:-1; } body.phase-ability #abilsec { order:-3; }
+@media (min-width:1300px) { #watchbar, #sheetbar { order:-9; } }
 .pane.closed { width:30px; }
 .pane.closed > .body, .pane.closed > .ph .extra { display:none; }
 .pane.closed > .ph { flex-direction:column; height:100%; border-bottom:none; border-radius:4px; padding:6px 0; }
@@ -70,7 +72,6 @@ summary { cursor:pointer; color:var(--acc); }
   .pane.closed > .ph .tog { writing-mode:horizontal-tb; flex:1; }
   .pane:not(.closed) { resize:none; }
   /* 盤面のすぐ下に手札と『確定して送る』（盤面と確定が最初の画面に入る）。推理は下端の引き出し（閉じるのが既定） */
-  #p-ops > .body { display:flex; flex-direction:column; } #p-ops .sec-hands { order:-2; } #p-ops .sec-send { order:-1; }
   #p-sheet { position:fixed; left:0; right:0; bottom:0; z-index:20; max-height:75vh; box-shadow:0 -6px 18px #000; }
   #p-sheet.closed > .body { display:none; } body { padding-bottom:40px; }
   .azoom { display:block; }
@@ -98,7 +99,7 @@ summary { cursor:pointer; color:var(--acc); }
   #p-ops .sec-hands h3, #p-ops .sec-send h3, #pending li.mut { display:none; }
   /* 操作のボタン（確定・能力の宣言を終える など）は画面の下（推理の引き出しの上）に固定。毎回いちばん下までスクロールしなくてよい（ユーザー指摘） */
   #p-ops .sec-send { position:sticky; bottom:40px; z-index:11; background:var(--panel); border-top:2px solid var(--acc); box-shadow:0 -4px 12px #000; }
-  body.phase-ability #abilsec { order:-3; } body.phase-ability #p-ops .sec-hands { display:none; } #p-ops .sec-hands, #p-ops .sec-send { padding:4px 2px; }
+  body.phase-ability #p-ops .sec-hands { display:none; } #p-ops .sec-hands, #p-ops .sec-send { padding:4px 2px; }
 }
 .area { position:relative; aspect-ratio:1519/1076; background-size:cover; border:2px solid #000; container:area / inline-size; }
 .area.tgt:hover { outline:2px solid var(--acc); }
@@ -193,6 +194,15 @@ button.go { background:var(--acc); color:#000; border-color:var(--acc); font-wei
 #abilsec.now { border-color:var(--acc); box-shadow:0 0 0 1px var(--acc); }
 table.inc { width:100%; border-collapse:collapse; } table.inc td { border-bottom:1px solid var(--line); padding:1px 4px; }
 .today { color:var(--acc); font-weight:700; }
+/* 確認の窓（ブラウザの confirm の代わり。ユーザー指摘「デザインのあるダイアログに」） */
+#ask { position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.6); padding:16px; }
+#ask.on { display:flex; } #ask .box { background:#1b1917; border:1px solid var(--acc); border-radius:8px; box-shadow:0 8px 32px #000; max-width:min(520px, 100%); width:100%; padding:16px 18px; }
+#ask h2 { margin:0 0 10px; font-size:17px; color:var(--acc); } #ask-b { font-size:14px; line-height:1.6; } #ask-b p { margin:6px 0; }
+#ask .btns { display:flex; gap:8px; justify-content:flex-end; margin-top:14px; } #ask .btns button { font-size:15px; padding:6px 16px; }
+#ask .plays { display:flex; flex-wrap:wrap; gap:10px; margin:4px 0 8px; } #ask .play { display:flex; flex-direction:column; align-items:center; gap:2px; font-size:12px; min-width:70px; }
+#ask .play .card { width:52px; height:auto; aspect-ratio:373 / 526; } #ask .play span.card { width:auto; min-width:52px; height:30px; aspect-ratio:auto; }
+#ask .play.once .card { outline:2px solid var(--warn); outline-offset:1px; } #ask .notes { border-left:3px solid var(--warn); padding:4px 8px; background:rgba(224,90,74,.1); border-radius:3px; }
+#ask .notes li { margin:2px 0; } #ask .mut { color:var(--mut); }
 #menu { position:fixed; z-index:20; background:#222; border:1px solid var(--acc); border-radius:4px; min-width:180px; overflow:auto; display:none; box-shadow:0 4px 16px #000; }
 #menu .t { padding:4px 10px; color:var(--acc); font-weight:700; border-bottom:1px solid var(--line); }
 button:disabled { opacity:.45; cursor:not-allowed; }
@@ -222,8 +232,9 @@ table.sh input { width:100%; box-sizing:border-box; }
 #today .dfhint { margin:2px 0 2px 1.6em; font-size:12px; color:#f3dcb4; background:rgba(224,162,74,.12); border-radius:3px; padding:1px 6px; }
 #today .dfmore { margin-left:1.6em; font-size:11px; padding:0 6px; } #df-nav button { font-size:11px; padding:0 6px; margin-left:2px; }
 #sh-mat th:not(:first-child) { writing-mode: vertical-rl; white-space: nowrap; font-size: 11px; padding: 2px 1px; }
-#sh-mat td:not(:first-child) { text-align: center; }
-#sh-mat td:first-child { white-space: nowrap; }
+#sh-mat td:not(:first-child) { text-align: center; padding: 2px 1px; font-size: 11px; }
+#sh-mat td:first-child { min-width: 4em; }
+div.eng { display:none; } body.eng-on div.eng { display:block; }  /* 列を足さず、セルの2行目にエンジンの値（推理の欄を横にはみ出させない） */
 #board .area { position: relative; }
 #placeline { display:none; }  /* 狭い画面だけ（下の @media で出す） */
 #board .area .turf { position: absolute; right: 6px; bottom: 6px; width: 44px; height: 44px; border-radius: 50%; pointer-events: none; }
@@ -426,6 +437,7 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
 </div>
 <p class="mut" style="margin:8px 12px">画像: <a href="http://bakafire.main.jp/rooper/sr_dl_04_sozai.htm" target="_blank" style="color:var(--mut)">惨劇コモンズ5th</a>（惨劇コモンズ作成: BakaFire様・NEKOG(紺ノ玲)様、CC BY-SA 2.1 JP）</p>
 <div id="menu"></div>
+<div id="ask" role="dialog" aria-modal="true" aria-labelledby="ask-t"><div class="box"><h2 id="ask-t"></h2><div id="ask-b"></div><div class="btns"><button id="ask-no"></button><button class="go" id="ask-ok"></button></div></div></div>
 <div id="think" role="status" aria-live="polite"><div class="t"><span class="spin"></span><span id="thinktxt">脚本家が考えています</span><span id="thinksec" class="mut" aria-hidden="true"></span></div>
   <div class="pbar" id="thinkbar"><i></i></div><div class="step" id="thinkstep" aria-hidden="true"></div><div class="flav" id="thinkflav" aria-hidden="true"></div></div>
 <div id="scene"><div class="box"><h2 id="sc-t"></h2><div class="sub" id="sc-s"></div><div class="body"><ul id="sc-l"></ul></div>
@@ -741,11 +753,13 @@ document.addEventListener('keydown', e => {
 $('board').addEventListener('pointerdown', () => { if (Date.now() < fxBusyUntil) fxSkip(); }, true);  // 演出を飛ばし、その入力もそのまま行う（レビュー R18）
 const lastHTML = {};
 function setHTML(id, h) { if (lastHTML[id] !== h) { lastHTML[id] = h; $(id).innerHTML = h; } }
+let lastKind;
 function renderMain() {
   const w = S.waiting || {};
   document.body.classList.toggle('mode-ai', S.mode === 'ai' || canStart);
   document.body.classList.toggle('watching', !!S.watch);
   document.body.classList.toggle('timegap', (S.waiting || {}).kind === 'time_gap');
+  if (w.kind !== lastKind) { lastKind = w.kind; $('p-ops').querySelector('.body').scrollTop = 0; }  // 選ぶものが変わったら、上に来た一覧が見えるように
   document.body.classList.toggle('phase-ability', (S.waiting || {}).kind === 'ability');  // 観戦: 操作の欄は観戦の欄に（手札・送信・友好能力は出さない）  // 開始画面のあるサーバー＝対AIモード（試合の前も）
   if ($('welcome').classList.contains('on') && $('wl-close').style.display) $('wl-cont').style.display = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '' : 'none';
   $('band').innerHTML = S.loop ? `<span>ループ <b>${S.loop}</b>/${S.loops}</span><span>日 <b>${S.day ?? '-'}</b>/${S.days}</span>
@@ -858,11 +872,11 @@ fetch('/notes').then(r => r.json()).then(n => { NOTES = n || {}; renderSheet(); 
 let engOn = false; try { engOn = localStorage.getItem('eng') === '1'; } catch {}
 const qEng = new URLSearchParams(location.search).get('eng'); if (qEng != null) engOn = qEng === '1';
 function applyEng() { document.body.classList.toggle('eng-on', engOn); $('engbtn').setAttribute('aria-pressed', String(engOn)); }
-$('engbtn').onclick = () => {
+$('engbtn').onclick = async () => {
   // 初めて押すときに確かめる（答えに近い情報。設計資料 8.3 ⑥）。一度確かめたら、このブラウザでは聞かない
   let ok = false; try { ok = localStorage.getItem('eng-ok') === '1'; } catch {}
   if (!engOn && !ok) {
-    if (!confirm('公開された出来事から、ルール上ありうる組み合わせを数えた割合を、推理の欄に重ねて出します。\n答えに近い情報です。自分で考えたいときは押さないでください。\n\n出しますか？')) return;
+    if (!await ask({ title: 'エンジンの候補を出しますか？', html: '<p>公開された出来事から、ルール上ありうる組み合わせを数えた割合を、推理の欄に重ねて出します。</p><p><b>答えに近い情報です。</b>自分で考えたいときは出さないでください。</p>', ok: '出す', cancel: 'やめる' })) return;
     try { localStorage.setItem('eng-ok', '1'); } catch {}
   }
   engOn = !engOn; try { localStorage.setItem('eng', engOn ? '1' : '0'); } catch {} applyEng();
@@ -870,7 +884,7 @@ $('engbtn').onclick = () => {
 applyEng();
 const pct = p => `${Math.round(p * 100)}%`;
 const cls = p => p >= 0.999 ? 'e-yes' : p <= 0 ? 'e-no' : p >= 0.5 ? 'e-hi' : 'e-mid';
-const noteSel = (key, opts) => `<select data-note="${esc(key)}">${opts.map(o => `<option ${NOTES[key] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+const noteSel = (key, opts, lab = opts) => `<select data-note="${esc(key)}">${opts.map((o, i) => `<option value="${esc(o)}" title="${esc(o)}" ${NOTES[key] === o ? 'selected' : ''}>${esc(lab[i])}</option>`).join('')}</select>`;
 const noteInp = key => `<input data-note="${esc(key)}" value="${esc(NOTES[key] || '')}">`;
 const ROLE_ABIL = [["キーパーソン", "—", "—", "【強制: このキャラクターの死亡時】主人公は敗北し、直ちにループを終了する。"], ["キラー", "—", "友好無視", "【任意能力: ターン終了フェイズ】同一エリアのキーパーソンに暗躍が2つ以上→キーパーソンを死亡させる。\n【任意能力: ターン終了フェイズ】このキャラクターに暗躍が4つ以上→主人公を死亡させる。"], ["クロマク", "—", "友好無視", "【任意能力: 脚本家能力フェイズ】同一エリアのキャラクター1人、またはこのキャラクターのいるボードに暗躍を1つ置く。"], ["カルティスト", "—", "絶対友好無視", "【任意能力: 行動解決フェイズ】同一エリアのキャラクター、またはこのキャラクターのいるボードへの暗躍禁止を無視してもよい。"], ["タイムトラベラー", "—", "—", "【強制: 常時】このキャラクターは死亡しない。\n【強制: 行動解決フェイズ】このキャラクターへの友好禁止を無視する。\n【任意能力: 最終日のターン終了フェイズ】このキャラクターに友好が2つ以下→主人公は敗北し、直ちにループを終了する。"], ["ウィッチ", "—", "絶対友好無視", "（能力欄は空。ルールY「巨大時限爆弾Xの存在」の敗北条件が初期エリアを参照する）"], ["フレンド", "2", "—", "【敗北条件: ループ終了時】このカードが死亡している。その場合、このカードの役職を公開する。\n【強制: ループ開始時】このキャラクターの役職が公開されたことがある→このキャラクターに友好を1つ置く。"], ["ミスリーダー", "1", "—", "【任意能力: 脚本家能力フェイズ】同一エリアのキャラクター1人に不安を1つ置く。"], ["ラバーズ", "—", "—", "【強制: メインラバーズの死亡時】このキャラクターに不安を6つ置く。"], ["メインラバーズ", "—", "—", "【強制: ラバーズの死亡時】このキャラクターに不安を6つ置く。\n【任意能力: ターン終了フェイズ】このキャラクターに暗躍が1つ以上かつ不安が3つ以上→主人公を死亡させる。"], ["シリアルキラー", "—", "—", "【強制: ターン終了フェイズ】このキャラクターと同一エリアにいるキャラクターが1人だけ→そのキャラクターを死亡させる。"], ["ファクター", "—", "友好無視", "【強制: 常時】学校に暗躍が2つ以上→このキャラクターはミスリーダーの能力を得る。（役職自体は変化しない。）\n【強制: 常時】都市に暗躍が2つ以上→このキャラクターはキーパーソンの能力を得る。（役職自体は変化しない。）"]];  // wiki/concepts/role-abilities.md（早見表と照合済み）から生成
 const LOSS = [
@@ -927,19 +941,18 @@ function renderSheet() {
   // 役職の見込み人数＝各人物がその役職である確率の和（上限1の役職なら「いる確率」と同じ）
   const expRole = rn => has ? Object.values(d.roles || {}).reduce((a, m) => a + (m[rn] || 0), 0) : null;
   const engN = n => n == null ? '' : `<span class="${n >= 0.999 ? 'e-yes' : n <= 0.001 ? 'e-no' : 'e-mid'}">${n <= 0.001 ? 'いない' : n.toFixed(n >= 0.995 && Math.abs(n - Math.round(n)) < 0.005 ? 0 : 2) + '人'}</span>`;
-  $('sh-mat').innerHTML = '<tr><th>ルール</th>' + roleIds.map(k => `<th>${esc(ROLENAMES[k] || k)}</th>`).join('') + '<th class="eng">エンジン</th></tr>'
-    + rr.map(([id, r]) => `<tr><td>${r.type} ${esc(r.name)}</td>` + roleIds.map(k => `<td>${r.roles && r.roles[k] ? r.roles[k] : ''}</td>`).join('')
-      + `<td class="eng">${engP(has ? d.rules[r.name] : null)}</td></tr>`).join('')
-    + (has ? '<tr><td class="eng">見込み人数</td>' + roleIds.map(k => `<td class="eng">${engN(expRole(ROLENAMES[k] || k))}</td>`).join('') + '<td class="eng"></td></tr>' : '');
+  $('sh-mat').innerHTML = '<tr><th>ルール</th>' + roleIds.map(k => `<th>${esc(ROLENAMES[k] || k)}</th>`).join('') + '</tr>'
+    + rr.map(([id, r]) => `<tr><td>${r.type} ${esc(r.name)}${has ? `<div class="eng">エンジン ${engP(d.rules[r.name])}</div>` : ''}</td>` + roleIds.map(k => `<td>${r.roles && r.roles[k] ? r.roles[k] : ''}</td>`).join('') + '</tr>').join('')
+    + (has ? '<tr><td class="eng">見込み人数</td>' + roleIds.map(k => `<td class="eng" style="writing-mode:vertical-rl">${engN(expRole(ROLENAMES[k] || k))}</td>`).join('') + '</tr>' : '');
   $('sh-rabil').innerHTML = '<tr><th>役職</th><th>上限</th><th>条文能力</th><th>能力</th><th class="eng">エンジン</th></tr>'
     + ROLE_ABIL.map(([n, cap, cond, ab]) => `<tr><td>${esc(n)}</td><td>${esc(cap)}</td><td>${esc(cond)}</td><td style="white-space:pre-line">${esc(ab)}</td><td class="eng">${engN(expRole(n))}</td></tr>`).join('');
   // 敗北条件: 早見表のルールの追加ルールと役職の能力（wiki/concepts/rule-role-matrix.md・role-abilities.md で照合済み）
   const loops = S.loops || (S.publicSheet || {}).loops || 3;
   // エンジン: その敗北条件のもとになる役職の見込み人数、またはルールの確率
   const lossEng = src => !has || !src ? '' : src[0] === 'rule' ? engP(d.rules[src[1]]) : engN(src.slice(1).reduce((a, rn) => a + expRole(rn), 0));
-  $('sh-loss').innerHTML = '<tr><th>敗北条件</th><th>いつ</th><th>もと</th>' + Array.from({ length: loops }, (_, i) => `<th>L${i + 1}</th>`).join('') + '<th class="eng">エンジン</th></tr>'
-    + LOSS.map(([what, when, from, src], j) => `<tr><td>${esc(what)}</td><td class="mut">${esc(when)}</td><td class="mut">${esc(from)}</td>`
-      + Array.from({ length: loops }, (_, i) => `<td>${noteSel(`g.loss.${j}.L${i + 1}`, ['—', '起きた', '起きていない'])}</td>`).join('') + `<td class="eng">${lossEng(src)}</td></tr>`).join('');
+  $('sh-loss').innerHTML = '<tr><th>敗北条件（いつ）</th><th>もと</th>' + Array.from({ length: loops }, (_, i) => `<th>L${i + 1}</th>`).join('') + '</tr>'
+    + LOSS.map(([what, when, from, src], j) => `<tr><td>${esc(what)} <span class="mut">（${esc(when)}）</span></td><td class="mut">${esc(from)}${lossEng(src) ? `<div class="eng">エンジン ${lossEng(src)}</div>` : ''}</td>`
+      + Array.from({ length: loops }, (_, i) => `<td>${noteSel(`g.loss.${j}.L${i + 1}`, ['—', '起きた', '起きていない'], ['—', '○', '×'])}</td>`).join('') + '</tr>').join('');
   const names = (S.characters || []).map(c => c.name);
   const ps = S.publicSheet;
   $('sh-pub').innerHTML = ps ? `<b style="color:var(--fg)">${esc(ps.set)}</b>　ループ ${ps.loops} 回 × ${ps.days} 日`
@@ -1367,7 +1380,7 @@ function finalMenu(x, y, name) {
   menu(x, y, `${name} の役職を宣言する（その場で判定）`, rs.map(r => ({ label: (mk(r) ? mk(r) + ' ' : '') + r, dim: mk(r) === '✕', go: () => post({ type: 'final', char: name, role: r }) })));
 }
 function ability(x, y, char, idx, label, arg) {
-  const send = extra => { if (/★/.test(label) && ux('confirm') && !confirm(`${char} の ${label} は1ループ1回。宣言しますか？`)) return; post({ type: 'ability', char, ability: idx, label, ...extra }); };
+  const send = async extra => { if (/★/.test(label) && ux('confirm') && !await ask({ title: '1ループ1回の能力', html: `<p><b>${esc(char)}</b> の <b>${esc(label)}</b> は、このループで1回だけ使えます。</p><p class="mut">拒否されても使用済みになります（主人公の書 印刷p23）。</p>`, ok: '宣言する', cancel: 'やめる' })) return; post({ type: 'ability', char, ability: idx, label, ...extra }); };
   // 対AIモードでは、エンジンが「いま合法」とした対象だけを出す（同じエリア・本人以外などの条件。手動モードでは全員）
   const legal = S.abilityOptions ? S.abilityOptions[char + '#' + idx] : undefined;
   if (S.abilityOptions && !legal) return menu(x, y, `${label}`, [{ label: 'いまは使えない（友好・場所・対象・回数を確認）', dim: true, go: () => {} }]);
@@ -1472,19 +1485,18 @@ function renderOptions() {
   const box = $('pending').parentElement;
   box.querySelectorAll('.optbtn').forEach(b => b.remove());
   o.forEach(label => { const b = document.createElement('button'); b.className = 'optbtn go'; b.title = '押すとすぐ送信される'; b.textContent = label;
-    b.style.margin = '6px 6px 0 0'; b.onclick = () => { if (confirmEndFinal(label)) post({ type: 'option', choice: label }); }; box.appendChild(b); });
+    b.style.margin = '6px 6px 0 0'; b.onclick = async () => { if (await confirmEndFinal(label)) post({ type: 'option', choice: label }); }; box.appendChild(b); });
 }
 // 最後の戦い: 『宣言を終える』を押したら、まだ宣言していない人を並べて確かめる（ユーザー 2026-10-17、レビュー R8）。
 // 宣言していない人物はパーソンとして1人ずつ判定されるので、うっかり押すと全員パーソンで答えたことになる
-function confirmEndFinal(label) {
+async function confirmEndFinal(label) {
   if ((S.waiting || {}).kind === 'time_gap' && /^最後の戦いへ/.test(label))
-    return confirm('残りのループを飛ばして、最後の戦いへ進みますか？\n以降のループは行えなくなります（主人公には不利。主人公の書 印刷p20）。');
+    return ask({ title: '最後の戦いへ進みますか？', html: '<p>残りのループを飛ばして、最後の戦いへ進みます。</p><p class="mut">以降のループは行えなくなります（主人公には不利。主人公の書 印刷p20）。</p>', ok: '最後の戦いへ進む', cancel: 'やめる' });
   if ((S.waiting || {}).kind !== 'final' || !/^宣言を終える/.test(label)) return true;
   // まだ宣言していない人を名前で並べて確かめる（全員をパーソンとして1人ずつ判定する。レビュー R8）
   const said = new Set(LOG.filter(l => /^宣言: /.test(l.text || '')).map(l => l.text.replace(/^宣言: (.+?) は .*$/, '$1')));
   const left = (S.characters || []).map(c => c.name).filter(n => !said.has(n));
-  return confirm(`まだ宣言していない ${left.length} 人を、パーソンとして順に宣言します:\n${left.join('・')}\n\n外れた時点で脚本家の勝ちです。送りますか？`
-    + '\n\n役職を宣言するには: 盤面のキャラクターを右クリック →『役職を宣言する（最後の戦い）…』→ 役職を選ぶ。');
+  return ask({ title: `残り ${left.length} 人をパーソンと宣言しますか？`, html: `<p>${left.map(esc).join('・')}</p><p>パーソンとして1人ずつ宣言します。外れた時点で脚本家の勝ちです。</p><p class="mut">役職を宣言するには、キャラクター（または推理の格子の人物名）を押して『役職を宣言する』。</p>`, ok: '宣言する', cancel: 'やめる' });
 }
 
 // ---- 送信 ----
@@ -1518,15 +1530,18 @@ async function post(a) {
     S.reply = `送信しました（#${seq}）。脚本家の処理を待っています…`; $('reply').textContent = S.reply; render();
   } catch { sent.splice(sent.indexOf(rec), 1); render(); alert('送信に失敗しました。サーバーが動いているか確認してください。'); }
 }
-$('send').onclick = () => {
+$('send').onclick = async () => {
   if (!pending.length) return;
   // 気づき（あるときだけ確かめる。設計資料 8.8・7.1）: 1ループ1回の札、暗躍禁止が2枚以上（全部無効）、ボードに暗躍禁止以外（ボードで効くのは暗躍禁止だけ）
   const cards = pending.filter(q => q.type === 'card'), once = cards.filter(q => (PCARDS.find(c => c[0] === q.card) || [])[2]);
   const notes = [...once.map(q => `主人公${q.actor} の ${q.card} は1ループ1回（このループではもう使えなくなる）`),
     ...(cards.filter(q => q.card === '暗躍禁止').length > 1 ? ['暗躍禁止が2枚以上: 主人公どうしの暗躍禁止は全部無効になる'] : []),
     ...cards.filter(q => q.target.startsWith('board:') && q.card !== '暗躍禁止').map(q => `${q.target.slice(6)} に ${q.card}: ボードで効くのは暗躍禁止だけ`)];
-  const sum = cards.map(q => `${q.actor} ${q.target.replace('board:', '')} ← ${q.card}${(PCARDS.find(c => c[0] === q.card) || [])[2] ? '★' : ''}`).join(' ／ ');
-  if (notes.length && ux('confirm') && !confirm(`${sum}\n\n確かめ（事実だけ）:\n・` + notes.join('\n・') + '\n\nこの3枚で確定しますか？（キャンセルで直す）')) return;
+  if (notes.length && ux('confirm')) {
+    const plays = cards.map(q => { const lim = (PCARDS.find(c => c[0] === q.card) || [])[2];
+      return `<div class="play ${lim ? 'once' : ''}">${cardEl(q.actor, q.card, '', '')}<b>主人公${q.actor}</b><span>→ ${esc(tgtName(q.target))}</span>${lim ? '<span class="mut">★1ループ1回</span>' : ''}</div>`; }).join('');
+    if (!await ask({ title: 'この3枚で確定しますか？', html: `<div class="plays">${plays}</div><div class="notes"><b>確かめ（事実だけ）</b><ul>${notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>`, ok: 'この3枚で確定', cancel: '直す' })) return;
+  }
   post({ type: 'cards', placements: pending }); pending = []; render();
 };
 $('clear').onclick = () => { pending = []; render(); };
@@ -1862,9 +1877,9 @@ const RP = {
       if (!d.complete) alert('試合の途中までを書き出しました。脚本の中身（非公開シート）は含みません。');
     } catch (e) { alert('書き出せなかった: ' + e.message); }
   },
-  load(d) {
+  async load(d) {
     if (!d || d.format !== 'sangeki-replay' || !Array.isArray(d.snapshots) || !d.snapshots.length) return alert('リプレイのファイルではありません');
-    if (S.loop && !(S.phaseName || '').startsWith('ゲーム終了') && !RP.on && !confirm('いまの試合の表示をリプレイに切り替えますか？（試合はそのまま続いています。『リプレイを終える』で戻ります）')) return;
+    if (S.loop && !(S.phaseName || '').startsWith('ゲーム終了') && !RP.on && !await ask({ title: 'リプレイに切り替えますか？', html: para('いまの試合の表示をリプレイに切り替えます。' + '（試合はそのまま続いています。『リプレイを終える』で戻ります）'), ok: '切り替える', cancel: 'やめる' })) return;
     clearInterval(pollTimer); backToLive(); closeScene(); $('welcome').classList.remove('on'); $('start').classList.remove('on'); $('reveal').classList.remove('on');
     this.on = true; this.data = d; awaiting = 0; document.body.classList.add('replay');
     const steps = [...d.snapshots]; if (d.final && d.final.loop) steps.push({ prev_n: steps.length ? steps[steps.length - 1].log_n : 0, log_n: d.log.length ? d.log[d.log.length - 1].n : 0, state: d.final });
@@ -1923,7 +1938,8 @@ const RP = {
   },
   // ---- 途中から再開: 記録を「その場面の公開ログの行数」の手前で切り、作り直してから普通の対戦として続ける ----
   async recordAt(step) {  // step: リプレイの場面（なし＝いまの試合の今の場面）
-    const rec = step ? (this.data && this.data.record) : JSON.parse(await (await fetch('/record')).text() || '{}');
+    const rec = step ? (this.data && this.data.record) : await liveRecord();
+    if (rec === null) throw new Error('やめました');
     if (!rec || !rec.v) throw new Error('この試合には判断の記録がありません（以前に書き出したリプレイなど）');
     if (!step) return rec;
     if (rec.v < 2) throw new Error('この記録は場面の位置を持たない古い形です（場面からの再開はできません）');
@@ -1940,7 +1956,7 @@ const RP = {
   async resumeHere() {
     try {
       const rec = await this.recordAt(this.steps[this.i]);
-      if (!confirm('この場面から続きを遊びますか？（リプレイを終えて、ここまでを作り直してから対戦になります）')) return;
+      if (!await ask({ title: 'この場面から続きを遊びますか？', html: '<p>リプレイを終えて、ここまでを作り直してから対戦になります。</p>', ok: '続きを遊ぶ', cancel: 'やめる' })) return;
       this.exit();
       await this.startResume(rec);
     } catch (e) { alert('再開できなかった: ' + e.message); }
@@ -1994,15 +2010,33 @@ const RP = {
       if (!d || !d.snapshots.length) return alert('共有する記録がありません（試合が始まっていない）');
       const base = location.href.split('#')[0].split('?')[0];
       // この試合の判断の記録があれば短い URL（#p=）。リプレイのファイルを開いて見ているときなどは、盤面の記録ごと入れる（#r=、長い）
-      const rec = RP.on ? (RP.data.record || null) : JSON.parse(await (await fetch('/record')).text() || '{}');
+      const rec = RP.on ? (RP.data.record || null) : full ? null : await liveRecord();
       const url = !full && rec && rec.v ? base + '?p=' + this.b64enc(await this.z(new TextEncoder().encode(JSON.stringify(rec)), true))
         : base + '#r=' + await this.pack(d);
       const note = url.includes('?p=') ? '開くときにエンジンで試合を作り直します（エンジンの版が変わると再現できないことがあります）。'
-        : '盤面の記録をそのまま入れています。';
+        : '盤面の記録をそのまま入れています（長い URL）。';
       await copyText(url, `リプレイの URL（${url.length.toLocaleString()} 文字）をコピーしました。${note}` + (d.complete ? '最後まで進んだ試合なので、脚本の中身（非公開シート）も入っています。' : '試合の途中までで、脚本の中身は入っていません。'));
     } catch (e) { alert('URL を作れなかった: ' + e.message); }
   },
 };
+// いまの試合の判断の記録。伏せた脚本の試合の途中は、記録に脚本の名前が入るので、確かめてから取る（ユーザー 2026-10-22: 分かってしまっても再開を作れるように）
+async function liveRecord() {
+  if (S.blind && !await ask({ title: '伏せた脚本の試合です', html: '<p>この URL には脚本の名前が（圧縮して）入ります。開いた画面には出しませんが、URL を解くと脚本が分かります。</p>', ok: '作る', cancel: 'やめる' })) return null;
+  return JSON.parse(await (await fetch(S.blind ? '/record-blind' : '/record')).text() || '{}');
+}
+// 確認の窓。ask({ title, html, ok, cancel }) → 押した方（true／false）。Esc・外側で「やめる」
+function ask({ title, html, ok = 'はい', cancel = 'やめる' }) {
+  return new Promise(res => {
+    const w = $('ask'), back = document.activeElement;
+    $('ask-t').textContent = title; $('ask-b').innerHTML = html; $('ask-ok').textContent = ok; $('ask-no').textContent = cancel;
+    const done = v => { w.classList.remove('on'); w.onclick = $('ask-ok').onclick = $('ask-no').onclick = w.onkeydown = null; back?.focus?.(); res(v); };
+    $('ask-ok').onclick = () => done(true); $('ask-no').onclick = () => done(false);
+    w.onclick = e => { if (e.target === w) done(false); };
+    w.onkeydown = e => { if (e.key === 'Escape') { e.stopPropagation(); done(false); } };
+    w.classList.add('on'); $('ask-ok').focus();
+  });
+}
+const para = s => s.split('\n').filter(Boolean).map(x => `<p>${esc(x)}</p>`).join('');
 // クリップボードへコピー（使えない環境では、選んでコピーできる欄を出す）
 async function copyText(s, msg) {
   try { await navigator.clipboard.writeText(s); alert(msg); } catch { prompt(msg.split('。')[0].replace('コピーしました', '') + '（選んでコピーしてください）', s); }
@@ -2060,7 +2094,7 @@ $('st-cancel').onclick = () => $('start').classList.remove('on');
 $('newgame').onclick = e => { e.stopPropagation(); $('filepanel').classList.remove('on'); openStart(); };
 $('startf').onsubmit = async e => {
   e.preventDefault();
-  if (S.loop && !(S.phaseName || '').startsWith('ゲーム終了') && !confirm('いまの試合を終えて、新しいゲームを始めますか？')) return;
+  if (S.loop && !(S.phaseName || '').startsWith('ゲーム終了') && !await ask({ title: '新しいゲームを始めますか？', html: '<p>いまの試合を終えて、新しいゲームを始めます。</p>', ok: '始める', cancel: 'やめる' })) return;
   try {
     const code = $('st-code').value.trim();
     dropGameNotes();
