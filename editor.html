@@ -9,7 +9,10 @@ body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.6 system-ui,
 header { position:sticky; top:0; z-index:5; background:#000; border-bottom:2px solid var(--acc); padding:6px 16px; display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; }
 header h1 { margin:0; font-size:18px; color:var(--acc); }
 header a { color:var(--mut); margin-left:auto; }
-main { max-width:1000px; margin:0 auto; padding:12px 16px 80px; }
+main { max-width:1500px; margin:0 auto; padding:12px 16px 80px; display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:0 16px; align-items:start; }
+/* 左が入力、右がダッシュボード（確かめる・分析）。右は画面の高さに収めて単独でスクロールする */
+.col-dash { position:sticky; top:52px; max-height:calc(100vh - 64px); overflow-y:auto; }
+@media (max-width:900px) { main { grid-template-columns:minmax(0, 1fr); } .col-dash { position:static; max-height:none; overflow:visible; } }
 section { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:10px 14px; margin:12px 0; }
 h2 { margin:0 0 8px; font-size:15px; color:var(--acc); }
 label { color:var(--mut); }
@@ -24,14 +27,27 @@ button:disabled { opacity:.5; cursor:default; }
 #chars label { color:var(--fg); }
 table { border-collapse:collapse; width:100%; } th, td { text-align:left; padding:3px 6px; border-bottom:1px solid var(--line); vertical-align:middle; }
 th { color:var(--mut); font-weight:400; }
+td { overflow-wrap:anywhere; } select { max-width:100%; }
+#cast { table-layout:fixed; } #cast select { width:100%; } #cast input[type=number] { width:3em; }  /* スマホ幅で長い名前・選択肢がはみ出さないように */
 #code { width:100%; font-family:ui-monospace, monospace; word-break:break-all; }
+.box { border:1px solid var(--line); border-left-width:4px; border-radius:4px; padding:6px 10px; margin:8px 0; }
+.box ul { margin:4px 0; padding-left:1.4em; } .box.bad { border-left-color:var(--warn); } .box.note { border-left-color:var(--acc); } .box.good { border-left-color:var(--ok); color:var(--ok); }
+.chart { width:100%; height:auto; display:block; margin:4px 0; font-size:12px; }
+.chart .ax { fill:var(--mut); } .chart .lab { fill:var(--fg); } .chart .val { fill:var(--fg); font-weight:700; }
+.chart .bar, .chart .span { fill:var(--acc); } .chart .track { fill:var(--line); } .chart .tick { fill:var(--fg); }
+.chart .base { stroke:var(--mut); stroke-width:1; } .chart .inc { stroke:var(--mut); stroke-width:1; stroke-dasharray:3 3; }
+.chart .hit:hover .span, .chart .hit:hover .bar { fill:#f2c27a; } .chart .hit:hover .lab { fill:var(--acc); }
+.cap { font-size:12px; margin-bottom:8px; }
+.plan { margin-top:4px; padding-top:4px; border-top:1px dashed var(--line); font-size:13px; }
 #saved li { margin:2px 0; } #saved button { margin-left:6px; padding:0 6px; }
 @media (max-width:600px) { main { padding:8px 16px 60px; } th, td { padding:3px 3px; } }
 </style>
 <header><h1>シナリオエディタ</h1><span class="mut">非公開シートを作って、ブラウザ版の対戦で試す</span><a href="index.html" id="back">対戦の画面へ</a></header>
 <main>
+<div class="col-in">
 <section>
   <h2>基本</h2>
+  <div class="row"><button id="random">ランダムに作る</button><span class="mut" id="randmsg">ルール・人物・役職・事件を無作為に決めます（脚本を知る主人公に必ず守られる、易しすぎるものは作り直します）</span></div>
   <div class="row"><label for="title">題名</label><input id="title" maxlength="60" style="flex:1;min-width:12em" placeholder="ユーザーのシナリオ"></div>
   <div class="row"><label>惨劇セット</label><span>Basic Tragedy X</span>
     <label for="loops">ループ数</label><input type="number" id="loops" min="1" max="9" value="3">
@@ -57,9 +73,19 @@ th { color:var(--mut); font-weight:400; }
   <div class="row"><button id="addinc">事件を足す</button><span class="mut">犯人は互いに異なる人物にします。</span></div>
 </section>
 <section>
+  <h2>保存・読み込み</h2>
+  <div class="row"><button id="save">このブラウザに保存</button><button id="export">JSON を書き出す</button><button id="import">JSON を読み込む…</button>
+    <input type="file" id="file" accept=".json,application/json" style="display:none"><button id="clear">白紙にする</button></div>
+  <div class="row"><input id="incode" placeholder="コード（s1.…）から読み込む" style="flex:1;min-width:14em"><button id="fromcode">読み込む</button></div>
+  <div class="mut">このブラウザに保存したシナリオ（ほかの端末やブラウザとは共有されません）</div>
+  <ul id="saved"></ul>
+</section>
+</div>
+<aside class="col-dash">
+<section>
   <h2>確かめる・遊ぶ</h2>
   <div class="row"><button id="check">エンジンで確かめる</button><span id="engine" class="mut"></span></div>
-  <ul id="report"></ul>
+  <div id="report"></div>
   <div id="codebox" style="display:none">
     <label for="code">シナリオのコード（対戦の画面の「新しいゲーム」に貼るか、下のボタンで遊ぶ）</label>
     <textarea id="code" rows="2" readonly></textarea>
@@ -68,13 +94,13 @@ th { color:var(--mut); font-weight:400; }
   </div>
 </section>
 <section>
-  <h2>保存・読み込み</h2>
-  <div class="row"><button id="save">このブラウザに保存</button><button id="export">JSON を書き出す</button><button id="import">JSON を読み込む…</button>
-    <input type="file" id="file" accept=".json,application/json" style="display:none"><button id="clear">白紙にする</button></div>
-  <div class="row"><input id="incode" placeholder="コード（s1.…）から読み込む" style="flex:1;min-width:14em"><button id="fromcode">読み込む</button></div>
-  <div class="mut">このブラウザに保存したシナリオ（ほかの端末やブラウザとは共有されません）</div>
-  <ul id="saved"></ul>
+  <h2>分析</h2>
+  <div id="chart"></div>
+  <div id="routes" class="mut">入力が整うと、ありえる敗北（負け筋）をここに出します</div>
+  <div class="row"><button id="analyze">脚本を知る主人公が守りきれるか調べる</button><span class="mut" id="anmsg"></span></div>
+  <div id="holds"></div>
 </section>
+</aside>
 </main>
 <script>
 const EDITOR = 1;  // build.sh がこの前に shim.js（ブラウザ版の検証）を差し込む
@@ -83,6 +109,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const AREAS = { HOS: '病院', SHR: '神社', CIT: '都市', SCH: '学校' };
 const STORE = 'sangeki-scenarios';
 let CH = {}, RU = {}, RO = {}, INC = {};
+const ROMAX = { FRIEND: 2, MISLEADER: 1 };  // 役職の人数上限（engine/data/sets/BTX.json の roles.max。エディタは Basic Tragedy X だけ）
 let cast = {};    // 人物 → {role, init, appear}
 let incs = [];    // [{day, id, culprit}]
 let lastCode = '';
@@ -92,6 +119,7 @@ const rolesOf = () => [$('ry').value, $('rx1').value, $('rx2').value];
 function needCount() {  // ルールが加える役職の員数（表示用。正しさはエンジンの検証が見る）
   const n = {};
   for (const r of rolesOf()) for (const [k, v] of Object.entries((RU[r] || {}).roles || {})) n[k] = (n[k] || 0) + v;
+  for (const k in n) if (ROMAX[k]) n[k] = Math.min(n[k], ROMAX[k]);  // 役職の人数上限で切る（engine/sets.need_roles と同じ）
   return n;
 }
 function script() {
@@ -148,20 +176,28 @@ function render() {
   stale();
 }
 // 入力が変わったら、前のコードは使えない（確かめ直す）
-function stale() { lastCode = ''; $('codebox').style.display = 'none'; clearTimeout(stale.t); stale.t = setTimeout(check, 900); }
+function stale() { $('holds').innerHTML = ''; $('chart').innerHTML = ''; lastChart = null; lastCode = ''; $('codebox').style.display = 'none'; clearTimeout(stale.t); stale.t = setTimeout(check, 900); }
 
 async function check() {
   $('engine').textContent = 'エンジンで確かめています…（ブラウザ版は初回に Python の準備で数十秒かかります）';
   $('check').disabled = true;
   try {
     const r = await (await fetch('/check', { method: 'POST', body: JSON.stringify(script()) })).json();
-    const items = [...(r.errors || []).map(e => `<li class="err">${esc(e)}</li>`), ...(r.warnings || []).map(w => `<li class="mut">注意: ${esc(w)}</li>`)];
-    $('report').innerHTML = items.join('') || '<li class="ok">問題ありません</li>';
+    const errs = r.errors || [], warns = r.warnings || [];
+    const list = (xs, cls) => '<ul>' + xs.map(x => `<li class="${cls}">${esc(x)}</li>`).join('') + '</ul>';
+    $('report').innerHTML =
+      (errs.length ? `<div class="box bad"><b>直すところが${errs.length}つあります（このままでは遊べません）</b>${list(errs, 'err')}</div>` : '') +
+      (warns.length ? `<div class="box note"><b>目安から外れているところ（このままでも遊べます）</b>${list(warns, '')}</div>` : '') +
+      (!errs.length && !warns.length ? '<div class="box good"><b>問題ありません。このシナリオで遊べます</b></div>' : '');
     lastCode = r.code || '';
     $('codebox').style.display = lastCode ? '' : 'none';
     $('code').value = lastCode;
-    $('engine').textContent = r.errors && r.errors.length ? '誤りを直すと遊べます' : '遊べます';
-  } catch (e) { $('engine').textContent = '確かめられなかった: ' + e.message; }
+    $('engine').textContent = errs.length ? '下の「直すところ」を直すと遊べます' : '遊べます';
+    if (errs.length) $('routes').innerHTML = '<div class="mut">「確かめる・遊ぶ」の直すところを直すと、ありえる敗北を出します</div>'; else quickRoutes();
+  } catch (e) {
+    $('report').innerHTML = `<div class="box bad"><b>エンジンで確かめられませんでした</b><ul><li>${esc(e.message)}</li></ul>ページを読み込み直してから、もう一度「エンジンで確かめる」を押してください。</div>`;
+    $('engine').textContent = '';
+  }
   $('check').disabled = false;
 }
 
@@ -178,7 +214,7 @@ $('save').onclick = () => {
   const s = saved();
   if (s[name] && !confirm(`「${name}」を上書きしますか？`)) return;
   s[name] = { script: sc, at: new Date().toISOString() };
-  try { localStorage.setItem(STORE, JSON.stringify(s)); renderSaved(); } catch (e) { alert('保存できなかった: ' + e.message); }
+  try { localStorage.setItem(STORE, JSON.stringify(s)); renderSaved(); } catch (e) { alert('このブラウザに保存できませんでした（プライベートモードや保存領域の不足が考えられます）。「JSON を書き出す」で手元に残せます。\n（' + e.message + '）'); }
 };
 $('export').onclick = () => {
   const sc = script();
@@ -190,15 +226,15 @@ $('import').onclick = () => $('file').click();
 $('file').onchange = async e => {
   const f = e.target.files[0]; e.target.value = '';
   if (!f) return;
-  try { load(JSON.parse(await f.text())); } catch (err) { alert('読み込めなかった: ' + err.message); }
+  try { load(JSON.parse(await f.text())); } catch (err) { alert(`「${f.name}」を読み込めませんでした。シナリオエディタで書き出した JSON ファイルを選んでください。\n（${err.message}）`); }
 };
 $('fromcode').onclick = async () => {
   const code = $('incode').value.trim(); if (!code) return;
   try {
     const r = await (await fetch('/decode', { method: 'POST', body: JSON.stringify({ code }) })).json();
-    if (r.error) return alert(r.error);
+    if (r.error) return alert('コードを読み込めませんでした: ' + r.error);
     load(r.script); $('incode').value = '';
-  } catch (err) { alert('読み込めなかった: ' + err.message); }
+  } catch (err) { alert('コードを読み込めませんでした（エンジンにつながりません）: ' + err.message); }
 };
 $('clear').onclick = () => { if (confirm('入力を白紙にしますか？（保存したものは消えません）')) load({}); };
 $('copy').onclick = async () => { try { await navigator.clipboard.writeText(lastCode); $('copy').textContent = 'コピーしました'; setTimeout(() => $('copy').textContent = 'コードをコピー', 1500); } catch { $('code').select(); } };
@@ -206,6 +242,98 @@ const playURL = () => new URL((location.pathname.endsWith('editor.html') ? 'inde
 $('copyurl').onclick = async () => { try { await navigator.clipboard.writeText(playURL()); $('copyurl').textContent = 'コピーしました'; setTimeout(() => $('copyurl').textContent = 'プレイ用の URL をコピー', 1500); } catch { prompt('プレイ用の URL（選んでコピーしてください）', playURL()); } };
 $('play').onclick = () => { if (lastCode) location.href = playURL(); };
 $('check').onclick = check;
+function planHTML(p) {  // 主人公に邪魔されないときの、脚本家の最短の手順（目安）
+  if (!p) return '';
+  if (p.none) return `<div class="plan mut">邪魔が無いとき: ${esc(p.none)}</div>`;
+  return `<div class="plan"><div><span class="mut">使える期限:</span> <b>${esc(p.deadline)}</b>（邪魔が無ければ、遅くとも${p.latest}日目に押し始めれば間に合う）</div>` +
+    `<div><span class="mut">邪魔が無いときの最短:</span> ${p.steps.map(esc).join(' → ')} → <b>${esc(p.done)}</b></div></div>`;
+}
+function showRoutes(routes) {
+  const rows = routes.map(x => `<tr><td>${esc(x.name)}</td><td>${esc(x.goal)}</td><td>${x.conds.map(c =>
+    `<span class="${c.met ? 'ok' : ''}">${c.met ? '✓' : '・'}${esc(c.text)}</span>`).join('<br>')}${x.note ? `<br><span class="mut">${esc(x.note)}</span>` : ''}${planHTML(x.plan)}</td></tr>`).join('');
+  $('routes').innerHTML = rows ? `<div class="mut">ループ1の1日目の朝にありえる敗北（近い順。✓は満たしている条件。最短の手順は脚本家の札と能力だけで数えた目安で、移動は誰をどちらへ動かすかまでは書きません）</div><table><tr><th>筋</th><th>結果</th><th>条件</th></tr>${rows}</table>`
+    : '<div class="mut">負け筋がありません（脚本家はループを取れません）</div>';
+}
+async function quickRoutes() {  // 検証が通るたびに、負け筋の一覧とグラフをすぐ出す
+  try {
+    const r = await (await fetch('/analyze', { method: 'POST', body: JSON.stringify({ ...script(), quick: true }) })).json();
+    if (r.routes) { showRoutes(r.routes); drawChart(r); }
+  } catch {}
+}
+// グラフ: 上は日ごとの「邪魔が無ければその日に成立しうる負け筋」の数、下は負け筋ごとの成立しうる日の帯（横軸の日を揃える）。
+// 帯: 毎日判定（ターン終了）の筋は最短の日〜最終日、事件・ループ終了時の筋はその日だけ。▲ は押し始めの期限、縦の点線は事件の日
+let lastChart = null;
+addEventListener('resize', () => { clearTimeout(drawChart.t); drawChart.t = setTimeout(() => lastChart && drawChart(lastChart), 200); });  // 表示幅で描くので、幅が変われば描き直す
+function drawChart(r) {
+  lastChart = r;
+  const D = r.days, ok = r.routes.filter(x => x.plan && x.plan.steps);
+  if (!ok.length) { $('chart').innerHTML = ''; return; }
+  const span = x => x.plan.by === 'turn' ? [x.plan.day, x.plan.last] : [x.plan.last, x.plan.last];
+  const rows = ok.slice().sort((a, b) => span(a)[0] - span(b)[0] || span(a)[1] - span(b)[1]).slice(0, 14);
+  // 表示幅そのままで描く（文字を実寸に）
+  const W = Math.max(320, $('chart').clientWidth || 640), LW = Math.min(230, Math.round(W * 0.42)), PAD = 8, dw = (W - LW - PAD) / D, HH = 64, RH = 20, top = HH + 30, H = top + rows.length * RH + 8;
+  const x0 = d => LW + (d - 1) * dw;  // d 日目の列の左端
+  const cnt = Array.from({ length: D }, (_, i) => ok.filter(x => { const [a, b] = span(x); return a <= i + 1 && i + 1 <= b; }).length);
+  const mx = Math.max(1, ...cnt);
+  const nch = Math.floor((LW - 6) / 12);  // 名前の欄に入る文字数（12px の文字）
+  const short = s => s.length > nch ? s.slice(0, nch - 1) + '…' : s;
+  const label = x => x.name + '→' + x.goal.replace(/（.*?）/g, '').replace(' 死亡', '死亡');  // 同じ筋で被害者が違う行を区別する
+  let g = '';
+  for (let d = 1; d <= D; d++) {  // 列の地と日の目盛り
+    g += `<text x="${x0(d) + dw / 2}" y="${top - 6}" class="ax" text-anchor="middle">${d}日</text>`;
+    const h = cnt[d - 1] / mx * (HH - 16);
+    g += `<g class="hit"><title>${d}日目: 邪魔が無ければ成立しうる負け筋 ${cnt[d - 1]}本</title><rect x="${x0(d)}" y="0" width="${dw}" height="${HH}" fill="transparent"/>` +
+      (cnt[d - 1] ? `<path d="${barPath(x0(d) + dw * 0.2, HH - h, dw * 0.6, h)}" class="bar"/>` : '') +
+      `<text x="${x0(d) + dw / 2}" y="${HH - h - 4}" class="val" text-anchor="middle">${cnt[d - 1] || ''}</text></g>`;
+  }
+  g += `<line x1="${LW}" x2="${W - PAD}" y1="${HH}" y2="${HH}" class="base"/>`;
+  g += `<text x="0" y="14" class="lab">日ごとの危険度</text><text x="0" y="30" class="ax">成立しうる負け筋の数</text>`;
+  for (const i of r.incidents) if (i.day <= D)  // 事件の日の縦線
+    g += `<line x1="${x0(i.day) + dw / 2}" x2="${x0(i.day) + dw / 2}" y1="${top}" y2="${H - 4}" class="inc"><title>${i.day}日目の事件「${esc(i.name)}」</title></line>`;
+  rows.forEach((x, k) => {
+    const y = top + k * RH, [a, b] = span(x), lt = x.plan.latest;
+    g += `<g class="hit"><title>${esc(x.name)} → ${esc(x.goal)}
+${esc(x.plan.done)}（最短）／期限 ${esc(x.plan.deadline)}／遅くとも${lt}日目に押し始め</title>` +
+      `<rect x="0" y="${y}" width="${W}" height="${RH}" fill="transparent"/>` +
+      `<text x="0" y="${y + 14}" class="lab">${esc(short(label(x)))}</text>` +
+      `<rect x="${LW}" y="${y + 9}" width="${W - LW - PAD}" height="2" class="track"/>` +
+      `<rect x="${x0(a) + 2}" y="${y + 4}" width="${(b - a + 1) * dw - 4}" height="12" rx="4" class="span"/>` +
+      `<path d="M${x0(lt) + dw / 2 - 4},${y + 19} l4,-6 l4,6 z" class="tick"/></g>`;
+  });
+  const more = ok.length - rows.length, none = r.routes.length - ok.length;
+  $('chart').innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="負け筋のタイムライン">${g}</svg>` +
+    `<div class="mut cap">帯＝邪魔が無ければ成立しうる日（毎日判定の筋は最短の日から最終日まで）／▲＝遅くともこの日に押し始めれば間に合う／点線＝事件の日。` +
+    `${more > 0 ? `ほか${more}本は下の表に。` : ''}${none ? `邪魔が無くても届かない筋が${none}本。` : ''}帯や棒にカーソルを合わせると詳しく出ます。</div>`;
+}
+function barPath(x, y, w, h) {  // 上の角だけ丸めた棒（データの端 4px、基線は角ばらせる）
+  const r = Math.min(4, w / 2, h);
+  return `M${x},${y + h} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h} Z`;
+}
+$('analyze').onclick = async () => {
+  $('analyze').disabled = true; $('anmsg').textContent = '調べています…（最大で十数秒）';
+  try {
+    const r = await (await fetch('/analyze', { method: 'POST', body: JSON.stringify(script()) })).json();
+    if (r.errors) {
+      $('holds').innerHTML = '<div class="box bad"><b>調べる前に、「確かめる・遊ぶ」の直すところを直してください</b></div>';
+    } else {
+      const cls = r.holds === true ? 'note' : r.holds === false ? 'good' : '';
+      $('holds').innerHTML = `<div class="box ${cls}"><b>${esc(r.holds_text)}</b><div class="mut">目安です（主人公の友好能力や、一部の事件の効果は数えていません）</div></div>`;
+      showRoutes(r.routes);
+    }
+  } catch (e) { $('holds').innerHTML = `<div class="box bad"><b>調べられませんでした</b><ul><li>${esc(e.message)}</li></ul></div>`; }
+  $('anmsg').textContent = '';
+  $('analyze').disabled = false;
+};
+$('random').onclick = async () => {
+  if (Object.keys(cast).length && !confirm('いまの入力を、ランダムなシナリオで置き換えますか？（保存したものは消えません）')) return;
+  $('random').disabled = true; $('randmsg').textContent = '作っています…（ブラウザ版は初回に Python の準備で数十秒かかります）';
+  try {
+    const r = await (await fetch('/generate', { method: 'POST', body: '{}' })).json();
+    if (!r.script) throw new Error('作れませんでした');
+    load(r.script); $('randmsg').textContent = 'できました。下の「分析」にありえる敗北が出ます';
+  } catch (e) { $('randmsg').textContent = 'ランダムなシナリオを作れませんでした: ' + e.message; }
+  $('random').disabled = false;
+};
 $('addinc').onclick = () => { incs.push({ day: Math.min(incs.length + 1, +$('days').value || 1), id: 'MURDER', culprit: '' }); render(); };
 
 // 入力の変化（表の中の select・input はまとめて受ける）
@@ -239,5 +367,5 @@ Promise.all(['/chars', '/data/rules', '/data/roles', '/data/incidents'].map(u =>
   $('terr').innerHTML = Object.entries(AREAS).map(([a, n]) => opt(a, n)).join('');
   if (!location.pathname.endsWith('editor.html')) $('back').href = '/';
   render();
-}).catch(e => { $('engine').textContent = 'データを読めなかった: ' + e.message; });
+}).catch(e => { $('engine').textContent = '人物・ルールのデータを読み込めませんでした。ページを読み込み直してください（' + e.message + '）'; });
 </script>

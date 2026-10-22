@@ -56,6 +56,21 @@ def decode_json(code):
         return json.dumps({'error': str(e)}, ensure_ascii=False)
 
 
+def analyze_json(s):
+    """シナリオエディタ: 負け筋と、脚本を知る主人公が守りきれるか（selfplay.editor_analysis）。"""
+    from selfplay.editor_analysis import analyze
+    try:
+        return json.dumps(analyze(json.loads(s)), ensure_ascii=False)
+    except ValueError:
+        return json.dumps({'errors': ['シナリオを JSON として読めません']}, ensure_ascii=False)
+
+
+def generate_json(_=''):
+    """シナリオエディタ: ランダムなシナリオ（易しすぎるものは作り直す）。"""
+    from selfplay.editor_analysis import generate
+    return json.dumps({'script': generate()}, ensure_ascii=False)
+
+
 def list_json():
     return json.dumps({'scripts': ai_gm.list_scripts(), 'blind': ai_gm.blind_count()}, ensure_ascii=False)
 

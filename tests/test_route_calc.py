@@ -227,3 +227,27 @@ def test_rule_leak_shrinks_with_remaining_loops():
     first = mm._leak(dict(s, loop=1, day=1), obs)
     last = mm._leak(dict(s, loop=sc['loops'], day=sc['days']), obs)
     assert mm.pub.ded.trial_rules(obs) > 0 and first > last == mm.pub.ded.trial(obs)
+
+
+def test_pc_holds_counts_supply_after_moving_the_holder():
+    """上限（pc_holds）は、脚本家能力の持ち主を移動で範囲に入れてから補給する手も数える。以前は朝の位置だけ見て「守れる」と出ていた
+    （selfplay/pc_solve の前方探索で発見 2026-10-22。脚本の中身は目隠し対戦のため書かない）。"""
+    from engine.route_calc import pc_holds
+    from engine.scripts import by_id
+    from selfplay.script_routes import start_state
+    sc = by_id('generated/gen_b31_003')
+    assert pc_holds(start_state(sc), sc['days'], budget=60)['holds'] is False
+
+
+def test_pc_holds_lets_mastermind_follow_a_broken_position():
+    """上限（pc_holds）: 揃っている位置を主人公が崩しても、脚本家は同じ日にもう片方を動かして追える。本物のエンジンの前方探索では
+    守れないのに、以前は「守れる」と出ていた（投稿シナリオなので中身は書かない）。"""
+    from engine.route_calc import pc_holds
+    from engine.scripts import by_id
+    from selfplay.script_routes import start_state
+    import pytest
+    from engine.scripts import find
+    if find('bgw/b059.json') is None:
+        pytest.skip('投稿シナリオ（bgw）は公開版に無い')
+    sc = by_id('bgw/b059')
+    assert pc_holds(start_state(sc), sc['days'], budget=60)['holds'] is False

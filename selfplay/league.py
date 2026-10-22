@@ -57,6 +57,9 @@ def _make(kind, rng, script=None):
     if kind == 'oread':
         from selfplay.pc_v2 import OracleReader
         return OracleReader(rng, null_cost=0.1, model_mm=True)
+    if kind == 'osolve':  # 脚本を知る主人公＋読み切り（selfplay/pc_solve: 伏せ札の中身がどれでも守れる応手を打つ）
+        from selfplay.pc_solve import solver_pc
+        return solver_pc(rng)
     if kind == 'oreadK':  # 脚本を知る主人公＋応手表で最悪の確定が最小の手に絞る（calc_block）。上限の目安
         from selfplay.pc_v2 import OracleReader
         return OracleReader(rng, null_cost=0.1, model_mm=True, calc_block=True)

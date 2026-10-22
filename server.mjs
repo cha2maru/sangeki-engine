@@ -127,10 +127,10 @@ http.createServer(async (req, res) => {
       startGame(await readBody(req));
       return send(res, 200, '{}', TYPES['.json']);
     }
-    if (req.method === 'POST' && (p === '/check' || p === '/decode')) {  // シナリオエディタの検証・コードの読み込み（ai_gm.py --check／--decode）
+    if (req.method === 'POST' && ['/check', '/decode', '/analyze', '/generate'].includes(p)) {  // シナリオエディタの検証・コードの読み込み・分析・生成（ai_gm.py --check など）
       const b = await readBody(req);
-      const input = p === '/check' ? JSON.stringify(b) : String(b.code || '');
-      const out = execFileSync(PY, [path.join(HERE, 'ai_gm.py'), p === '/check' ? '--check' : '--decode'], { cwd: HERE, input }).toString();
+      const input = p === '/decode' ? String(b.code || '') : JSON.stringify(b);
+      const out = execFileSync(PY, [path.join(HERE, 'ai_gm.py'), '--' + p.slice(1)], { cwd: HERE, input }).toString();
       return send(res, 200, out, TYPES['.json']);
     }
     if (req.method === 'POST' && p === '/notes') {

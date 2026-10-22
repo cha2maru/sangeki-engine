@@ -62,11 +62,11 @@
       case '/notes':
         if ((opt.method || 'GET') === 'POST') { try { localStorage.setItem(NOTES, opt.body); } catch {} return reply('{}'); }
         try { return reply(localStorage.getItem(NOTES) || '{}'); } catch { return reply('{}'); }
-      case '/check': case '/decode': {  // シナリオエディタ: エンジンで検証してコードを作る／コードを読む（Python の準備を待つ）
+      case '/check': case '/decode': case '/analyze': case '/generate': {  // シナリオエディタ: 検証・コードの読み込み・分析・生成（Python の準備を待つ）
         const id = ++seq;
         const p = new Promise(r => { checks[id] = r; });
-        const arg = u === '/check' ? (opt.body || '{}') : (body().code || '');
-        worker.postMessage({ type: 'call', id, fn: u === '/check' ? 'check_json' : 'decode_json', arg });
+        const arg = u === '/decode' ? (body().code || '') : (opt.body || '{}');
+        worker.postMessage({ type: 'call', id, fn: u.slice(1) + '_json', arg });
         return reply(await p);
       }
       case '/data/incidents': return origFetch('data/incidents.json');

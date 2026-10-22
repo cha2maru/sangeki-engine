@@ -16,6 +16,7 @@ from functools import lru_cache
 from itertools import combinations
 
 from . import sets
+from .resolve import CHARS
 from .routes import INF, enumerate_routes
 
 MAX_TARGETS = 5
@@ -279,11 +280,13 @@ def _pc_abilities(state, targets):
     return tuple((once, tuple(sorted(v))) for (_, _, once), v in sorted(out.items()))
 
 
-def _supply(state, targets):
+def _supply(state, targets, reach=False):
     """脚本家の能力で毎日（脚本家能力フェイズ）+1 できる対象（v2.2、2026-10-10、ユーザー「1,2 をすすめる」）。持ち主ごとに対象の番号の組。
     クロマク【任意】同一エリアのキャラ1人かこのキャラのいるボードに暗躍1、ミスリーダー（ファクターは学校の暗躍2以上で）同一エリアのキャラ1人に不安1。
     行動の札では止められない（行動フェイズの後）。主人公は持ち主を動かして止められる（札1枚。以後このループは止まったものとする＝下限）。
-    ponytail: 持ち主・対象の位置は今のまま。対象だけを動かして外す手は、持ち主を動かす手で代える。不穏な噂（ループ1回）は数えない"""
+    ponytail: 持ち主・対象の位置は今のまま。対象だけを動かして外す手は、持ち主を動かす手で代える。不穏な噂（ループ1回）は数えない
+    reach（上限＝pc_holds）: 持ち主は入れるエリアのどこへでも動けるとみなし、人物の対象はすべて届く・ファクターは学校の暗躍を問わない
+    （持ち主を移動で範囲に入れてから補給し、暗躍禁止で止めたはずのボードに暗躍が入る手を数えていなかった。selfplay/pc_solve で発見 2026-10-22）"""
     from .phases import base_role, mm_areas
     chars = state['chars']
     out = []
@@ -291,13 +294,15 @@ def _supply(state, targets):
         if not (v['alive'] and v.get('present', True) and v.get('area')):
             continue
         r = base_role(state, c)
-        kind = 'int' if r == 'KUROMAKU' else 'par' if r == 'MISLEADER' or (r == 'FACTOR' and state['boards'].get('SCH', 0) >= 2) else None
+        kind = 'int' if r == 'KUROMAKU' else 'par' if r == 'MISLEADER' or (r == 'FACTOR' and (reach or state['boards'].get('SCH', 0) >= 2)) else None
         if not kind:
             continue
         areas = set(mm_areas(state, c))
+        if reach:
+            areas |= {a for a in ('HOS', 'SHR', 'CIT', 'SCH') if a not in CHARS.get(c, {}).get('forbidden', []) or c in state.get('unbound', [])}
         idx = tuple(i for i, (t, k) in enumerate(targets) if k == kind and (
             (t.startswith('B:') and kind == 'int' and t[2:] in areas) or
-            (t in chars and chars[t]['alive'] and chars[t].get('area') in areas)))
+            (t in chars and chars[t]['alive'] and (reach or chars[t].get('area') in areas))))
         if idx:
             out.append(idx)
     return tuple(out)
@@ -639,7 +644,7 @@ def pc_holds(state, days, max_names=9, max_targets=8, max_routes=40, budget=120.
     targets, route_need, specs = abst
     used = {id(r) for r, _ in specs}
     skipped = sorted({f"{r['id']}:{r['via']}" for r in rs if id(r) not in used})
-    supply = _supply(state, targets)
+    supply = _supply(state, targets, reach=True)
     cap = [max([n for _, need in route_need for i, n in need if i == j] or [0]) + (3 if k == 'par' else 0)
            for j, (_, k) in enumerate(targets)]
     # 置き先の名前: 対象の人物・ボードと、位置の対象を揃えうる人物（2人きりは同じエリアの他の人物も）
@@ -698,7 +703,10 @@ def pc_holds(state, days, max_names=9, max_targets=8, max_routes=40, budget=120.
         for i in range(len(targets)):
             cs = mm.get(i, [])
             if targets[i][1] == 'pos':
-                v[i] = 0 if i in ts else 1 if 'MOVE' in cs else v[i]
+                # 揃っている位置を主人公が片方を動かして崩しても、脚本家は同じ日にもう片方を動かして追える（上限なので脚本家に有利に。
+                # 逃がした人物を相手が追う手を数えていなかった。selfplay/pc_solve で発見 2026-10-22）。
+                # 揃っていない位置を揃えに来た移動は、主人公が移動禁止で止められる
+                v[i] = 1 if 'MOVE' in cs and (v[i] or i not in ts) else 0 if i in ts else v[i]
             elif targets[i][1] == 'par':
                 if 'PARX' not in cs:
                     v[i] = max(0, min(v[i] + cs.count('PAR+') - (i in ts), cap[i]))

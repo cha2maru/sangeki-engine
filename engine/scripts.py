@@ -18,6 +18,7 @@ from . import sets
 from .resolve import CHARS
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+AREA_NAME = {'HOS': '病院', 'SHR': '神社', 'CIT': '都市', 'SCH': '学校'}
 INCIDENTS = json.load(open(os.path.join(HERE, 'data', 'incidents.json'), encoding='utf-8'))['incidents']
 
 # エンジンが最後まで処理できる範囲（段S5 で広げる）。ここに無いものを含む脚本は自己対戦に使わない
@@ -100,19 +101,23 @@ def check(sc):
     err, warn = [], []
     chars = sc['characters']
     st = sets.load(sc.get('set'))
+    # 文言は人が読む名前で（シナリオエディタにそのまま出る。ユーザー「エラー表示などを人間にわかりやすく」2026-10-22）
+    nm = lambda c: CHARS.get(c, {}).get('name', c)  # noqa: E731
+    rn = lambda r: st['roles'].get(r, {}).get('name', r)  # noqa: E731
+    inn = lambda i: INCIDENTS.get(i, {}).get('name', i)  # noqa: E731
     ys = [r for r in sc['rules'] if st['rules'].get(r, {}).get('type') == 'Y']
     xs = [r for r in sc['rules'] if st['rules'].get(r, {}).get('type') == 'X']
     nx = st.get('rule_x', 2)  # First Steps はルールX1つ（主人公の書 印刷p29）
     if len(ys) != 1 or len(xs) != nx or len(set(xs)) != nx or len(sc['rules']) != 1 + nx:
-        err.append(f"ルールは Y1つと異なる X{nx}つ（{st['name']}）: {sc['rules']}")
+        err.append(f"ルールは、ルールY を1つと、互いに異なるルールX を{nx}つ選んでください（{st['name']}）")
     unknown = [c for c in chars if c not in CHARS]
     if unknown:
-        err.append(f'未知のキャラクター {unknown}')
+        err.append(f"知らない人物が入っています: {'・'.join(unknown)}")
         return err, warn
     if len(set(chars)) != len(chars):
-        err.append('同じキャラクターが2度登場している')
+        err.append('同じ人物が2度登場しています')
     if any(c not in chars for c in sc['roles']):
-        err.append('登場しないキャラクターに役職がある')
+        err.append('登場しない人物に役職が付いています')
     lo, need = sets.need_roles(st, sc['rules']) if not err else ({}, {})
     # イレギュラー・コピーキャットはルールの役職の枠に数えない（カードの特性「ルールより追加された役職とすることができない」）
     special = {'C11', 'C28'}
@@ -121,59 +126,65 @@ def check(sc):
     if 'C11' in chars:
         r = sc['roles'].get('C11', 'PERSON')
         if r == 'PERSON' or r in added:
-            err.append('イレギュラーは、選ばれたルールが追加しない役職になる（パーソン不可）')
+            err.append('イレギュラーの役職は、選んだルールが加えない役職にしてください（パーソンは不可）')
     if 'C28' in chars:
         r = sc['roles'].get('C28', 'PERSON')
         if r == 'PERSON' or r not in [x for c, x in sc['roles'].items() if c != 'C28']:
-            err.append('コピーキャットは、他のキャラクター1人と同じ役職になる（パーソン不可・人数上限無視）')
+            err.append('コピーキャットの役職は、ほかの人物の誰かと同じ役職にしてください（パーソンは不可。人数の上限は無視してよい）')
     if 'C16' in chars and sc.get('territory') not in ('HOS', 'SHR', 'CIT', 'SCH'):
-        err.append('大物のテリトリー（ボード）を territory で指定する（カードの特性）')
+        err.append('大物のテリトリー（ボード）を選んでください（カードの特性）')
     if need and (any(r not in need for r in have if r != 'PERSON') or any(not lo[r] <= have[r] <= n for r, n in need.items())):
-        err.append(f'役職の員数がルールと合わない: 必要 {need}（最小 {lo}） / 脚本 {dict(have)}')
+        diff = [f'{rn(r)} {lo[r]}人' + (f'〜{n}人' if n != lo[r] else '') + f'（いま{have[r]}人）'
+                for r, n in need.items() if not lo[r] <= have[r] <= n]
+        diff += [f'{rn(r)} はこのルールでは使えません（いま{have[r]}人）' for r in have if r != 'PERSON' and r not in need]
+        err.append('役職の人数がルールと合いません: ' + '／'.join(diff))
     # 事件
-    culprits = [i['culprit'] for i in sc['incidents']]
+    culprits = [i['culprit'] for i in sc['incidents'] if i['culprit']]  # 未選択（空）は下で「選んでください」と出す
     if len(set(culprits)) != len(culprits) and not sc.get('special_rules_allow_same_culprit'):
-        err.append('事件の犯人が重複している（wiki/concepts/script.md 決着済み）')
+        dup = sorted({c for c in culprits if culprits.count(c) > 1 and c})
+        err.append('同じ人物が2つ以上の事件の犯人になっています' + (f": {'・'.join(nm(c) for c in dup)}" if dup else ''))
     for i in sc['incidents']:
         if i['id'] not in INCIDENTS or i['id'] not in st.get('incidents', INCIDENTS):
-            err.append(f"未知の事件 {i['id']}")
-        if i['culprit'] not in chars:
-            err.append(f"犯人 {i['culprit']} が登場しない")
+            err.append(f"知らない事件です: {i['id']}")
+        if not i['culprit']:
+            err.append(f"{i['day']}日目の事件「{inn(i['id'])}」の犯人を選んでください")
+        elif i['culprit'] not in chars:
+            err.append(f"{i['day']}日目の事件「{inn(i['id'])}」の犯人（{nm(i['culprit'])}）が登場人物にいません")
         if not 1 <= i['day'] <= sc['days']:
-            err.append(f"事件の日 {i['day']} が 1〜{sc['days']} の外")
+            err.append(f"事件「{inn(i['id'])}」の日（{i['day']}日目）が、1ループの日数（{sc['days']}日）を超えています")
     # キャラクターカードの脚本作成時の制約
     role = lambda c: sc['roles'].get(c, 'PERSON')  # noqa: E731
     if 'Y_CONTRACT' in sc['rules'] and not any(role(c) == 'KEY' and '少女' in CHARS[c]['tags'] for c in chars):
-        err.append('僕と契約しようよ！: キーパーソンは少女（【強制: 脚本作成時】）')
+        err.append('ルール「僕と契約しようよ！」では、キーパーソンを少女にしてください（【強制：脚本作成時】）')
     if 'C22' in chars and role('C22') == 'PERSON':
-        err.append('A.I. はパーソンにできない（カードの特性）')
+        err.append('A.I. はパーソンにできません。役職を付けてください（カードの特性）')
     if 'C31' in chars and st['roles'].get(role('C31'), {}).get('refusal'):
-        err.append('妹は友好無視を持つ役職にできない（カードの特性）')
+        err.append(f"妹は友好無視を持つ役職（いま{rn(role('C31'))}）にできません（カードの特性）")
     if 'C34' in chars and (sc.get('start', {}).get('C34') or sc.get('init', {}).get('C34')) not in CHARS['C34'].get('start_choice', []):
-        err.append('従者の初期エリア（都市か学校）を init で指定する（カードの特性）')
+        err.append('従者の初期エリアを、都市か学校から選んでください（カードの特性）')
     # 手先の初期エリアは各ループの準備で脚本家が決める（loop_start の choice）ので、脚本には書かない
     if 'C24' in chars and 'day' not in sc.get('appear', {}).get('C24', {}):
-        err.append('転校生の登場日を appear で指定する（カードの特性）')
+        err.append('転校生が何日目に登場するかを決めてください（カードの特性）')
     if 'C13' in chars and 'loop' not in sc.get('appear', {}).get('C13', {}):
-        err.append('神格の登場ループを appear で指定する（カードの特性）')
+        err.append('神格が何ループ目に登場するかを決めてください（カードの特性）')
     # 神格は公開シートのループ回数以下のループで、転校生は日数以下の日に必ず登場する（脚本家の書 p13 A6＝作者回答、裁定）
     if 'C13' in chars and sc.get('appear', {}).get('C13', {}).get('loop', 0) > sc['loops']:
-        err.append('神格の登場ループはループ数以下')
+        err.append(f"神格の登場（{sc['appear']['C13']['loop']}ループ目）が、ループ数（{sc['loops']}）を超えています")
     if 'C24' in chars and sc.get('appear', {}).get('C24', {}).get('day', 0) > sc['days']:
-        err.append('転校生の登場日は日数以下')
+        err.append(f"転校生の登場（{sc['appear']['C24']['day']}日目）が、1ループの日数（{sc['days']}日）を超えています")
     if ('C32' in chars) != ('C33' in chars):
-        err.append('アルバイトとアルバイト？は一緒に登場させる（アルバイトの特性がアルバイト？を配置する）')
+        err.append('アルバイトとアルバイト？は、両方とも登場させてください（アルバイトの特性がアルバイト？を配置する）')
     for c, a in init_areas(sc).items():
         if a and a in CHARS[c].get('forbidden', []):  # noqa: E501
-            err.append(f'{c} の初期エリア {a} が禁止エリア')
+            err.append(f'{nm(c)} の初期エリア（{AREA_NAME.get(a, a)}）は、この人物の禁止エリアです')
     # ガイドの目安（脚本家の書 p43〜p48）
     if not 6 <= len(chars) <= 11:
-        warn.append(f'登場人物 {len(chars)} 人（目安 6〜11）')
+        warn.append(f'登場人物が{len(chars)}人です（目安は6〜11人）')
     if not 5 <= sc['days'] <= 7:
-        warn.append(f"日数 {sc['days']}（目安 5〜7）")
+        warn.append(f"1ループの日数が{sc['days']}日です（目安は5〜7日）")
     est = loops_estimate(sc)
     if st['id'] == 'BTX' and abs(est - sc['loops']) > 1.0:  # 目安の表（印刷p48）は Basic Tragedy X のもの
-        warn.append(f"ループ数 {sc['loops']} が目安 {est} から離れている")
+        warn.append(f"ループ数が{sc['loops']}です。ルール・事件・日数から出す目安（{est}）と1以上離れていて、主人公に易しすぎるか厳しすぎるかもしれません")
     return err, warn
 
 
@@ -242,7 +253,7 @@ def decode(code):
     import base64
     code = (code or '').strip()
     if not code.startswith(CODE_PREFIX) or len(code) > 4000:
-        raise ValueError('シナリオのコードではない（s1. で始まる）')
+        raise ValueError('シナリオのコードではありません（コードは s1. で始まります）')
     body = code[len(CODE_PREFIX):]
     try:
         b = base64.urlsafe_b64decode(body + '=' * (-len(body) % 4))
@@ -277,7 +288,7 @@ def decode(code):
         title = take(one()).decode('utf-8')
         special = take(int.from_bytes(take(2), 'big')).decode('utf-8')
     except Exception as e:
-        raise ValueError(f'コードを読めない（壊れている: {type(e).__name__}）')
+        raise ValueError(f'コードが途中で切れているか、壊れていて読めません。コピーし直してください（{type(e).__name__}）')
     sc = {'title': title, 'loops': ld >> 4, 'days': ld & 15, 'rules': rules, 'characters': chars, 'roles': roles, 'init': init,
           'appear': appear, 'incidents': incs, 'special': special}
     if terr:
@@ -324,11 +335,13 @@ def report(sc):
         sc = normalize(sc)
         err, warn = check(sc)
     except ValueError as e:
-        return {'errors': [str(e)], 'warnings': []}
+        return {'errors': [f'シナリオの形が崩れています（{e}）'], 'warnings': []}
     except (KeyError, TypeError) as e:
-        return {'errors': [f'形が崩れている（{e}）'], 'warnings': []}
+        return {'errors': [f'シナリオの形が崩れています（{e} が読めない）'], 'warnings': []}
     if not err:
         uns = unsupported(sc)
         if uns:
-            err.append('このエンジンでまだ遊べない要素: ' + '・'.join(uns))
+            st = sets.load(sc.get('set'))
+            name = lambda x: (st['rules'].get(x) or INCIDENTS.get(x) or CHARS.get(x) or {}).get('name', x)  # noqa: E731
+            err.append('このエンジンではまだ遊べないものが入っています: ' + '・'.join(name(x) for x in uns))
     return {'errors': err, 'warnings': warn}

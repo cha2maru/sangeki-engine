@@ -879,7 +879,17 @@ def main():
     ap.add_argument('--replay', default='', help='リプレイの記録（record.json の形）のファイルを再生する（URL の #p=）')
     ap.add_argument('--resume', action='store_true', help='--replay の記録の終わりから、普通の対戦として続ける（途中から再開する URL）')
     ap.add_argument('--check', action='store_true', help='標準入力のシナリオ（JSON）を検証し、{errors, warnings} を JSON で出して終わる（シナリオエディタ）')
+    ap.add_argument('--analyze', action='store_true', help='標準入力のシナリオ（JSON）の負け筋と守りきれるかを JSON で出して終わる（シナリオエディタ）')
+    ap.add_argument('--generate', action='store_true', help='ランダムなシナリオ（易しすぎるものは作り直す）を JSON で出して終わる（シナリオエディタ）')
     a = ap.parse_args()
+    if a.analyze or a.generate:
+        from selfplay.editor_analysis import analyze, generate
+        try:
+            out = analyze(json.loads(sys.stdin.read())) if a.analyze else {'script': generate()}
+        except ValueError:
+            out = {'errors': ['シナリオを JSON として読めません']}
+        print(json.dumps(out, ensure_ascii=False))
+        return
     if a.decode:
         from engine.scripts import decode
         try:
