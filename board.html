@@ -28,6 +28,18 @@ body.log-closed #board { --logh:38px; }
 .pane { width:var(--pw, clamp(250px, 22vw, 380px)); display:flex; flex-direction:column; min-height:0; background:var(--panel);
   border:1px solid var(--line); border-radius:4px; transition:width .15s; }
 #p-sheet { --pw:clamp(280px, 27vw, 460px); }
+/* 幅ごとの配置（設計資料 8.3 ①・決まったこと 19: 盤面を今より小さくしない）。列の幅は右下のつまみで変えられる */
+.pane:not(.closed) { resize:horizontal; overflow:hidden; }
+@media (min-width:1800px) { #p-ops { --pw:300px; } #p-sheet { --pw:520px; } }
+@media (min-width:1300px) and (max-width:1799px) { #p-sheet { --pw:380px; } }
+@media (min-width:901px) and (max-width:1299px) {  /* 操作は盤面の右（今と同じ位置）、推理はその下の同じ列 */
+  #panes { flex-direction:column; width:clamp(260px, 26vw, 340px); }
+  #panes .pane { width:auto; flex:1 1 0; resize:none; } #panes .pane.closed { flex:0 0 auto; }
+  #panes .pane.closed > .ph { flex-direction:row; height:auto; } #panes .pane.closed > .ph .tog { writing-mode:horizontal-tb; flex:1; }
+  #p-ops > .body { display:flex; flex-direction:column; } #p-ops .sec-hands { order:-2; } #p-ops .sec-send { order:-1; }  /* 確定が画面に入るように */
+  #panes #p-ops:not(.closed) { flex-grow:3; } #panes #p-sheet:not(.closed) { flex-grow:2; }
+  #hands.placing .hand:not(.turn) { display:none; }
+}
 .pane > .ph { display:flex; align-items:center; gap:6px; padding:4px 6px; border-bottom:1px solid var(--line); background:#000; border-radius:4px 4px 0 0; }
 .pane > .ph .tog { background:none; border:none; color:var(--acc); font-weight:700; padding:2px 4px; text-align:left; flex:1; }
 .pane > .ph .tog:focus-visible { outline:2px solid var(--acc); }
@@ -51,6 +63,18 @@ summary { cursor:pointer; color:var(--acc); }
   .pane > .body { max-height:70vh; }
   .pane.closed > .ph { flex-direction:row; height:auto; }
   .pane.closed > .ph .tog { writing-mode:horizontal-tb; flex:1; }
+  .pane:not(.closed) { resize:none; }
+  /* 盤面のすぐ下に手札と『確定して送る』（盤面と確定が最初の画面に入る）。推理は下端の引き出し（閉じるのが既定） */
+  #p-ops > .body { display:flex; flex-direction:column; } #p-ops .sec-hands { order:-2; } #p-ops .sec-send { order:-1; }
+  #p-sheet { position:fixed; left:0; right:0; bottom:0; z-index:20; max-height:75vh; box-shadow:0 -6px 18px #000; }
+  #p-sheet.closed > .body { display:none; } body { padding-bottom:40px; }
+  #sheetbar .days { display:none; } #sheetbar.open .days { display:grid; }  /* 公開シート帯は1行。押すと日の列 */
+  /* 帯は2行まで（日・フェイズ／誰の番）。長い文は省略（全文は操作の欄にある） */
+  #band { gap:2px 10px; padding:4px 8px; } #band .ph { font-size:14px; }
+  #band .wait { order:5; flex:1 1 100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:12px; }
+  /* 手札のトレイ: 札を置く番の主人公だけ（3枚そろうまで）。脚本家の使用済みは公開シート帯にある */
+  #hands.placing .hand:not(.turn) { display:none; }
+  #p-ops .sec-hands h3, #p-ops .sec-send h3, #pending li.mut { display:none; } #p-ops .sec-hands, #p-ops .sec-send { padding:4px 2px; }
 }
 .area { position:relative; aspect-ratio:1519/1076; background-size:cover; border:2px solid #000; container-type:inline-size; }
 .area.tgt:hover { outline:2px solid var(--acc); }
@@ -130,7 +154,12 @@ table.inc { width:100%; border-collapse:collapse; } table.inc td { border-bottom
 .today { color:var(--acc); font-weight:700; }
 #menu { position:fixed; z-index:20; background:#222; border:1px solid var(--acc); border-radius:4px; min-width:180px; overflow:auto; display:none; box-shadow:0 4px 16px #000; }
 #menu .t { padding:4px 10px; color:var(--acc); font-weight:700; border-bottom:1px solid var(--line); }
-#menu div.o { padding:4px 10px; cursor:pointer; } #menu div.o:hover { background:#444; }
+button:disabled { opacity:.45; cursor:not-allowed; }
+.refl { max-height:40vh; overflow:auto; font-size:12px; } .refl details { border-bottom:1px solid var(--line); padding:2px 0; } .refl summary { cursor:pointer; }
+#log details.lday > summary { cursor:pointer; color:var(--acc); font-weight:600; font-size:12px; padding:2px 0; } #log .lk { color:var(--acc); font-weight:600; font-size:11px; margin-right:2px; } .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+#p-log .ph select, #p-log .ph input { font-size:11px; padding:0 2px; background:#222; color:var(--fg); border:1px solid var(--line); }
+#menu div.o { padding:4px 10px; cursor:pointer; } #menu div.o:hover, #menu div.o:focus { background:#444; outline:none; }
+#board .dropon { outline:3px dashed var(--acc); outline-offset:-3px; }
 #menu div.o.dim { color:var(--mut); }
 #msg { width:100%; box-sizing:border-box; background:#111; color:var(--fg); border:1px solid #555; }
 .mut { color:var(--mut); font-size:12px; }
@@ -236,7 +265,7 @@ span.card.back { background:repeating-linear-gradient(45deg, #4a4a4a 0 4px, #353
 #sheetbar .phjump { cursor:pointer; text-decoration:underline dotted; } #sheetbar .r { margin-right:6px; white-space:nowrap; } #sheetbar .r.y { color:#ff8a7a; } #sheetbar .r.n { color:var(--mut); }
 span.card.nul { text-decoration:line-through; }
 .rgwrap { overflow-x:auto; } table.rg th:first-child { position:sticky; left:0; background:var(--panel); z-index:1; white-space:nowrap; }
-table.rg th { font-size:11px; font-weight:600; } table.rg tr:first-child th:not(:first-child) { writing-mode:vertical-rl; padding:2px 0; vertical-align:bottom; line-height:1.1; } table.rg td { padding:0; text-align:center; } table.rg .gone { opacity:.35; }
+table.rg th { font-size:11px; font-weight:600; } #sh-loops b.y { color:#ff8a7a; } #sh-loops b.n { color:var(--mut); } #sh-loops tr.today td { background:rgba(224,162,74,.1); } table.rg tr:first-child th:not(:first-child) { writing-mode:vertical-rl; padding:2px 0; vertical-align:bottom; line-height:1.1; } table.rg td { padding:0; text-align:center; } table.rg .gone { opacity:.35; }
 table.rg .gc { width:100%; min-width:1.8em; height:1.8em; background:transparent; border:1px solid #3d3a35; color:var(--fg); font-weight:800; padding:0; cursor:pointer; }
 table.rg .gc.soft { color:var(--mut); font-weight:400; font-size:11px; } table.rg .gc:focus-visible { outline:2px solid var(--acc); }
 .hguide { background:rgba(224,162,74,.14); border-left:3px solid var(--acc); padding:2px 6px; margin-bottom:4px; }
@@ -299,13 +328,13 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
 <div id="band"></div>
 <div id="wrap">
   <main id="stage"><div id="board"></div>
-   <section class="pane" id="p-log"><div class="ph"><button class="tog" aria-expanded="true">ログ</button></div><div class="body"><div id="log"></div></div></section>
+   <section class="pane" id="p-log"><div class="ph"><button class="tog" aria-expanded="true">ログ</button><select id="logf" class="extra" aria-label="ログの絞り込み"><option value="">すべて</option><option value="札">札</option><option value="移">移動</option><option value="カ">カウンター</option><option value="脚">どこからともなく</option><option value="能">友好能力</option><option value="事">事件</option><option value="死">死亡</option></select><input id="logq" class="extra" placeholder="人物名" aria-label="人物名で絞り込み" size="7"></div><div class="body"><div id="log"></div><div id="loglive" class="sr" aria-live="polite"></div></div></section>
   </main>
   <div id="panes">
    <section class="pane" id="p-ops"><div class="ph"><button class="tog" aria-expanded="true">操作</button></div><div class="body">
     <section id="sheetbar" aria-label="公開シート"></section>
     <section id="dayflow"><h3>当日の流れ <span class="mut" id="today-h"></span> <span id="df-nav"></span></h3><div id="today"></div></section>
-    <section><h3>送信待ち</h3><ul id="pending"></ul><div id="sent"></div>
+    <section class="sec-send"><h3>送信待ち</h3><ul id="pending"></ul><div id="sent"></div>
       <button class="go" id="send">確定して送る</button> <button id="clear">取り消す</button></section>
     <section><h3>脚本家の返答</h3><div id="reply" class="mut">—</div></section>
     <section id="abilsec"><h3>友好能力 <span id="abilcount"></span> <span class="mut">（リーダーが1件ずつ宣言）</span></h3>
@@ -313,7 +342,7 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
       脚本家が解決か拒否を「脚本家の返答」に返したら、次の1件を宣言する。使い終えたら『能力の宣言を終える』。
       同じ能力は1日1回まで、★は1ループ1回まで（主人公の書 印刷p23）。友好の数が足りないものは灰色だが、宣言は止めない。</details>
       <table class="inc" id="abil"></table></section>
-    <section><h3>手札</h3><div id="hands"></div></section>
+    <section class="sec-hands"><h3>手札</h3><div id="hands"></div></section>
     <section class="manual-only"><h3>脚本家に伝える</h3><textarea id="msg" rows="2" placeholder="質問・宣言など（Enterで送信、Shift+Enterで改行）"></textarea></section>
     <section><details><summary>操作と記号</summary><div class="mut">右クリック: キャラクター・エリア → 札を置く／友好能力／役職の宣言（最後の戦い）。ログの行の『盤面』 → その時点の盤面<span class="manual-only">、右クリック → 異議</span>。
       ボードの「暗躍 n」はエリアの暗躍。駒のバッジは 不安 n/不安臨界・友好・暗躍・護衛（0 のものは出さない。不安だけは 0 でも点線で出す）。「! … 臨界」と赤枠は不安臨界以上、点線の縁はあと1で臨界。
@@ -330,9 +359,11 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
     <section><h3>役職の能力 <span class="mut">（早見表）</span></h3><table class="sh" id="sh-rabil"></table></section>
     <section><h3>敗北条件 <span class="mut">（ループごとに、起きたかを自分で付ける）</span></h3><table class="sh" id="sh-loss"></table></section>
     <section><h3>事件 ― 誰が犯人か</h3><table class="sh" id="sh-inc"></table></section>
+    <section><h3>資料 <span class="mut">（キャラクター・役職・ルール・事件の文面。言葉で探す）</span></h3><input id="refq" placeholder="例: 医者、暗躍、ループ終了時" aria-label="資料を探す" style="width:100%;box-sizing:border-box"><div id="refl" class="refl"></div></section>
+    <section><h3>ループの記録 <span class="mut">（公開された事実だけ。終わり方は推理の大事な手がかり）</span></h3><div class="rgwrap"><table class="sh" id="sh-loops"></table></div></section>
     <section><h3>人物×役職 <span class="mut">（押すたびに 空→○ 候補→✕ 違う→◎ これ。◎ で同じ行に薄い ·✕。矢印キーで移動）</span></h3><div class="rgwrap"><table class="sh rg" id="sh-grid" role="grid"></table></div></section>
     <section><h3>登場人物 ― 役職の推測</h3><table class="sh" id="sh-chars"></table></section>
-    <p class="mut">書き込みは自動で保存される。<a href="/sheet" target="_blank" style="color:var(--mut)">旧推理シート ↗</a></p>
+    <p class="mut">書き込みは自動で保存される。</p>
    </div></section>
   </div>
 </div>
@@ -357,12 +388,12 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
   <h3>遊び方</h3>
   <ol>
     <li>あなたは主人公 A・B・C の3人です。自動の脚本家と対戦します。</li>
-    <li>毎日、キャラクターやエリアを<b>右クリック</b>（または手札の札を選んでからクリック）して札を3枚置き、<b>『確定して送る』</b>。</li>
+    <li>毎日、リーダーから順に、手札の札を<b>押してから置き先のキャラクターかエリアを押す</b>（ドラッグでも、右クリックのメニューでも置けます）。3枚そろったら<b>『確定して送る』</b>。何が起きたかは<b>当日の流れ</b>にまとまります。</li>
     <li><b>札の取り消し</b>（送る前だけ）: 「送信待ち」の欄の <b>×</b> で1枚ずつ、<b>『取り消す』</b>で全部。同じ主人公でもう一度置けば置き直し。手札を選んだ状態は <b>Esc</b> かもう一度クリックで解除。『確定して送る』の後は取り消せません。</li>
     <li>友好能力は「友好能力」の欄の『宣言』で1件ずつ。終わったら『能力の宣言を終える』。</li>
     <li>フェイズごとに<b>場面カード</b>で起きたことを確かめられます（『盤面を見る』『解決前／解決後』）。</li>
     <li>試合の記録はディスクの『リプレイを書き出す』か、終了時の『リプレイを保存』で保存できます。保存したファイルは下の『リプレイを見る…』で見返せます。</li>
-    <li>最後の戦いでは、キャラクターを右クリックして役職を1人ずつ宣言します。宣言するたびに判定され、外れた時点で脚本家の勝ちです。</li>
+    <li>最後の戦いでは、キャラクターを押して（右クリックでも）役職を1人ずつ宣言します。宣言するたびに判定され、外れた時点で脚本家の勝ちです。</li>
     <li>帯の右端の <b>？</b> でこの案内（クレジットを含む）、<b>ディスク</b>で新しいゲーム・シナリオを作る・リプレイの書き出しと読み込み・URL での共有、<b>⚙</b> で表示の設定（場面カード・演出の速さ・画像なしの表示）。脚本家の考え中に出る「脚本家は…」の文は雰囲気のためのもので、脚本とは関係ありません。</li>
   </ol>
   <h3>連絡先</h3>
@@ -598,7 +629,7 @@ const noPlace = t => !!armed && pending.some(q => q.type === 'card' && q.actor !
 function handGuide() {
   if ((S.waiting || {}).kind !== 'cards' || viewing) return '';
   const done = new Set(pending.filter(q => q.type === 'card').map(q => q.actor)), next = pcOrder().find(p => !done.has(p));
-  return `<div class="hguide" role="status">${next ? `いま <b>主人公${next}</b>${next === S.leader ? '（リーダー）' : ''}の番 ― ${done.size + 1}/3。札を選んでから、置き先のキャラクターかエリアを押す`
+  return `<div class="hguide" role="status">${next ? `いま <b>主人公${next}</b>${next === S.leader ? '（リーダー）' : ''}の番 ― ${done.size + 1}/3。札を選んでから置き先のキャラクターかエリアを押す（ドラッグでも置ける）`
     : '3枚そろった。『確定して送る』で送信'}${guideMsg ? `<div style="color:var(--warn)">${esc(guideMsg)}</div>` : ''}</div>`;
 }
 const lastHTML = {};
@@ -634,9 +665,10 @@ function renderMain() {
   }).join(''));
   fxPlay(fxPrev);
   const turnP = (S.waiting || {}).kind === 'cards' ? pcOrder().find(p => !pending.some(q => q.type === 'card' && q.actor === p)) : null;
+  $('hands').classList.toggle('placing', !!turnP);
   setHTML('hands', handGuide() + ['A','B','C'].map(p => `<div class="hand ${p === turnP ? 'turn' : ''}"><span class="who">主人公${p}${S.leader === p ? '★' : ''}</span>` +
     '<div class="cards">' + PCARDS.map(([n, , lim]) => cardEl(p, n, `${lim && (S.used?.[p] || []).includes(n) ? 'used' : ''} ${armed && armed.actor === p && armed.card === n ? 'armed' : ''}`,
-      `tabindex="0" role="button" aria-pressed="${!!(armed && armed.actor === p && armed.card === n)}" data-armp="${p}" data-armc="${n}" title="${n}${lim ? '（1ループ1回）' : ''} ― 選んでからキャラクターかエリアをクリックすると置ける"`)).join('') + '</div></div>').join('')
+      `draggable="true" tabindex="0" role="button" aria-pressed="${!!(armed && armed.actor === p && armed.card === n)}" data-armp="${p}" data-armc="${n}" title="${n}${lim ? '（1ループ1回）' : ''} ― 選んでからキャラクターかエリアをクリックすると置ける"`)).join('') + '</div></div>').join('')
     + (armed ? `<div class="mut">選択中: 主人公${armed.actor} の ${esc(armed.card)} ― 置き先をクリック（Esc で解除）</div>` : '')
     + `<div class="hand"><span class="who">脚本家</span><span class="mut">使用済み: ${esc((S.used?.M || []).join('・') || 'なし')}</span></div>`);
   renderSheetbar(); renderToday();
@@ -663,6 +695,12 @@ function renderMain() {
   $('commits').innerHTML = (S.commitments || []).map(c => `${esc(c.label)}<br>${esc(c.sha256)}${c.revealed ? ' ✔公開済' : ''}`).join('<hr>');
   renderSent();
   const dupT = pending.map(p => p.target).filter((t, i, a) => a.indexOf(t) !== i);
+  // 『確定して送る』は3枚そろって（1人1枚・同じ場所に2人でない）から押せる（設計資料 段階4）
+  if ((S.waiting || {}).kind === 'cards') {
+    const n = new Set(pending.filter(q => q.type === 'card').map(q => q.actor)).size;
+    $('send').disabled = n < 3 || dupT.length > 0;
+    $('send').title = n < 3 ? `あと ${3 - n} 枚（リーダーから1人1枚）` : dupT.length ? '主人公どうしは同じ場所に置けない' : '3枚を脚本家へ送る';
+  } else { $('send').disabled = false; $('send').title = ''; }
   $('pending').innerHTML = pending.map((p, i) => `<li>${esc(describe(p))}<button data-del="${i}">×</button>`
     + (dupT.includes(p.target) ? ' <b style="color:var(--warn)">主人公どうしは同じ場所に置けない</b>' : '') + '</li>').join('') || '<li class="mut">なし</li>';
   // 入力を待っている欄に印（畳んでいても分かるように、見出しに●）
@@ -673,7 +711,7 @@ function renderMain() {
 
 // ---- 欄の開け閉め（畳むと盤面が大きくなる。状態はこの端末にだけ覚える）----
 const PANE_KEY = 'panes';
-let closedPanes = []; try { closedPanes = JSON.parse(localStorage.getItem(PANE_KEY) || '[]'); } catch {}
+let closedPanes = []; try { closedPanes = JSON.parse(localStorage.getItem(PANE_KEY) || 'null') ?? (innerWidth <= 900 ? ['p-sheet'] : []); } catch {}  // 狭い画面では推理の引き出しを閉じて始める
 const qClosed = new URLSearchParams(location.search).get('closed');  // ?closed=p-ops,p-log で畳んで開く（ブックマーク用）
 if (qClosed != null) closedPanes = qClosed.split(',').filter(Boolean);
 function applyPanes() {
@@ -703,7 +741,15 @@ fetch('/notes').then(r => r.json()).then(n => { NOTES = n || {}; renderSheet(); 
 let engOn = false; try { engOn = localStorage.getItem('eng') === '1'; } catch {}
 const qEng = new URLSearchParams(location.search).get('eng'); if (qEng != null) engOn = qEng === '1';
 function applyEng() { document.body.classList.toggle('eng-on', engOn); $('engbtn').setAttribute('aria-pressed', String(engOn)); }
-$('engbtn').onclick = () => { engOn = !engOn; try { localStorage.setItem('eng', engOn ? '1' : '0'); } catch {} applyEng(); };
+$('engbtn').onclick = () => {
+  // 初めて押すときに確かめる（答えに近い情報。設計資料 8.3 ⑥）。一度確かめたら、このブラウザでは聞かない
+  let ok = false; try { ok = localStorage.getItem('eng-ok') === '1'; } catch {}
+  if (!engOn && !ok) {
+    if (!confirm('公開された出来事から、ルール上ありうる組み合わせを数えた割合を、推理の欄に重ねて出します。\n答えに近い情報です。自分で考えたいときは押さないでください。\n\n出しますか？')) return;
+    try { localStorage.setItem('eng-ok', '1'); } catch {}
+  }
+  engOn = !engOn; try { localStorage.setItem('eng', engOn ? '1' : '0'); } catch {} applyEng();
+};
 applyEng();
 const pct = p => `${Math.round(p * 100)}%`;
 const cls = p => p >= 0.999 ? 'e-yes' : p <= 0 ? 'e-no' : p >= 0.5 ? 'e-hi' : 'e-mid';
@@ -724,7 +770,9 @@ const LOSS = [
   ['ウィッチの初期エリアに暗躍2以上', 'ループ終了時', '巨大時限爆弾Xの存在', ['rule','巨大時限爆弾Xの存在']],
   ['事件の効果で主人公死亡・キーパーソン死亡', '事件フェイズ', '事件（殺人事件・遠隔殺人・病院の事件・自殺 など）', null],
 ];
+function rpOn() { try { return RP.on; } catch { return false; } }  // RP は後で定義される（読み込みの途中でも呼ばれる）
 function renderSheet() {
+  if (S.game && NOTES._game && NOTES._game !== S.game && !viewing && !rpOn()) { dropGameNotes(); NOTES._game = S.game; }  // 前の試合の書き込みは出さない
   if (document.activeElement && document.activeElement.closest && document.activeElement.closest('#p-sheet table:not(.rg)')) return;  // 書いている途中は描き直さない
   const d = DED || {}, has = !!d.roles;
   $('engmeta').textContent = has ? `最後に出来事があった L${d.loop}D${d.day} までの公開情報で、ルール上ありうる組み合わせ ${d.hypotheses} 通りの中での割合（脚本家の狙いは考えていない）。「狙い込み」は、これまでの伏せ札の対象が近い勝ち筋に関わる組み合わせほど重くした見込み` : S.publicSheet ? 'エンジンの候補は、最初の出来事が起きると出る' : 'エンジンの候補は、対AIモード（ai_gm.py）の対戦でだけ出る';
@@ -773,7 +821,9 @@ function renderSheet() {
   const cell = (n, k) => NOTES[`g.cell.${n}.${k}`] || '';
   const pick = n => cols.find(k => cell(n, k) === '◎');
   const fe = document.activeElement?.dataset?.cell;
-  setHTML('sh-grid', '<tr><th>人物</th>' + cols.map(k => `<th class="${colGone(k) ? 'gone' : ''}">${esc(k === 'PERSON' ? 'パーソン' : ROLENAMES[k] || k)}</th>`).join('') + '</tr>'
+  const abilOf = n => { const r = ROLE_ABIL.find(x => x[0] === n); return r ? `${n}（上限 ${r[1]}）: ${r[3]}` : n; };  // 役職名に触れると早見表の能力（資料の吹き出し）
+  setHTML('sh-grid', '<tr><th>人物</th>' + cols.map(k => { const n = k === 'PERSON' ? 'パーソン' : ROLENAMES[k] || k;
+    return `<th class="${colGone(k) ? 'gone' : ''}" title="${esc(abilOf(n))}">${esc(n)}</th>`; }).join('') + '</tr>'
     + (S.characters || []).map((ch, i) => {
       const p = pick(ch.name);
       return `<tr><th>${esc(ch.name)}</th>` + cols.map((k, j) => {
@@ -783,6 +833,15 @@ function renderSheet() {
       }).join('') + '</tr>';
     }).join(''));
   if (fe) { const b = document.querySelector(`#sh-grid [data-cell="${CSS.escape(fe)}"]`); if (b) { b.tabIndex = 0; b.focus(); } }
+  // ループの記録（設計資料 8.3 ④）。対AIモードは state.loopHistory、手動モードは gm.py の loop_end() などが書く。事件は incidentHistory でも可（古い手動の試合）
+  const LH = S.loopHistory || [], incDays = (S.incidents || []).map(i => i.day);
+  const lrows = Array.from({ length: Math.max(S.loop || 0, LH.length) }, (_, i) => LH.find(h => h.loop === i + 1) || { loop: i + 1, incidents: [], deaths: [], roles: [], end: null });
+  const incOf = (h, d) => (h.incidents || []).find(x => x.day === d) || (S.incidentHistory || []).find(x => x.loop === h.loop && x.day === d);
+  setHTML('sh-loops', !lrows.length ? '<tr><td class="mut">（ループが始まると出る）</td></tr>' : '<tr><th>ループ</th>' + (S.incidents || []).map(i => `<th>${i.day}日 ${esc(i.name)}</th>`).join('') + '<th>死亡</th><th>役職の公開</th><th>終わり方</th></tr>'
+    + lrows.map(h => `<tr class="${h.loop === S.loop ? 'today' : ''}"><td>L${h.loop}${h.loop === S.loop ? '（いま）' : ''}</td>` + incDays.map(d => { const x = incOf(h, d);
+        return `<td>${x ? `<b class="${x.result === '発生' ? 'y' : 'n'}">${esc(x.result)}</b>${(x.critical || []).length ? `<div class="mut">臨界以上: ${esc(x.critical.join('・'))}</div>` : ''}` : '<span class="mut">—</span>'}</td>`; }).join('')
+      + `<td>${esc((h.deaths || []).map(x => (x.day ? x.day + '日 ' : '') + x.name).join('・') || '—')}</td><td>${esc((h.roles || []).map(x => x.name + '=' + x.role).join('・') || '—')}</td>`
+      + `<td><b>${esc(h.end ? h.end.text : h.loop === S.loop ? '（続いている）' : '—')}</b></td></tr>`).join(''));
   const roleOpts = ['未定', ...Object.values(ROLENAMES)];
   const AJ = { HOS: '病院', SHR: '神社', CIT: '都市', SCH: '学校' };
   const areaJ = a => AJ[a] || a || '脚本家が決める';
@@ -800,10 +859,11 @@ function renderSheet() {
       <td>${pick(ch.name) ? esc(pick(ch.name) === 'PERSON' ? 'パーソン' : ROLENAMES[pick(ch.name)] || pick(ch.name)) : NOTES['g.role.' + ch.name] && NOTES['g.role.' + ch.name] !== '未定' ? `<span class="mut" title="前の書き込み（役職の選択）">${esc(NOTES['g.role.' + ch.name])}</span>` : '<span class="mut">（格子で ◎）</span>'}</td><td>${noteInp('g.memo.' + ch.name)}</td><td class="eng">${top}</td></tr>`;
   }).join('');
 }
-// 書き込みの保存: 旧推理シートと同じ notes.json を使うので、読み直してから自分の項目だけ差し替える
+// 書き込みの保存: notes.json（サーバー版）・ブラウザの保存（ブラウザ版）。読み直してから自分の項目だけ差し替える
 let saveT = null;
 $('p-sheet').addEventListener('change', e => { const k = e.target.dataset.note; if (!k) return; NOTES[k] = e.target.value; queueSave(); });
 $('p-sheet').addEventListener('input', e => { const k = e.target.dataset.note; if (!k || e.target.tagName !== 'INPUT') return; NOTES[k] = e.target.value; queueSave(); });
+$('sheetbar').addEventListener('click', e => { if (innerWidth <= 900 && !e.target.closest('.phjump')) $('sheetbar').classList.toggle('open'); });
 $('p-sheet').addEventListener('click', e => {
   const b = e.target.closest('#sh-grid [data-cell]'); if (!b) return;
   const [n, k] = b.dataset.cell.split('|'), key = `g.cell.${n}.${k}`, nx = { '': '○', '○': '✕', '✕': '◎', '◎': '' };
@@ -823,7 +883,9 @@ function queueSave() {
     try {
       const cur = await (await fetch('/notes')).json();
       const mine = Object.fromEntries(Object.entries(NOTES).filter(([k]) => k.startsWith('g.')));
-      await fetch('/notes', { method: 'POST', body: JSON.stringify({ ...cur, ...mine }) });
+      if (S.game) mine._game = S.game;  // どの試合の書き込みか（違う試合では読まない。設計資料 8b・B12）
+      const base = cur._game && S.game && cur._game !== S.game ? Object.fromEntries(Object.entries(cur).filter(([k]) => !k.startsWith('g.'))) : cur;  // 前の試合の分は捨てる
+      await fetch('/notes', { method: 'POST', body: JSON.stringify({ ...base, ...mine }) });
     } catch { alert('推理の書き込みを保存できなかった'); }
   }, 600);
 }
@@ -969,12 +1031,18 @@ function renderToday() {
   const ph = (S.phaseName || '').replace(/^L\d+ (\d+日目 )?/, '').replace(/フェイズ$/, '');
   const nowI = isLive ? Math.max(order.indexOf(ph), ...[...groups.keys()].map(g => order.indexOf(g))) : order.length;
   const inc = isLive ? (S.incidents || []).find(i => i.day === at[1]) : null;
+  // リーダー交代はログに区切りが無い（B8。足すと共有したリプレイの照合と再開の位置がずれる）。主人公行動フェイズの区切りの「リーダー X」から読む
+  const leaderOf = d => { if (!d) return null; const h = LOG.find(l => l.loop === d[0] && l.day === d[1] && /^── L\d+D\d+ 主人公行動フェイズ ── リーダー ([ABC])/.test(l.text || ''));
+    return h ? /リーダー ([ABC])/.exec(h.text)[1] : null; };
+  const ldNow = leaderOf(at), ldNext = leaderOf(ds[k + 1]);
   $('today').innerHTML = order.map((p, i) => {
     const ls = groups.get(p) || [], mark = i < nowI ? '✓' : i === nowI ? '▶' : '・';
     if (!PHASES9.includes(p) && !ls.length && !groups.has(p)) return '';
     let body = ls.map(l => `<li data-jump="${l.n}" class="${l.n > dfSeen && isLive ? 'new' : ''}" title="ログのこの行へ">${l.n > dfSeen && isLive ? '<b class="newm">新</b> ' : ''}${esc(l.text)}</li>`);
     // 行の無いフェイズは見出しの横に1行で（これからの事件は予定の事件名、リーダー交代は今と次のリーダー）
-    const note = virt[p] || (i > nowI ? (p === '事件' && inc ? `事件予定: ${inc.name}` : p === 'リーダー交代' && S.leader ? `主人公${S.leader} → 主人公${'ABC'['ABC'.indexOf(S.leader) + 1] || 'A'}` : '') : '（なし）');
+    const next = l => 'ABC'['ABC'.indexOf(l) + 1] || 'A';
+    const note = virt[p] || (p === 'リーダー交代' ? (i > nowI ? (S.leader ? `主人公${S.leader} → 主人公${next(S.leader)}` : '') : ldNow ? `主人公${ldNow} → 主人公${ldNext || next(ldNow)}` : '')
+      : i > nowI ? (p === '事件' && inc ? `事件予定: ${inc.name}` : '') : '（なし）');
     const key = at.join('-') + p, more = body.length > 2 && !dfOpen.has(key);
     const last = ls.length ? ls[ls.length - 1].n : null;
     return `<div class="dfp ${i === nowI ? 'now' : i > nowI ? 'later' : ''}"><div class="tph"><span class="mk">${mark}</span><span class="pn">${esc(p)}</span>`
@@ -985,9 +1053,42 @@ function renderToday() {
       + (body.length > 2 ? `<button class="dfmore" data-dfkey="${esc(key)}">${more ? `残り ${body.length - 2} 行を開く` : '畳む'}</button>` : '') + '</div>';
   }).join('') + (!isLive && myTurn() ? '<button class="go" data-df="0">今日へ戻る（あなたの番）</button>' : '');
 }
+// ログの行の種類の印（文字つき。設計資料 7.4）。公開ログの文から決める
+const LOGKIND = [[/^(脚本家の札が公開された|主人公の札)/, '札'], [/ へ移動$|の移動は|への移動は/, '移'], [/^どこからともなく/, '脚'], [/の(不安|友好|暗躍|護衛) \d+ → \d+|に(不安|友好|暗躍)[+−-]/, 'カ'],
+  [/友好能力|脚本家が.+の能力を使った/, '能'], [/^\d+日目 .+: 発生/, '事'], [/が死亡した|死亡は護衛で防がれた|あなたたちは死亡/, '死']];
+const logKind = t => (LOGKIND.find(([re]) => re.test(t || '')) || [, ''])[1];
+let liveN = null;
+const logOpen = new Set();  // 開いた前の日（ログの見出し）
+$('log').addEventListener('toggle', e => { const d = e.target.closest?.('details.lday'); if (d) d.open ? logOpen.add(d.dataset.k) : logOpen.delete(d.dataset.k); }, true);
+// 資料の引き出し（設計資料 8.3 ⑤）: 変わらない文面（キャラクターの公開情報と友好能力・役職の能力・ルールの追加ルール・事件の効果）を言葉で探す
+function renderRef() {
+  const q = $('refq').value.trim(); if (!q) { $('refl').innerHTML = '<div class="mut">言葉を入れると、合う項目が出ます</div>'; return; }
+  const items = [];
+  for (const c of S.characters || []) { const cp = CHARPUB[c.name] || {}; const AJ = { HOS: '病院', SHR: '神社', CIT: '都市', SCH: '学校' };
+    items.push(['キャラクター', c.name, [`不安臨界 ${c.limit}`, cp.start ? '初期 ' + (AJ[cp.start] || cp.start) : '', (cp.forbidden || []).length ? '禁止 ' + cp.forbidden.map(a => AJ[a] || a).join('・') : '', (cp.tags || []).join('・'), cp.traits ? '特性: ' + cp.traits : '',
+      ...(cp.abilities || []).map(a => `友好${a.need}${a.once ? '★' : ''}: ${a.text}`)].filter(Boolean).join('\n')]); }
+  for (const [n, cap, cond, ab] of ROLE_ABIL) items.push(['役職', n, `上限 ${cap}\n${ab}`]);
+  for (const r of Object.values(RULESDATA)) items.push(['ルール' + r.type, r.name, '加わる役職: ' + (Object.entries(r.roles || {}).map(([k, n]) => (ROLENAMES[k] || k) + (n > 1 ? '×' + n : '')).join('・') || 'なし') + (r.text ? '\n' + r.text : '')]);
+  for (const i of S.incidents || []) items.push(['事件', `${i.day}日 ${i.name}`, i.effect || '']);
+  const hit = items.filter(([k, n, t]) => (k + n + t).includes(q)).slice(0, 30);
+  $('refl').innerHTML = hit.length ? hit.map(([k, n, t]) => `<details ${hit.length <= 3 ? 'open' : ''}><summary><span class="mut">${esc(k)}</span> ${esc(n)}</summary><div style="white-space:pre-line">${esc(t)}</div></details>`).join('') : '<div class="mut">見つからない</div>';
+}
+$('refq').oninput = renderRef;
+$('logf').onchange = () => renderLog();  // ログの絞り込み（種類・人物名） $('logq').oninput = () => renderLog();
 function renderLog() {
   // 過去の盤面へは行の端の小さな『盤面』ボタンだけで切り替える（行のクリックだと誤って切り替わり、今の伏せ札が消えたように見えた）
-  $('log').innerHTML = LOG.map(l => l.kind === 'rej' ? `<div class="rej"><span class="n">L${l.loop ?? '-'}D${l.day ?? '-'}</span>受け付けなかった操作: ${esc(l.what)} ― ${esc(l.why)}</div>` : `<div data-log="${l.n}" class="${l.kind === 'correction' ? 'fix' : ''}"><span class="n">#${l.n} L${l.loop ?? '-'}D${l.day ?? '-'}</span>${esc(l.text)}${l.basis ? `<span class="basis">根拠: ${esc(l.basis)}</span>` : ''}<button class="snapbtn" data-snap="${l.n}" title="この行の処理の直後の盤面を見る">盤面</button></div>`).join('');
+  const f = $('logf').value, q = $('logq').value.trim();
+  const shown = LOG.filter(l => (!f || (f === 'カ' ? ['カ', '脚'].includes(logKind(l.text)) : logKind(l.text) === f)) && (!q || (l.text || '').includes(q)));
+  // 新しい行は、その行だけを小さなライブリージョンで読み上げる（欄を丸ごと作り直すと全文が読み直されるため。レビュー R15）
+  const lastN = LOG.length ? LOG[LOG.length - 1].n : 0;
+  if (liveN != null && lastN > liveN) $('loglive').textContent = LOG.filter(l => l.n > liveN && !/^──/.test(l.text || '')).map(l => l.text).slice(-3).join('。');
+  liveN = lastN;
+  // 日ごとの見出しで畳む（設計資料 7.4）。最新の日は開き、前の日は畳む（開け閉めは覚える）。絞り込み中はすべて開く
+  const lineHTML = l => l.kind === 'rej' ? `<div class="rej"><span class="n">L${l.loop ?? '-'}D${l.day ?? '-'}</span>受け付けなかった操作: ${esc(l.what)} ― ${esc(l.why)}</div>` : `<div data-log="${l.n}" class="${l.kind === 'correction' ? 'fix' : ''}"><span class="n">#${l.n} L${l.loop ?? '-'}D${l.day ?? '-'}</span>${logKind(l.text) ? `<b class="lk">［${logKind(l.text)}］</b>` : ''}${esc(l.text)}${l.basis ? `<span class="basis">根拠: ${esc(l.basis)}</span>` : ''}<button class="snapbtn" data-snap="${l.n}" title="この行の処理の直後の盤面を見る">盤面</button></div>`;
+  const groups = [];
+  for (const l of shown) { const k = l.loop == null ? '—' : `L${l.loop}` + (l.day != null ? ` ${l.day}日目` : ''); if (!groups.length || groups[groups.length - 1].k !== k) groups.push({ k, ls: [] }); groups[groups.length - 1].ls.push(l); }
+  const lastK = groups.length ? groups[groups.length - 1].k : null;
+  $('log').innerHTML = groups.map(g => `<details class="lday" data-k="${esc(g.k)}" ${f || q || g.k === lastK || logOpen.has(g.k) ? 'open' : ''}><summary>${esc(g.k)} <span class="mut">${g.ls.length}行</span></summary>${g.ls.map(lineHTML).join('')}</details>`).join('');
   renderToday();
   const box = $('log').closest('.body');  // スクロールするのは欄の本体。最下部付近にいたときだけ最新へ送る（読み返し中は動かさない）
   if (logFollow) box.scrollTop = box.scrollHeight;
@@ -1000,8 +1101,10 @@ function describe(p) {
 // ---- メニュー ----
 function menu(x, y, title, opts) {
   const m = $('menu');
-  m.innerHTML = `<div class="t">${esc(title)}</div>` + opts.map((o, i) => `<div class="o ${o.dim ? 'dim' : ''}" data-i="${i}">${esc(o.label)}</div>`).join('');
+  m.setAttribute('role', 'menu'); m.setAttribute('aria-label', title);
+  m.innerHTML = `<div class="t">${esc(title)}</div>` + opts.map((o, i) => `<div class="o ${o.dim ? 'dim' : ''}" data-i="${i}" role="menuitem" tabindex="-1">${esc(o.label)}</div>`).join('');
   m.style.display = 'block';
+  menuBack = document.activeElement;
   ctip.style.display = 'none'; ctipFor = null;  // キャラクターの説明とメニューを重ねない（スマホではタップで両方が出ていた）
   // 実際の大きさを測って、画面の内側に収める（下にはみ出すなら上へずらす）
   m.style.maxHeight = (innerHeight - 8) + 'px';
@@ -1009,8 +1112,16 @@ function menu(x, y, title, opts) {
   m.style.left = Math.max(4, Math.min(x, innerWidth - w - 4)) + 'px';
   m.style.top = Math.max(4, Math.min(y, innerHeight - h - 4)) + 'px';
   m.onclick = e => { e.stopPropagation(); const i = e.target.dataset.i; if (i == null) return; hide(); opts[i].go(); };
+  m.querySelector('.o')?.focus();
 }
-const hide = () => $('menu').style.display = 'none';
+let menuBack = null;  // メニューを閉じたらフォーカスを戻す先
+const hide = () => { if ($('menu').style.display === 'none') return; $('menu').style.display = 'none'; if ($('menu').contains(document.activeElement)) menuBack?.focus?.(); };
+$('menu').addEventListener('keydown', e => {
+  const items = [...$('menu').querySelectorAll('.o')], i = items.indexOf(document.activeElement);
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus(); }
+  else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); document.activeElement.click(); }
+  else if (e.key === 'Escape') { e.stopPropagation(); hide(); }
+});
 document.addEventListener('click', e => { if (!$('menu').contains(e.target)) { hide(); if (!e.target.closest('#chartip')) ctip.style.display = 'none'; } });
 
 const alive = () => (S.characters || []).filter(c => c.alive !== false);
@@ -1100,6 +1211,21 @@ document.addEventListener('click', e => {
   if (armed) return placeArmed(target);
   e.stopPropagation(); targetMenu(e.clientX, e.clientY, target);
 });
+// ドラッグでも置ける（手札の札 → キャラクター・エリア。タップ2回でも置ける。設計資料 7.1・段階4）
+document.addEventListener('dragstart', e => {
+  const hc = e.target.closest?.('.card[data-armp]'); if (!hc) return;
+  armed = { actor: hc.dataset.armp, card: hc.dataset.armc }; document.body.classList.add('arming');
+  e.dataTransfer.setData('text/plain', hc.dataset.armc); e.dataTransfer.effectAllowed = 'move';
+});
+const dropTarget = e => e.target.closest?.('#board [data-char], #board [data-area]');
+document.addEventListener('dragover', e => { const t = dropTarget(e); if (t && armed) { e.preventDefault(); document.querySelectorAll('#board .dropon').forEach(x => x !== t && x.classList.remove('dropon')); t.classList.add('dropon'); } });
+document.addEventListener('dragleave', e => { const t = dropTarget(e); if (t && !t.contains(e.relatedTarget)) t.classList.remove('dropon'); });
+document.addEventListener('drop', e => {
+  const t = dropTarget(e); document.querySelectorAll('#board .dropon').forEach(x => x.classList.remove('dropon'));
+  if (!t || !armed) return; e.preventDefault();
+  placeArmed(t.dataset.char || 'board:' + t.dataset.area);
+});
+document.addEventListener('dragend', () => { if (armed) { armed = null; document.body.classList.remove('arming'); render(); } });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { if (armed) { armed = null; document.body.classList.remove('arming'); render(); } hide(); return; }
   if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -1193,7 +1319,7 @@ $('today').closest('section').addEventListener('click', e => {
     dfAt = v === 0 ? null : ds[Math.max(0, Math.min(ds.length - 1, k + v))] || null; if (dfAt === ds[ds.length - 1]) dfAt = null; renderToday(); }
   else if (more) { const k = more.dataset.dfkey; dfOpen.has(k) ? dfOpen.delete(k) : dfOpen.add(k); renderToday(); }
   else if (jump && !e.target.closest('[data-snap]')) { const r = document.querySelector(`#log [data-log="${jump.dataset.jump}"]`);
-    if (r) { r.scrollIntoView({ block: 'center' }); document.querySelectorAll('#log [data-log]').forEach(x => x.classList.toggle('sel', x === r)); } }
+    if (r) { const d = r.closest('details'); if (d && !d.open) { d.open = true; logOpen.add(d.dataset.k); } r.scrollIntoView({ block: 'center' }); document.querySelectorAll('#log [data-log]').forEach(x => x.classList.toggle('sel', x === r)); } }
 });
 $('today').onclick = e => { if (e.target.closest('[data-snap]')) $('log').onclick(e); const f = e.target.closest('[data-fx]'); if (f) replayFx(...f.dataset.fx.split(',').map(Number)); };
 // 『▶ 演出』: そのフェイズの前の盤面から後の盤面へ、演出つきで描き直す（終わったら今の盤面に戻る）
@@ -1504,7 +1630,7 @@ const RP = {
     LOG = [...this.data.log.filter(l => l.n <= s.log_n), ...rej].sort((a, b) => a.n - b.n);
     renderLog(); render();
     document.querySelectorAll('#log [data-log]').forEach(x => x.classList.toggle('rpnow', +x.dataset.log > (s.prev_n || 0) && +x.dataset.log <= s.log_n));
-    const now = document.querySelector('#log .rpnow'); if (now) now.scrollIntoView({ block: 'nearest' });
+    const now = document.querySelector('#log .rpnow'); if (now) { const d = now.closest('details'); if (d) d.open = true; now.scrollIntoView({ block: 'nearest' }); }
     $('rp-seek').value = this.i; $('rp-pos').textContent = `${this.i + 1} / ${st.length}`;
   },
   play() {

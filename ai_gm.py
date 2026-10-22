@@ -77,6 +77,7 @@ class Table:
         self.reveal = None  # ゲーム終了後の非公開シート（盤面のダイアログ）
         self.reply = ''  # 「脚本家の返答」の欄（反則の置き方などの知らせ。公開ログには書かない＝振り返りに出さない）
         self.inc_result = {}
+        self.loop_hist = {}  # ループの記録（公開の事実だけ）: ループ → {incidents, deaths, roles, end}。盤面の推理の「ループの記録」
         self.last_phase = None
         self.ability_options = None
         self.mm_targets_hist = []
@@ -162,6 +163,7 @@ class Table:
                               'special': sc.get('special') or ''}
         pub['loop'] = min(pub['loop'], self.script['loops'])  # 最後の戦いではエンジンのループ番号が1つ進んでいる
         pub['live'] = self.replay is None  # 記録から作り直している間は False（途中から再開する盤面が、作り直しの終わりを待つ）
+        pub['loopHistory'] = [self.loop_hist[k] for k in sorted(self.loop_hist)]
         pub.update({'mode': 'ai', 'watch': self.watch, 'reply': self.reply, 'reveal': self.reveal,  # 対AIモード（盤面は手動モード用の欄＝脚本家に伝える・ハッシュ・異議を出さない）
                     'game': self.game, 'phaseId': self.phase_id, 'phaseName': self.phase_name, 'waiting': self.waiting,
                     'loops': self.script['loops'], 'days': self.script['days'],
@@ -581,12 +583,35 @@ class Narrator:
         self.t = table
         self.pub = PublicObserver()
 
+    def _history(self, s, events):
+        """ループの記録（設計資料 8.3 ④）。公開ログに出る事実だけ: 事件の結果と不安臨界以上の生存者、死亡、公開された役職、ループの終わり方。"""
+        loop = min(s['loop'], self.t.script['loops'])
+        h = self.t.loop_hist.setdefault(loop, {'loop': loop, 'incidents': [], 'deaths': [], 'roles': [], 'end': None})
+        for e in events:
+            if not isinstance(e, dict):
+                continue
+            k = e.get('kind')
+            if k == 'incident':
+                h['incidents'].append({'day': e['day'], 'name': INC_JA.get(e['id'], e['id']), 'result': '発生' if e['occurred'] else '不発',
+                                       'critical': [name(c) for c in e.get('critical', [])]})
+            elif k == 'death':
+                h['deaths'].append({'day': s.get('day'), 'name': name(e['char'])})
+            elif k == 'role_public' or (k == 'ability' and 'reveal_role' in e):
+                for c, r in ({e['char']: e['role']} if k == 'role_public' else e['reveal_role']).items():
+                    h['roles'].append({'name': name(c), 'role': ROLE_JA.get(r, r)})
+            elif k == 'loop_end':
+                ph_ja = PHASE_JA.get(e.get('at_phase'), '')
+                h['end'] = {'day': s.get('day'), 'text': (f'{s.get("day")}日目 {ph_ja}に' if ph_ja else '') + ('主人公死亡' if e.get('reason') == '主人公死亡' else '敗北')}
+            elif k == 'loop_end_check':
+                h['end'] = h['end'] or {'day': s.get('day'), 'text': 'ループ終了時の判定で敗北' if e.get('loss') else '敗北条件なし（守りきった）'}
+
     def observe(self, s, phase, events):
         self.t.s = s
         if phase == 'incident':
             for e in events:
                 if e.get('kind') == 'incident':
                     self.t.inc_result[(s['loop'], e['day'])] = '発生' if e['occurred'] else '不発'
+        self._history(s, events)
         # 公開された札（主人公の札）を、移動やカウンターの行より先に（脚本家の札の行のすぐ後）
         for e in sorted(events, key=lambda x: not (isinstance(x, dict) and x.get('kind') == 'revealed')):
             if isinstance(e, dict):

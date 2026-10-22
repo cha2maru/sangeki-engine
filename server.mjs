@@ -86,7 +86,6 @@ http.createServer(async (req, res) => {
   try {
     if (req.method === 'GET') {
       if (p === '/' || p === '/index.html') return sendFile(res, path.join(HERE, 'board.html'));  // index.html: ブラウザ版と同じ名前（シナリオエディタの「遊ぶ」）
-      if (p === '/sheet') return sendFile(res, path.join(HERE, 'sheet.html'));
       if (p === '/editor' || p === '/editor.html') return sendFile(res, path.join(HERE, 'editor.html'));
       if (p === '/data/incidents') return sendFile(res, path.join(HERE, 'engine', 'data', 'incidents.json'), '{}');
       if (p === '/state') return sendFile(res, path.join(GAME, 'state.json'), '{}');

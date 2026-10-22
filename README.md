@@ -267,7 +267,7 @@ PYTHONPATH=../sangeki-engine python -m selfplay.tune positions/*.json --side mm 
 | `engine/deduce.py` | 推理（公開情報と矛盾しないルール・役職の組み合わせを絞る） |
 | `engine/data/` | キャラクター・役職・ルール・事件・カードのデータ（[出典](#原作と出典)） |
 | `selfplay/` | 自動のプレイヤー（`search_mm.py`・`pc_v2.py`）、対戦表（`league.py`）、問題（`positions.py`）、調整（`tune.py`） |
-| `ai_gm.py`・`server.mjs`・`board.html`・`sheet.html` | 対AIモード（進行役・盤面サーバー・盤面・推理シート） |
+| `ai_gm.py`・`server.mjs`・`board.html` | 対AIモード（進行役・盤面サーバー・盤面。推理の欄は盤面の中） |
 | `env.py`・`agents/` | 外からエージェントで遊ぶ窓口と見本（[`docs/env.md`](docs/env.md)） |
 | `gm.py` | 手動モード（人やAIエージェントが進行役を務めるときの、記録とハッシュ固定の補助） |
 | `tests/` | 試験 |
