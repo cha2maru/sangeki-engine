@@ -1912,6 +1912,11 @@ const RP = {
   },
   async load(d) {
     if (!d || d.format !== 'sangeki-replay' || !Array.isArray(d.snapshots) || !d.snapshots.length) return alert('リプレイのファイルではありません');
+    // リプレイは他人が作れるデータ（?replay=・#r=・ファイル）。描画は数値の欄などを esc を通さずに HTML へ入れる所があるので、
+    // 入口で全部の文字列から HTML の記号を全角に置き換える（細工したリプレイでスクリプトが動いた。2026-10-23）
+    const safe = v => typeof v === 'string' ? v.replace(/[<>"'`]/g, c => ({ '<': '＜', '>': '＞', '"': '”', "'": '’', '`': '｀' }[c]))
+      : Array.isArray(v) ? v.map(safe) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [safe(k), safe(x)])) : v;
+    d = safe(d);
     if (S.loop && !(S.phaseName || '').startsWith('ゲーム終了') && !RP.on && !await ask({ title: 'リプレイに切り替えますか？', html: para('いまの試合の表示をリプレイに切り替えます。' + '（試合はそのまま続いています。『リプレイを終える』で戻ります）'), ok: '切り替える', cancel: 'やめる' })) return;
     clearInterval(pollTimer); backToLive(); closeScene(); $('welcome').classList.remove('on'); $('start').classList.remove('on'); $('reveal').classList.remove('on');
     this.on = true; this.data = d; awaiting = 0; document.body.classList.add('replay');
