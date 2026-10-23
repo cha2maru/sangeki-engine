@@ -167,7 +167,8 @@ def _forced_plan(state, days, hidden, watch, pos, positional=True, abil=False, p
             tuple('PAR-' not in state['used'][p] for p in 'ABC'), 'INT2' not in state['used']['M'])
     sup = _supply(state, targets) if abil else ()
     pa = _pc_abilities(state, targets, unlock=pcab == 'unlock') if pcab else ()
-    ok, move = solve(*args, supply=sup, pcab=pa)
+    cu = _cult(state, targets)
+    ok, move = solve(*args, supply=sup, pcab=pa, cult=cu)
     if move and pos:  # 位置の対象への「移動」を実際の札に直す（揃えられなければ外す）
         out = []
         for tg, c in move:
@@ -226,22 +227,40 @@ def _forced_plan(state, days, hidden, watch, pos, positional=True, abil=False, p
         if extra.get('mix'):
             extra['mix'] = [(pr, fix(mv)) for pr, mv in extra['mix']]
     # locked: 残りの日に何も押さなくても取れる（確定）。forced だけなら、今日は要らなくても明日以降の札が要る
-    return {'forced': ok, 'move': move, 'locked': ok and solve(*args, idle=True, pcab=pa)[0],
+    return {'forced': ok, 'move': move, 'locked': ok and solve(*args, idle=True, pcab=pa, cult=cu)[0],
             'routes': [r['id'] + ':' + str(r['via']) for r, _ in specs], **extra}
 
 
-def solve(targets, current, route_need, day0, days, par_left, int2, idle=False, supply=(), act=None, pcab=(), abl=None):
+def _cult(state, targets):
+    """カルティスト【任意】同一エリアの暗躍禁止を無視できる（行動解決の後の位置）。持ち主ごとに、そのエリアにある暗躍の対象の番号の組。
+    主人公は札1枚で動かして止められる（以後このループは止まったものとみなす＝補給の持ち主と同じ扱い、主人公に有利）。
+    d03_future L4: 病院の医者（カルティスト）を数えず「必ず取れない」と出て、calcGBxhdK・calcGBxhd がループを落とした（2026-10-23）。"""
+    from .phases import base_role
+    chars = state['chars']
+    out = []
+    for c, v in chars.items():
+        if not (v['alive'] and v.get('present', True) and v.get('area')) or base_role(state, c) != 'CULTIST':
+            continue
+        idx = tuple(i for i, (t, k) in enumerate(targets) if k == 'int' and (
+            (t.startswith('B:') and t[2:] == v['area']) or (t in chars and chars[t].get('area') == v['area'])))
+        if idx:
+            out.append(idx)
+    return tuple(out)
+
+
+def solve(targets, current, route_need, day0, days, par_left, int2, idle=False, supply=(), act=None, pcab=(), abl=None, cult=()):
     """targets: [(対象, 'par'|'int')]、route_need: [(判定の日 or 'turn_end', ((対象の番号, 必要量), ...))]。
     返り値 (取れるか, 今日の手 [(対象, 札)] or None)。idle: 脚本家が何も押さない場合だけを見る。
     取れる手が複数あれば、押す札の多い手を返す（数えていない主人公の能力への余裕）。
     supply: 脚本家の能力の持ち主ごとの、毎日1つ+1 できる対象の番号の組（クロマクの暗躍・ミスリーダーの不安。_supply）。act: 持ち主が働いているか。"""
-    key = (tuple(targets), tuple(route_need), days, idle, tuple(supply), tuple(pcab))  # 同じ抽象化の盤面は解いた値を使い回す（賭けの計算が1手ごとに呼ぶ）
+    key = (tuple(targets), tuple(route_need), days, idle, tuple(supply), tuple(pcab), tuple(cult))  # 同じ抽象化の盤面は解いた値を使い回す（賭けの計算が1手ごとに呼ぶ）
     if key not in _DP:
         if len(_DP) > 256:
             _DP.clear()
         _DP[key] = _dp(*key)
     win, cap = _DP[key]
     act = tuple(act) if act is not None else tuple(True for _ in supply)
+    act = act + tuple(True for _ in cult) if len(act) == len(supply) else act  # カルティストは補給の持ち主の後ろに並べる
     abl = tuple(abl) if abl is not None else tuple(True for _ in pcab)
     ok, mm = win(day0, tuple(min(v, c) for v, c in zip(current, cap)), tuple(par_left), int2, act, abl)
     return ok, ([(targets[i][0], c) for i, c in mm.items()] if ok else None)
@@ -339,7 +358,7 @@ class OverBudget(Exception):
 WORK = {'left': None}  # None なら上限なし。数で区切る（時間で区切ると、同じ種の試合が作り直せない＝リプレイが食い違う）
 
 
-def _dp(targets, route_need, days, idle, supply=(), pcab=()):
+def _dp(targets, route_need, days, idle, supply=(), pcab=(), cult=()):
     # 不安は主人公の不安−1（ループに最大3枚）で減るので、必要量より3つ上まで余りを数える（切ると不安4 の余りが消える）
     cap = [max([n for _, need in route_need for i, n in need if i == j] or [0]) + (3 if k == 'par' else 0)
            for j, (_, k) in enumerate(targets)]
@@ -419,8 +438,10 @@ def _dp(targets, route_need, days, idle, supply=(), pcab=()):
                     res3.append((ts, ix, ds))
         return res3
 
-    def apply(vals, mm, reply, pl):
+    def apply(vals, mm, reply, pl, act=()):
         ts, ix, _ = reply
+        if ix is not None and any(act[len(supply) + h] for h, idx in enumerate(cult) if ix in idx and len(supply) + h < len(act)):
+            ix = None  # 働いているカルティストのエリアの暗躍禁止は無視される
         v = list(vals)
         for i in pos_idx:
             v[i] = 0 if i in ts else 1 if mm.get(i) == 'MOVE' else v[i]
@@ -489,8 +510,8 @@ def _dp(targets, route_need, days, idle, supply=(), pcab=()):
             for reply in pc_replies(mm, vals, pl, act):
                 if sum(1 for i in reply[0] if i not in pos_idx) > sum(pl):
                     continue
-                v2, pl2 = apply(vals, mm, reply, pl)
-                act2 = tuple(a and h not in reply[2] for h, a in enumerate(act))
+                act2 = tuple(a and h not in reply[2] for h, a in enumerate(act))  # 移動は暗躍禁止より先に解決する
+                v2, pl2 = apply(vals, mm, reply, pl, act2)
                 i2n = i2 and 'INT2' not in mm.values()
                 if not any(all(lost(v4, day) or win(day + 1, v4, pl2, i2n, act2, ab2)[0] for v4, ab2 in pc_abil(v3, abl))
                            for v3 in abilities(v2, act2)):

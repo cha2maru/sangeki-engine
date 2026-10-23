@@ -823,6 +823,24 @@ class SearchMastermind(RouteMastermind):
         return ch
 
     def incident_choice(self, s, inc):
+        # 評価で選ぶ対象でループが終わる・負け筋が成り立つなら、指針の好みより先にそれを選ぶ（d09 L2D7: 指針どおり遠隔殺人でメインラバーズを
+        # 先に殺し、ラバーズの死→不安6→主人公死亡の筋を自分で消してループを落とした。calcGBxhdK の対戦表 2026-10-23）
+        from selfplay.players import has_won_route
+        base = super().incident_choice(s, inc)
+        if base is not None:
+            trial = copy_state(s)
+            try:
+                if ph.acting_culprit(s, inc) == 'C29':  # 教祖は2回解決（1回分で確かめる。players.RouteMastermind.incident_choice）
+                    ph.incident_effect(trial, inc['id'], 'C29', base, [])
+                else:
+                    ph.run_incident(trial, inc, base)
+                if has_won_route(trial):
+                    return base
+            except ph.LoopEnd as e:
+                if e.loss:
+                    return base
+            except Exception:
+                pass
         pref = self.guide.get('incidents', {}).get(inc['id']) if self.guide else None
         if pref:
             import itertools
@@ -839,7 +857,7 @@ class SearchMastermind(RouteMastermind):
                 except Exception:
                     continue
                 return ch
-        return super().incident_choice(s, inc)
+        return base
 
     def _known_chars(self, s):
         if getattr(self, '_known_cache', (None,))[0] != (s['loop'], s['day']):

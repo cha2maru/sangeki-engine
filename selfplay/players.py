@@ -120,10 +120,15 @@ class RouteMastermind:
         if not opts:
             return None
         best, best_sc = opts[0], None
+        double = ph.acting_culprit(s, inc) == 'C29'
         for o in opts:
             trial = copy_state(s)
             try:
-                ph.run_incident(trial, inc, o)
+                if double:  # 教祖が犯人の事件は効果を2回解決する。1回目の選択は1回分の効果で比べる（run_incident に1つの選択を渡すと
+                    # 同じ対象を2回殺そうとして反則になり、殺す候補がすべて外れて先頭が選ばれていた。d09 L2D7 でメインラバーズを先に殺した 2026-10-23）
+                    ph.incident_effect(trial, inc['id'], 'C29', o, [])
+                else:
+                    ph.run_incident(trial, inc, o)
             except ph.LoopEnd:
                 return o  # その場でループを取れる
             except _IP:

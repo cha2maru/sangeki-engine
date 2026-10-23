@@ -26,7 +26,7 @@ const PY = process.env.SANGEKI_PYTHON || 'python3';
 const WORKERS = process.env.SANGEKI_WORKERS || String(Math.max(1, Math.min(6, os.cpus().length - 1)));
 const ENV = { ...process.env, SANGEKI_WORKERS: WORKERS };
 const PCS = ['read2', 'read', 'lockQA', 'oreadKQL', 'oread'];  // 自動の主人公（自動同士で観る。lockQA はどこからともなく置かれたカウンターも読む。oreadKQL は脚本を知る。oread は v0.6 の版）。空なら人が主人公
-const MMS = ['calcGBxhd', 'calcD', 'calcG', 'searchL', 'search', 'route'];  // 先頭が既定（最強）  // 開始画面で選べる自動の脚本家（ほかの型は ai_gm.py を直接起動）
+const MMS = ['calcGBxhdK', 'calcGBxhd', 'calcD', 'calcG', 'searchL', 'search', 'route'];  // 先頭が既定（最強）  // 開始画面で選べる自動の脚本家（ほかの型は ai_gm.py を直接起動）
 let child = null, scriptList = null;
 function listScripts() {
   if (!scriptList) scriptList = JSON.parse(execFileSync(PY, [path.join(HERE, 'ai_gm.py'), '--list'], { cwd: HERE }).toString());
