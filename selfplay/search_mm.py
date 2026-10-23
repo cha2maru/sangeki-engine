@@ -939,6 +939,7 @@ class SearchMastermind(RouteMastermind):
                 # selfplay/runs/blind_calcGB_2026-10-15/analysis.md）
                 mm = self._calc_merge(s, gwx, scored, skip=('PAR+', 'INT1', 'INT2'))
             elif fp['forced'] and fp['move']:
+                self._fp_keep = set(fp['move'])  # 先回り（_key_preempt）で替えない札
                 mv, drop = self._drop_harmful_pushes(s, fp['move']) if getattr(self, 'push_check', False) else (fp['move'], set())
                 mm = self._calc_merge(s, mv, scored, skip=tuple(drop))
             elif self.gamble and fp.get('p', 0) >= self.gamble and fp.get('mix'):
@@ -962,6 +963,9 @@ class SearchMastermind(RouteMastermind):
             mm = self._fill_idle(s, mm)
         if getattr(self, 'diag_gate', False) and s['day'] < self.days:
             mm = self._diag_gate(s, mm)
+        if getattr(self, 'key_guard', False):
+            mm = self._key_preempt(s, mm)
+        self._fp_keep = set()
         self._last_mm = list(mm)  # 止められたかを行動解決の後に数える（stuck）
         for x in mm:
             self.tcount[(s['loop'], x['target'])] = self.tcount.get((s['loop'], x['target']), 0) + 1
@@ -975,6 +979,69 @@ class SearchMastermind(RouteMastermind):
                                   'val_reply': v_reply, 'val_mean': v_mean, 'score_before': score(s),
                                   'ent_before': self.pub.ded.role_entropy(), 'cards': [(x['target'], x['card']) for x in mm],
                                   'feat': self._move_features(s, mm), 'sfeat': state_features(s, self.days, self.loops)})
+        return mm
+
+    # 鍵（主人公が必勝を崩す手）→ その能力の持ち主と要る友好（engine/abilities.ABILITIES）。kill はシリアルキラー（友好不要）を除く能力の殺害だけ
+    KEY_HOLDERS = {'guard': {'C05': 5}, 'revive': {'C12': 5}, 'servant': {'C34': 4}, 'immortal': {'C25': 5}, 'suppress': {'C18': 3},
+                   'kill': {'C12': 4, 'C22': 3}}
+
+    def _key_holders(self, s):
+        """必勝を崩す主人公の手（selfplay.editor_analysis.loop_keys の主人公の鍵）の持ち主と要る友好。脚本ごとに1回。
+        ユーザー「エディタ向け機能で主人公脚本家のロジックに使えそうなもの」2026-10-23: calcGBxhd は d34 で刑事の護衛に6戦全敗、
+        d08 で異世界人の蘇生に6戦4敗（巫女に友好禁止を置き続けた2戦は勝った）。"""
+        if getattr(self, '_keys_cache', None) is None:
+            from engine.route_calc import _pc_abilities, _abstract
+            from engine.routes import INF, enumerate_routes
+            from selfplay.editor_analysis import loop_keys
+            from selfplay.script_routes import start_state
+            k = loop_keys(self.key_script, mm_side=False)
+            feats = (k.get('pc') or k.get('pc_any') or []) if k.get('kind') == 'mind' else []
+            hold = {}
+            for f in feats:
+                for c, n in self.KEY_HOLDERS.get(f, {}).items():
+                    hold[c] = min(hold.get(c, 99), n)
+            if 'ability' in feats:  # 負け筋の対象のカウンターを減らせる友好能力の持ち主（友好を積めば・射程へ動かせば）
+                s0 = start_state(self.key_script)
+                rs = [r for r in enumerate_routes(s0) if r['total'] < INF]
+                abst = _abstract(rs, s0, self.key_script['days'], positional=False, pos_mode=True, future=True, max_targets=8, max_routes=40)
+                if abst:
+                    for c, n in _pc_abilities(s0, abst[0], unlock=True, holders=True).items():
+                        hold[c] = min(hold.get(c, 99), n)
+            self._keys_cache = hold
+        return self._keys_cache
+
+    def _key_preempt(self, s, mm):
+        """鍵の持ち主のうち、今日の主人公の友好の札で要る友好に届く者に友好禁止を置く。友好禁止・不安−1・不安禁止・移動・暗躍+1・不安+1 の順に
+        替える（友好禁止は手札に1枚なので、別の所に置いた友好禁止は置き直す）。逆算の必勝の手順の札は、下限 forced_lower でも必勝なら替えない。"""
+        hold = self._key_holders(s)
+        # 友好禁止は守りの手: ずっと置き続けると押す札が減り、要の人物も教える。主人公が積んで、今日の友好+2（残っていなければ+1）で
+        # 届く日だけ置く（ユーザー「多少つまれてから置いたほうがいい。あくまで友好禁止は防御の手」2026-10-23）
+        step = 2 if any('GW2' not in s['used'][p] for p in 'ABC') else 1
+        decisive = {c for f in ('guard', 'revive', 'servant', 'immortal') for c in self.KEY_HOLDERS[f]}
+        # 届く者のうち、決め手（護衛・蘇生・身代わり・不死）の持ち主、友好の多い者の順
+        cands = [(c in decisive, v['gw'], c) for c, n in hold.items() for v in [s['chars'].get(c)]
+                 if v and v['alive'] and v.get('present', True) and c != 'C20' and v['gw'] < n <= v['gw'] + step]
+        if not cands:
+            return mm
+        h = max(cands)[2]
+        if any(x['target'] == h for x in mm):
+            return mm
+        keep = getattr(self, '_fp_keep', set())
+        if keep and all((x['target'], x['card']) in keep for x in mm):
+            # 逆算（主人公の鍵を数えない）の必勝の手順で3枚が埋まっている。主人公の鍵まで数えた下限 forced_lower でも必勝なら替えない。
+            # 必勝でなければ、その主張は当てにならない（d34: 刑事の護衛で崩れた）ので、手順の札を1枚削ってでも先回りする（2026-10-23）
+            from engine.route_calc import forced_lower
+            if forced_lower(s, self.days):
+                return mm
+            keep = set()
+        order = ('GWX', 'PAR-', 'PARX', 'MV_V', 'MV_H', 'MV_D', 'INT1', 'PAR+', 'INT2')
+        for i, x in sorted(enumerate(mm), key=lambda ix: order.index(ix[1]['card']) if ix[1]['card'] in order else 9):
+            if (x['target'], x['card']) in keep or x['card'] == 'INT2':
+                continue  # 必勝の手順の札と、一度きりの暗躍+2 は替えない
+            if x['card'] == 'GWX' or all(y['card'] != 'GWX' for y in mm):
+                out = list(mm)
+                out[i] = {'by': 'M', 'target': h, 'card': 'GWX'}
+                return out
         return mm
 
     def _sk_leak(self, s, after):

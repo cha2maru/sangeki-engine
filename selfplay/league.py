@@ -344,6 +344,10 @@ def _make(kind, rng, script=None):
         w = int(kind[len('calcGBxhd_L'):] or 8)
         p.shadow.nh, p.shadow.min_worlds, p.shadow.samples = w, w, 20
         return p
+    if kind == 'calcGBxhdK':  # calcGBxhd＋鍵の持ち主への先回り（必勝を崩す主人公の手の持ち主に友好禁止。search_mm._key_preempt、2026-10-23）
+        p = make('calcGBxhd', rng, script)
+        p.key_guard, p.key_script = True, script
+        return p
     if kind.startswith('calcGBxh'):  # calcGBx＋人間の止め方の模型（止める確率 0.25+0.4·vis。threat_table の Claude・read2 の表から）
         p = make('calcGBx', rng, script)
         p.human_block = (0.25, 0.4)

@@ -47,7 +47,7 @@ td { overflow-wrap:anywhere; } select { max-width:100%; }
 <div class="col-in">
 <section>
   <h2>基本</h2>
-  <div class="row"><button id="random">ランダムに作る</button><span class="mut" id="randmsg">ルール・人物・役職・事件を無作為に決めます（脚本を知る主人公に必ず守られる、易しすぎるものは作り直します）</span></div>
+  <div class="row"><button id="random">ランダムに作る</button><span class="mut" id="randmsg">ルール・人物・役職・事件を無作為に決めます（易しすぎないかは、作った後に裏で調べます）</span></div>
   <div class="row"><label for="title">題名</label><input id="title" maxlength="60" style="flex:1;min-width:12em" placeholder="ユーザーのシナリオ"></div>
   <div class="row"><label>惨劇セット</label><span>Basic Tragedy X</span>
     <label for="loops">ループ数</label><input type="number" id="loops" min="1" max="9" value="3">
@@ -97,7 +97,7 @@ td { overflow-wrap:anywhere; } select { max-width:100%; }
   <h2>分析</h2>
   <div id="chart"></div>
   <div id="routes" class="mut">入力が整うと、ありえる敗北（負け筋）をここに出します</div>
-  <div class="row"><button id="analyze">脚本を知る主人公が守りきれるか調べる</button><span class="mut" id="anmsg"></span></div>
+  <div class="row"><button id="analyze">ループ1を守れるか調べる</button><span class="mut" id="anmsg"></span></div>
   <div id="holds"></div>
 </section>
 </aside>
@@ -176,7 +176,7 @@ function render() {
   stale();
 }
 // 入力が変わったら、前のコードは使えない（確かめ直す）
-function stale() { $('holds').innerHTML = ''; $('chart').innerHTML = ''; lastChart = null; lastCode = ''; $('codebox').style.display = 'none'; clearTimeout(stale.t); stale.t = setTimeout(check, 900); }
+function stale() { holdsSeq++; $('holds').innerHTML = ''; $('chart').innerHTML = ''; lastChart = null; lastCode = ''; $('codebox').style.display = 'none'; clearTimeout(stale.t); stale.t = setTimeout(check, 900); }
 
 async function check() {
   $('engine').textContent = 'エンジンで確かめています…（ブラウザ版は初回に Python の準備で数十秒かかります）';
@@ -254,10 +254,12 @@ function showRoutes(routes) {
   $('routes').innerHTML = rows ? `<div class="mut">ループ1の1日目の朝にありえる敗北（近い順。✓は満たしている条件。最短の手順は脚本家の札と能力だけで数えた目安で、移動は誰をどちらへ動かすかまでは書きません）</div><table><tr><th>筋</th><th>結果</th><th>条件</th></tr>${rows}</table>`
     : '<div class="mut">負け筋がありません（脚本家はループを取れません）</div>';
 }
+let holdsSeq = 0, autoHolds = false;  // 入力が変わるたびに holdsSeq を進め、古い「守れるか」の結果は捨てる
 async function quickRoutes() {  // 検証が通るたびに、負け筋の一覧とグラフをすぐ出す
   try {
     const r = await (await fetch('/analyze', { method: 'POST', body: JSON.stringify({ ...script(), quick: true }) })).json();
     if (r.routes) { showRoutes(r.routes); drawChart(r); }
+    if (r.routes && autoHolds) { autoHolds = false; runHolds(true); }  // ランダムに作った後は、守れるかを裏で続けて調べる
   } catch {}
 }
 // グラフ: 上は日ごとの「邪魔が無ければその日に成立しうる負け筋」の数、下は負け筋ごとの成立しうる日の帯（横軸の日を揃える）。
@@ -309,31 +311,37 @@ function barPath(x, y, w, h) {  // 上の角だけ丸めた棒（データの端
   const r = Math.min(4, w / 2, h);
   return `M${x},${y + h} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h} Z`;
 }
-$('analyze').onclick = async () => {
-  $('analyze').disabled = true; $('anmsg').textContent = '調べています…（最大で十数秒）';
+$('analyze').onclick = () => runHolds(false);
+async function runHolds(auto) {
+  const seq = holdsSeq;
+  $('analyze').disabled = true; $('anmsg').textContent = auto ? '守れるかを裏で調べています…（表示はそのまま使えます。最大で十数秒）' : '調べています…（最大で十数秒）';
   try {
     const r = await (await fetch('/analyze', { method: 'POST', body: JSON.stringify(script()) })).json();
+    if (seq !== holdsSeq) return;  // 調べている間に入力が変わった
     if (r.errors) {
       $('holds').innerHTML = '<div class="box bad"><b>調べる前に、「確かめる・遊ぶ」の直すところを直してください</b></div>';
     } else {
-      const cls = r.holds === true ? 'note' : r.holds === false ? 'good' : '';
-      $('holds').innerHTML = `<div class="box ${cls}"><b>${esc(r.holds_text)}</b><div class="mut">目安です（主人公の友好能力や、一部の事件の効果は数えていません）</div></div>`;
+      const cls = r.holds === true ? 'note' : r.forced ? 'bad' : r.holds === false ? 'good' : '';
+      $('holds').innerHTML = `<div class="box ${cls}"><b>${esc(r.holds_text)}</b><div class="mut">目安です（主人公の友好能力や、一部の事件の効果は数えていません）</div>` +
+        (r.holds === true && auto ? '<div class="row"><button id="reroll">作り直す（易しすぎ）</button></div>' : '') + '</div>';
+      if ($('reroll')) $('reroll').onclick = () => makeRandom(true);
       showRoutes(r.routes);
     }
-  } catch (e) { $('holds').innerHTML = `<div class="box bad"><b>調べられませんでした</b><ul><li>${esc(e.message)}</li></ul></div>`; }
-  $('anmsg').textContent = '';
-  $('analyze').disabled = false;
-};
-$('random').onclick = async () => {
-  if (Object.keys(cast).length && !confirm('いまの入力を、ランダムなシナリオで置き換えますか？（保存したものは消えません）')) return;
+  } catch (e) { if (seq === holdsSeq) $('holds').innerHTML = `<div class="box bad"><b>調べられませんでした</b><ul><li>${esc(e.message)}</li></ul></div>`; }
+  finally { if (seq === holdsSeq) { $('anmsg').textContent = ''; $('analyze').disabled = false; } else $('analyze').disabled = false; }
+}
+$('random').onclick = () => makeRandom(false);
+async function makeRandom(noAsk) {
+  if (!noAsk && Object.keys(cast).length && !confirm('いまの入力を、ランダムなシナリオで置き換えますか？（保存したものは消えません）')) return;
   $('random').disabled = true; $('randmsg').textContent = '作っています…（ブラウザ版は初回に Python の準備で数十秒かかります）';
   try {
     const r = await (await fetch('/generate', { method: 'POST', body: '{}' })).json();
     if (!r.script) throw new Error('作れませんでした');
-    load(r.script); $('randmsg').textContent = 'できました。下の「分析」にありえる敗北が出ます';
+    autoHolds = true; load(r.script);
+    $('randmsg').textContent = 'できました。右（スマホでは下）の「分析」に、ありえる敗北はすぐ、守れるかは調べ終わりしだい出ます';
   } catch (e) { $('randmsg').textContent = 'ランダムなシナリオを作れませんでした: ' + e.message; }
   $('random').disabled = false;
-};
+}
 $('addinc').onclick = () => { incs.push({ day: Math.min(incs.length + 1, +$('days').value || 1), id: 'MURDER', culprit: '' }); render(); };
 
 // 入力の変化（表の中の select・input はまとめて受ける）

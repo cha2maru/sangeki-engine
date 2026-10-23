@@ -14,8 +14,9 @@ from engine.routes import enumerate_routes  # noqa: E402
 from engine.scripts import by_id  # noqa: E402
 
 
-def start_state(script, loop=1):
-    """ループ loop（既定 1）の1日目の盤面。神格は登場ループから盤面にいる（phases.loop_start）。"""
+def start_state(script, loop=1, setup=None):
+    """ループ loop（既定 1）の1日目の盤面。神格は登場ループから盤面にいる（phases.loop_start）。
+    setup: ループの準備で脚本家が決めること（engine.options.loop_setup_options の1つ）。省けば筋の評価が高い組。"""
     s = {'loop': loop - 1, 'day': 0, 'leader': 'A',
          'script': {**{k: script[k] for k in ('rules', 'roles', 'incidents')}, 'days': script['days'], 'appear': script.get('appear', {}),
                     'territory': script.get('territory'), 'start': script.get('start', {})},
@@ -23,10 +24,17 @@ def start_state(script, loop=1):
          'boards': {a: 0 for a in ph.AREAS}, 'used': {p: [] for p in 'MABC'}, 'ability_used_loop': [], 'incident_log': []}
     import random
     from selfplay.players import RouteMastermind
-    setup = RouteMastermind(random.Random(0)).loop_setup(s, script)  # 手先の初期エリア・学者のカウンターは筋の評価が高い組
+    if setup is None:
+        setup = RouteMastermind(random.Random(0)).loop_setup(s, script)  # 手先の初期エリア・学者のカウンターは筋の評価が高い組
     s, _ = ph.loop_start(s, script['init'], setup)
     s['day'] = 1
     return s
+
+
+def start_states(script, loop=1):
+    """ループの準備の選び方すべてについての1日目の盤面（「守れる」の証明はすべての準備で守れること）。"""
+    from engine.options import loop_setup_options
+    return [start_state(script, loop, st) for st in loop_setup_options(None, script)]
 
 
 def route_richness(script, max_dist=6):

@@ -5,7 +5,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawn, execFileSync } from 'node:child_process';
+import { spawn, execFile, execFileSync } from 'node:child_process';
 import os from 'node:os';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -130,7 +130,11 @@ http.createServer(async (req, res) => {
     if (req.method === 'POST' && ['/check', '/decode', '/analyze', '/generate'].includes(p)) {  // シナリオエディタの検証・コードの読み込み・分析・生成（ai_gm.py --check など）
       const b = await readBody(req);
       const input = p === '/decode' ? String(b.code || '') : JSON.stringify(b);
-      const out = execFileSync(PY, [path.join(HERE, 'ai_gm.py'), '--' + p.slice(1)], { cwd: HERE, input }).toString();
+      // 待つ間もほかの要求（盤面の更新・すぐ出す分析）に答える（execFileSync はサーバー全体を止める。守れるかの判定は十数秒かかる）
+      const out = await new Promise((ok, ng) => {
+        const ch = execFile(PY, [path.join(HERE, 'ai_gm.py'), '--' + p.slice(1)], { cwd: HERE, maxBuffer: 1 << 26 }, (err, so) => err ? ng(err) : ok(so));
+        ch.stdin.end(input);
+      });
       return send(res, 200, out, TYPES['.json']);
     }
     if (req.method === 'POST' && p === '/notes') {

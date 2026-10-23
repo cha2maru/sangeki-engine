@@ -251,3 +251,25 @@ def test_pc_holds_lets_mastermind_follow_a_broken_position():
         pytest.skip('投稿シナリオ（bgw）は公開版に無い')
     sc = by_id('bgw/b059')
     assert pc_holds(start_state(sc), sc['days'], budget=60)['holds'] is False
+
+
+def test_pc_killable_spares_death_triggers():
+    """主人公が殺してよい人物（下限 forced_lower）に、死亡が負けや不安6の引き金になる役職を入れない。殺せる仕組みが無ければ誰も殺せない。"""
+    import pytest
+    from engine.phases import base_role
+    from engine.route_calc import DEATH_TRIGGER, kill_mechanism, pc_killable
+    from engine.scripts import by_id, glob_scripts
+    from selfplay.script_routes import start_state
+    import os
+    ids = ['designed/' + os.path.basename(f)[:-5] for f in glob_scripts('designed/*.json')]
+    if not ids:
+        pytest.skip('設計した脚本（sangeki-scripts）が無い')
+    seen = 0
+    for sid in ids:
+        s = start_state(by_id(sid))
+        k = pc_killable(s)
+        assert not any(base_role(s, c) in DEATH_TRIGGER for c in k), sid
+        if not kill_mechanism(s):
+            assert not k, sid
+        seen += bool(k)
+    assert seen  # 殺せる人物のいる脚本がある

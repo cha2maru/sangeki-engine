@@ -243,6 +243,59 @@ def _steps(h, tg):
     return out or ['札は要らない（いまの盤面のまま成立する）']
 
 
+def _holds_all(states, days, budget, mm=None):
+    """ループの準備のすべての選び方で守れるときだけ守れる（1つでも守れなければ守れない、読み切れなければ不明）。"""
+    import time
+    t_end, skipped, res = time.time() + budget, [], True
+    for s in states:
+        h = pc_holds(s, days, budget=max(0.1, t_end - time.time()), **({'mm': mm} if mm is not None else {}))
+        skipped += h['skipped']
+        if h['holds'] is False:
+            return {'holds': False, 'skipped': skipped}
+        if h['holds'] is None:
+            res = None
+    return {'holds': res, 'skipped': sorted(set(skipped))}
+
+
+PC_KEY_NAME = {'kill': 'シリアルキラーなどで要の人物を殺す', 'ability': '友好を積んで使う友好能力（射程へ動かす）', 'guard': '刑事の護衛',
+               'revive': '異世界人の蘇生', 'servant': '従者の身代わり', 'immortal': '軍人の「主人公は死亡しない」',
+               'suppress': '手先の「自身が犯人の事件を起こさない」'}
+MM_KEY_NAME = {'incident': '事件の効果', 'rumor': '不穏な噂', 'tree_doctor': 'ご神木・医者の能力', 'cultist': 'カルティスト（暗躍禁止を無視）',
+               'alone_death': '殺して2人きりを作る', 'reach': '補給の持ち主を動かす'}
+
+
+def loop_keys(game, budget=10.0, mm_side=True):
+    """ループ1の鍵（ユーザー「読み合いを分類するとしたら」2026-10-23）。
+    kind: 'forced'（守れない）／'holds'（必ず守れる）／'mind'（読み合い）。読み合いなら:
+    pc: 外すと「守れない」に戻る主人公の手（route_calc.LOWER_KEYS）。pc_note: 'multi'（1つずつでは戻らないが全部外すと戻る＝どれかで足りる。
+        pc_any にその手1つだけで足りる手）／
+        'pure'（全部外しても戻らない＝札だけの読み合い）
+    mm: 外すと「必ず守れる」になる脚本家の手（UPPER_KEYS）。mm_note: 'multi'／'cards'（全部外しても守れない＝札だけで崩せる）／None（読み切れず）"""
+    from engine.route_calc import LOWER_KEYS, UPPER_KEYS, forced_lower
+    from selfplay.script_routes import start_states
+    ss, days = start_states(game), game['days']
+
+    def lower(use):
+        return any(forced_lower(x, days, use=use) for x in ss)
+
+    def upper(mm):
+        return _holds_all(ss, days, budget, mm=mm)['holds']
+    if lower(LOWER_KEYS):
+        return {'kind': 'forced'}
+    full = _holds_all(ss, days, budget)
+    if full['holds'] and not full['skipped']:
+        return {'kind': 'holds'}
+    pc = [k for k in LOWER_KEYS if lower(tuple(x for x in LOWER_KEYS if x != k))]
+    pc_note = None if pc else 'multi' if lower(()) else 'pure'
+    pc_any = [k for k in LOWER_KEYS if not lower((k,))] if pc_note == 'multi' else []  # その手1つだけで「守れない」を崩せる手
+    if not mm_side:  # エディタ: 脚本家の側（上限を何度も読み切る）は重いので省く
+        return {'kind': 'mind', 'pc': pc, 'pc_note': pc_note, 'pc_any': pc_any}
+    mm = [k for k in UPPER_KEYS if upper(tuple(x for x in UPPER_KEYS if x != k)) is True]
+    base = upper(())
+    mm_note = None if mm else 'multi' if base is True else 'cards' if base is False else None
+    return {'kind': 'mind', 'pc': pc, 'pc_note': pc_note, 'pc_any': pc_any, 'mm': mm, 'mm_note': mm_note}
+
+
 def analyze(sc):
     """{'errors'} か {'routes': [{name, goal, conds, total}], 'holds': True|False|None, 'holds_text', 'skipped'}。
     sc['quick'] が真なら負け筋の一覧だけ（すぐ返る。守りきれるかの読み切りは最大 HOLD_BUDGET 秒かかる）。"""
@@ -266,7 +319,15 @@ def analyze(sc):
     if quick:
         return {'routes': routes, 'days': game['days'], 'incidents': [{'day': i['day'], 'name': INCIDENTS[i['id']]['name']}
                                                                        for i in game['incidents']]}
-    h = pc_holds(s, game['days'], budget=HOLD_BUDGET)
+    from engine.route_calc import forced_lower
+    from selfplay.script_routes import start_states
+    ss = start_states(game)
+    # 下限（主人公が伏せ札の中身まで見て最善に応じ、殺してよい人物をシリアルキラーなどで殺せるとしても、脚本家が必ず取れる）。
+    # ループの準備は脚本家が選ぶので、どれか1つで取れれば取れる
+    if any(forced_lower(x, game['days']) for x in ss):
+        return {'routes': routes, 'holds': False, 'forced': True, 'skipped': 0,
+                'holds_text': '脚本家が必ず取れるループです。主人公が脚本を知っていて、伏せ札の中身まで見えても守れません（ループ1が脚本家寄りなのは健全です）'}
+    h = _holds_all(ss, game['days'], HOLD_BUDGET)
     if h['holds'] is None:
         text = '判定できませんでした（負け筋が多く、時間内に読み切れません）'
     elif h['holds'] and h['skipped']:
@@ -275,12 +336,23 @@ def analyze(sc):
         text = ('脚本を知る主人公なら、伏せ札の中身が何であれ毎ループ守りきれます。脚本家が1ループも取れないので、易しすぎるかもしれません'
                 if routes else '負け筋がありません。脚本家はループを取れません')
     else:
-        text = '脚本を知っていても、伏せ札の中身しだいでループを取られうる脚本です（読み合いになる）'
-    return {'routes': routes, 'holds': h['holds'], 'holds_text': text, 'skipped': len(h['skipped'])}
+        text = '読み合いになるループです（目安）。脚本家に必ず取れる手順は無く、脚本を知る主人公にも、伏せ札の中身が何であれ守れる手順は見つかりません'
+        k = loop_keys(game, mm_side=False)
+        if k.get('kind') == 'mind':
+            if k['pc']:
+                text += '。主人公が守るための鍵: ' + '・'.join(PC_KEY_NAME[x] for x in k['pc'])
+            elif k['pc_any']:
+                text += '。主人公は次のどれか1つがあれば必勝を崩せます: ' + '・'.join(PC_KEY_NAME[x] for x in k['pc_any'])
+            elif k['pc_note'] == 'multi':
+                text += '。主人公は特別な手をいくつか組み合わせれば必勝を崩せます'
+            elif k['pc_note'] == 'pure':
+                text += '。主人公の特別な手は要りません（札だけの読み合い）'
+    return {'routes': routes, 'holds': h['holds'], 'forced': False, 'holds_text': text, 'skipped': len(h['skipped'])}
 
 
-def generate(seed=None, tries=10):
-    """エディタに読み込める形の脚本。pc_holds が「守りきれる」と出たものは作り直す（易しすぎ）。"""
+def generate(seed=None, tries=10, check_holds=False):
+    """エディタに読み込める形の脚本。check_holds: pc_holds が「守りきれる」と出たものは作り直す（易しすぎ。重いので既定は省き、
+    エディタは生成の後に「守れるか」を裏で調べて、易しすぎなら作り直しを勧める。ユーザー「生成は早く。長いのは裏で回しつつ」2026-10-23）。"""
     from selfplay.script_routes import start_state
     rng = random.Random(seed)
     last = None
@@ -293,8 +365,11 @@ def generate(seed=None, tries=10):
         if sc.get('territory'):
             out['territory'] = sc['territory']
         last = out
+        if not check_holds:
+            return out
         game = to_game(normalize(out))
-        if pc_holds(start_state(game), game['days'], budget=3.0)['holds'] is not True:
+        from selfplay.script_routes import start_states
+        if _holds_all(start_states(game), game['days'], 3.0)['holds'] is not True:
             return out
     return last
 
@@ -303,5 +378,5 @@ if __name__ == '__main__':
     sc = generate(1)
     a = analyze(sc)
     assert sc and not report(sc)['errors'], report(sc)
-    assert 'routes' in a and a['holds'] is not True, a
+    assert 'routes' in a and 'holds_text' in a, a
     print(sc['rules'], len(a['routes']), a['holds_text'])

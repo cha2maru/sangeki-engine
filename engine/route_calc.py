@@ -166,7 +166,7 @@ def _forced_plan(state, days, hidden, watch, pos, positional=True, abil=False, p
     args = (targets, [_current(state, t, k) for t, k in targets], route_need, state['day'], days,
             tuple('PAR-' not in state['used'][p] for p in 'ABC'), 'INT2' not in state['used']['M'])
     sup = _supply(state, targets) if abil else ()
-    pa = _pc_abilities(state, targets) if pcab else ()
+    pa = _pc_abilities(state, targets, unlock=pcab == 'unlock') if pcab else ()
     ok, move = solve(*args, supply=sup, pcab=pa)
     if move and pos:  # 位置の対象への「移動」を実際の札に直す（揃えられなければ外す）
         out = []
@@ -193,7 +193,7 @@ def _forced_plan(state, days, hidden, watch, pos, positional=True, abil=False, p
         extra['p'], extra['mix'] = (1.0, [(1.0, move)]) if ok else (0.0, None) if h is None else solve_hidden(
             h[0], [_current(state, t, k) for t, k in h[0]], h[1], *args[3:],
             watch={nm: (watch or {}).get(place(nm), 0) for nm, _ in h[0]}, supply=_supply(state, h[0]) if abil else (),
-            pcab=_pc_abilities(state, h[0]) if pcab else ())
+            pcab=_pc_abilities(state, h[0], unlock=pcab == 'unlock') if pcab else ())
         if pos and extra.get('mix'):  # 位置の対象への札を実際の置き先・札に直す（移動札は手札の別の向き、揃えられなければ効果の無い札）
             def real_mv(mv):
                 out = []
@@ -247,25 +247,41 @@ def solve(targets, current, route_need, day0, days, par_left, int2, idle=False, 
     return ok, ([(targets[i][0], c) for i, c in mm.items()] if ok else None)
 
 
-def _pc_abilities(state, targets):
+def _pc_abilities(state, targets, unlock=False, holders=False):
     """主人公の友好能力で、負け筋の対象のカウンターを減らせるもの（v2.3、2026-10-10。Claude が主人公の点検 d07: ナース[2] を読んでいなかった）。
     いま合法な宣言（abilities.declaration_options）を写しの盤面で解決し、減った対象を数える。脚本家が拒否できる能力（友好無視の役職）は数えない。
     返り値: ((★か, 減らせる対象の番号の組), ...)。能力ごとに1日1回（★はループに1回）。
-    ponytail: 友好は今の値のまま（積み増しで使えるようになる能力は数えない）。護衛（刑事[5]）は死の筋を扱わないので数えない"""
+    holders: 返り値を {持ち主: 要る友好の最小} にする（脚本家が鍵の持ち主に先回りする。search_mm._key_preempt）。
+    unlock: 友好を積めば使える能力も、いま使えるとみなす（主人公に有利＝下限 forced_lower 用。d34 で刑事[5] の護衛・友好の積み増しで
+    必勝が崩れた 2026-10-23）。既定は友好の今の値のまま。護衛（刑事[5]）は死の筋を扱わないので、forced_lower が別に数える"""
     from . import abilities as ab
     from .phases import role
     from .resolve import copy_state
     from .resolve import CHARS as RCHARS
     # 条件つきの能力（ナース[2] は不安臨界以上の者だけ）も拾うため、対象のカウンターを臨界・1以上に上げた盤面で合法な宣言を見る
     hi = copy_state(state)
+    if unlock:
+        for ch in hi['chars'].values():
+            ch['gw'] = max(ch['gw'], 9)
     for tg, k in targets:
         if tg in hi['chars'] and k in ('par', 'int'):
             ch = hi['chars'][tg]
             ch[k] = max(ch[k], RCHARS[tg]['limit'] if k == 'par' else 1)
         elif tg.startswith('B:'):
             hi['boards'][tg[2:]] = max(hi['boards'][tg[2:]], 1)
+    # unlock: 持ち主と対象を移動で同じエリアに集められるとみなす（全員を1つのエリアに置いた盤面を4つ見る。主人公に有利＝下限用。
+    # d08: 男子学生[2] は妹と別のエリア。移動1回で射程に入る。2026-10-23）
+    boards = [hi]
+    if unlock:
+        boards = []
+        for area in ('HOS', 'SHR', 'CIT', 'SCH'):
+            b = copy_state(hi)
+            for ch in b['chars'].values():
+                if ch['alive'] and ch.get('present', True):
+                    ch['area'] = area
+            boards.append(b)
     out = {}
-    for c, i, a in ab.declaration_options(hi):
+    for hi, (c, i, a) in [(b, x) for b in boards for x in ab.declaration_options(b)]:
         if (c, i) not in ab.UNREFUSABLE and ab.REFUSAL.get(role(state, c)):
             continue
         s2 = copy_state(hi)
@@ -277,6 +293,11 @@ def _pc_abilities(state, targets):
         if idx:
             once = ab.ABILITIES[(c, i)][1]
             out.setdefault((c, i, bool(once)), set()).update(idx)
+    if holders:
+        need = {}
+        for (c, i, _) in out:
+            need[c] = min(need.get(c, 99), ab.ABILITIES[(c, i)][0])
+        return need
     return tuple((once, tuple(sorted(v))) for (_, _, once), v in sorted(out.items()))
 
 
@@ -630,11 +651,107 @@ def block_rates(state, days, mm_targets, pos=False, abil=False, max_targets=MAX_
 
 
 
-def pc_holds(state, days, max_names=9, max_targets=8, max_routes=40, budget=120.0):
+# 死亡が主人公の負けや別の効果の引き金になる役職（engine/data/effects.json・phases.kill_many）。主人公はこれらを殺さない
+DEATH_TRIGGER = {'KEY', 'FRIEND', 'LOVERS', 'MAIN_LOVERS', 'TT'}
+
+
+def kill_mechanism(state, mm=False, exclude=None):
+    """このループのこれからに、人を殺せる仕組みがあるか。シリアルキラー（【強制】2人きりで殺す）、妄想拡大ウイルス（パーソンが不安3でシリアルキラー）、
+    殺人事件・病院の事件（犯人が臨界なら）。mm: 脚本家の側（遠隔殺人も数える）。exclude: この人物が唯一の手段なら数えない（自分は殺せない）。"""
+    from .phases import base_role
+    chars = state['chars']
+    alive = [c for c, v in chars.items() if v['alive'] and c != exclude]
+    if any(base_role(state, c) == 'SK' for c in alive):
+        return True
+    if 'X_VIRUS' in state['script']['rules'] and any(base_role(state, c) == 'PERSON' for c in alive):
+        return True
+    kinds = ('MURDER', 'HOSPITAL', 'REMOTE') if mm else ('MURDER', 'HOSPITAL')
+    if any(i['id'] in kinds and i['day'] >= state['day'] and i['culprit'] in alive for i in state['script']['incidents']):
+        return True
+    # 主人公の友好能力で殺せる: 異世界人[4] 同一エリアの1人を死亡、A.I.[3] 事件の効果をリーダーの決定で解決（殺人事件の効果など）。拒否されない役職のとき
+    return not mm and any(c in alive and not _refusable(state, c) for c in ('C12', 'C22'))
+
+
+def _refusable(state, cid):
+    """その人物の友好能力を、脚本家が拒否できるか（友好無視・絶対友好無視の役職）。"""
+    from . import abilities as ab
+    from .phases import role
+    return bool(ab.REFUSAL.get(role(state, cid)))
+
+
+def pc_killable(state):
+    """主人公が（シリアルキラーと2人きりにする等で）殺してよい人物。死亡が負け・不安6などの引き金になる役職、従者の身代わりの対象、
+    死亡しない者は除く。殺せる仕組みがあれば、ただでいつでも殺せるとみなす（主人公に有利＝下限 forced_lower 用）。"""
+    from .phases import base_role
+    chars = state['chars']
+    sv = chars.get('C34')
+    guarded = {'C03', 'C16', *state.get('servant_targets', [])} if sv and sv['alive'] else set()
+    return {c for c, v in chars.items() if v['alive'] and base_role(state, c) not in DEATH_TRIGGER and c not in guarded
+            and kill_mechanism(state, exclude=c)}
+
+
+# 下限で数える主人公の手（鍵の分析で1つずつ外す。selfplay/editor_analysis.loop_keys）
+LOWER_KEYS = ('kill', 'ability', 'guard', 'revive', 'servant', 'immortal', 'suppress')
+# 上限で数える脚本家の手
+UPPER_KEYS = ('incident', 'rumor', 'tree_doctor', 'cultist', 'alone_death', 'reach')
+
+
+def forced_lower(state, days, use=LOWER_KEYS):
+    """「守れない」の証明（下限）: 主人公が伏せ札の中身まで見て最善に応じ、さらに次のことができるとしても、脚本家が必ず取れるか。
+    - 殺してよい人物をただでいつでも殺せる（シリアルキラーと2人きりにする等）。その人物が要の筋（via）は当てにしない
+      （ユーザー「条件を満たせば防げないシリアルキラーは主人公のループ勝利にも有効」2026-10-23）
+    - 友好を積めば使える友好能力を、いつでも使える（pcab='unlock'）
+    - 刑事[5] の護衛（拒否されない役職なら）で、誰か1人の死を防げる: 主人公がどの1人を守っても取れるときだけ取れる
+      （d34: 刑事の護衛で入院患者の自殺を防ぎ、calcGBxhd 相手にループ1を6戦6勝。2026-10-23）
+    - 軍人[5] で主人公が死亡しない（主人公死亡の筋をすべて外す）、手先[3] で手先が犯人の事件を起こさない、
+      異世界人[4]・A.I.[3] で人を殺せる（kill_mechanism）。いずれも拒否されない役職のとき
+    - 従者[4] の身代わりで、誰か1人の死を従者に肩代わりさせられる
+    - 異世界人[5] でフレンドを蘇生させられる（早めに殺して蘇生させれば、フレンドが犯人の自殺も起きない）
+    use: 数える主人公の手（LOWER_KEYS の部分集合。kill 殺害・ability 友好を積めば使える能力と射程・guard 護衛・revive 蘇生・
+    servant 身代わり・immortal 軍人・suppress 手先）。外すと「守れない」が出やすくなる（鍵の分析）。
+    ponytail: 委員長[2] の一度きりの札を手札に戻す手（不安−1 が1枚増える）は数えない"""
+    kill = pc_killable(state) if 'kill' in use else set()
+    rs = [r for r in enumerate_routes(state) if r['total'] < INF]
+    every = {(r['id'], r['via']) for r in rs}
+    alive = lambda c: c in state['chars'] and state['chars'][c]['alive']  # noqa: E731
+    immortal = 'immortal' in use and alive('C25') and not _refusable(state, 'C25')  # 軍人[5] このループ中、主人公は死亡しない
+    supp = 'suppress' in use and alive('C18') and not _refusable(state, 'C18')  # 手先[3] 自身が犯人の事件を発生させなくなる
+    base = {(r['id'], r['via']) for r in rs if r['via'] not in kill and not (immortal and r['goal'] == '主人公死亡')
+            and not (supp and r['via'] == 'C18' and any(c['kind'] == 'days' and c['detail'][0] == '事件' for c in r['conds']))}
+    from itertools import product
+    guard = 'guard' in use and alive('C05') and not _refusable(state, 'C05')
+    # 蘇生（異世界人[5]）: ループ終了までにフレンドを蘇生させれば、フレンドの死（ループ終了時の負け）は帳消し。フレンドが犯人の自殺も、
+    # 早めに殺して蘇生させれば起きない（死体には札も補給も置けない。d08 で calcGBxhd 相手に6戦4勝 2026-10-23）
+    revive = 'revive' in use and alive('C12') and not _refusable(state, 'C12')
+    dead_goal = [r['goal'].split()[0] for r in rs if r['goal'].startswith('C') and '死亡' in r['goal']]
+    g_opts = sorted(set(dead_goal)) if guard else []
+    r_opts = sorted({x for x, r in zip(dead_goal, [r for r in rs if r['goal'].startswith('C') and '死亡' in r['goal']])
+                     if 'フレンド' in r['goal']}) if revive else []
+    # 身代わり（従者[4] で特性の対象に加える）: 同じエリアの対象が死ぬとき従者が代わりに死ぬ。従者の死が負けの引き金でなく、拒否されない役職のとき
+    # （d25: 従者[4] でイレギュラーを加え、6日目の自殺で従者が代わりに死んだ 2026-10-23）
+    from .phases import base_role
+    sub = 'servant' in use and alive('C34') and not _refusable(state, 'C34') and base_role(state, 'C34') not in DEATH_TRIGGER
+    s_opts = sorted(set(dead_goal) - {'C34'}) if sub else []
+    for g, v, w in product(g_opts or [None], r_opts or [None], s_opts or [None]):  # 主人公が g を護衛で、v を蘇生で、w を身代わりで守る
+        saved = {x for x in (g, v, w) if x}
+        only = {(r['id'], r['via']) for r in rs if (r['id'], r['via']) in base and not any(r['goal'].startswith(x + ' ') for x in saved)}
+        if not only or not forced_plan(state, days, pos=True, pcab='unlock' if 'ability' in use else True,
+                                       only=only if only != every else None)['forced']:
+            return False
+    return True
+
+
+def pc_holds(state, days, max_names=9, max_targets=8, max_routes=40, budget=120.0, mm=UPPER_KEYS):
     """主人公に、このループを守りきる手があるか（タブー①の否定の側。ユーザー「1にあたるかどうかを確認する解析方法」2026-10-17）。
     主人公は伏せ札の置き先だけが見え、中身は見えない。毎日「脚本家の置き先がどこでも → 主人公の応手があって → 中身がどれでも負けない」が
     ループの最後まで続けば True。脚本家に有利なことを数える（上限）: 移動1回で揃う位置の筋（伏せ札の置かれた筋の人物への札は移動とみなす、
     1日3枚まで・斜めの1回制限は数えない）、脚本家の能力の補給、登場前の転校生（登場の前から押せる）。主人公の能力は数えない。
+    「守れる」を証明にするため、脚本家に有利なことは起こりうるものをすべて数える（2026-10-22、敵対的レビュー）:
+    事件の効果（犯人が臨界なら、不安拡大・邪気の汚染・行方不明・蝶の羽ばたきの置き先をすべて。行方不明は犯人の関わる位置も揃う）、
+    不穏な噂（ループ1回、ボードに暗躍1）、ご神木（友好無視なら毎日カウンターを移す）と医者（友好無視で友好2以上、または流布で届きうるなら不安+1）、
+    カルティスト（いれば暗躍禁止は効かないとみなす）、死亡で開く2人きり（脚本家が殺せるなら2人きりは常に揃う）。
+    mm: 数える脚本家の手（UPPER_KEYS の部分集合。incident 事件の効果・rumor 不穏な噂・tree_doctor ご神木と医者・cultist カルティスト・
+    alone_death 死亡で開く2人きり・reach 補給の持ち主はどこへでも動ける）。外すと「守れる」が出やすくなる（鍵の分析）
     返り値 {'holds': bool|None, 'routes': 数えた筋, 'skipped': 数えられなかった筋}。skipped があれば、True でも「数えた筋の範囲で」。
     holds None: 負け筋が抽象化に乗らない（対象が多すぎるなど）。"""
     rs = [r for r in enumerate_routes(state) if r['total'] < INF]
@@ -642,11 +759,57 @@ def pc_holds(state, days, max_names=9, max_targets=8, max_routes=40, budget=120.
     if abst is None:
         return {'holds': True if not rs else None, 'routes': [], 'skipped': [f"{r['id']}:{r['via']}" for r in rs]}
     targets, route_need, specs = abst
+    targets = list(targets)
     used = {id(r) for r, _ in specs}
     skipped = sorted({f"{r['id']}:{r['via']}" for r in rs if id(r) not in used})
-    supply = _supply(state, targets, reach=True)
+    chars = state['chars']
+    from .phases import base_role
+    from .resolve import CHARS as _CH
+    # 事件の効果（犯人が臨界なら起きる）。犯人の不安を補助の対象に足す。効果は [(対象の番号, 量 or 'pos')] の選び方の一覧
+    inc_specs = []
+    for inc in state['script']['incidents']:
+        cul, iid = inc['culprit'], inc['id']
+        if 'incident' not in mm or inc['day'] < state['day'] or cul not in chars or not chars[cul]['alive']:
+            continue
+        chp = [i for i, (tt, k) in enumerate(targets) if k == 'par' and tt in chars and tt != cul]
+        chi = [i for i, (tt, k) in enumerate(targets) if k == 'int' and tt in chars and tt != cul]
+        if iid == 'SPREAD':
+            effs = [[(p_, 2)] + ([(q, 1)] if q is not None else []) for p_ in chp or [None] for q in chi + [None]]
+            effs = [[e for e in ef if e[0] is not None] for ef in effs]
+        elif iid == 'CORRUPT':
+            effs = [[(i, 2)] for i, x in enumerate(targets) if x == ('B:SHR', 'int')]
+        elif iid == 'MISSING':
+            pos = [(i, 'pos') for i, (tt, k) in enumerate(targets) if k == 'pos' and cul in tt.split(':')[2:]]
+            effs = [[(i, 1)] + pos for i, (tt, k) in enumerate(targets) if k == 'int' and tt.startswith('B:')] + ([pos] if pos else [])
+        elif iid == 'BUTTERFLY':
+            effs = [[(i, 1)] for i in chp + chi]
+        else:
+            continue
+        effs = [e for e in effs if e]
+        if not effs:
+            continue
+        if (cul, 'par') not in targets:
+            targets.append((cul, 'par'))
+        inc_specs.append((inc['day'], targets.index((cul, 'par')), _CH[cul]['limit'], effs))
+    supply = list(_supply(state, targets, reach='reach' in mm))
+    tree = chars.get('C30') if 'tree_doctor' in mm else None
+    if tree and tree['alive'] and tree.get('present', True) and sets.refusal(state, base_role(state, 'C30')):
+        supply.append(tuple(i for i, (tt, k) in enumerate(targets) if k in ('par', 'int') and tt in chars and tt != 'C30'))
+    doc = chars.get('C08') if 'tree_doctor' in mm else None
+    if (doc and doc['alive'] and doc.get('present', True) and sets.refusal(state, base_role(state, 'C08'))
+            and (doc['gw'] >= 2 or any(i['id'] == 'RUMOR_SPREAD' for i in state['script']['incidents']))):
+        supply.append(tuple(i for i, (tt, k) in enumerate(targets) if k == 'par' and tt in chars and tt != 'C08'))
+    supply = tuple(x for x in supply if x)
+    rumor0 = 'rumor' in mm and 'X_RUMOR' in state['script']['rules'] and 'X_RUMOR' not in state.get('ability_used_loop', [])
+    rumor_t = tuple(i for i, (tt, k) in enumerate(targets) if k == 'int' and tt.startswith('B:'))
+    intx_ok = 'cultist' not in mm or not any(v['alive'] and base_role(state, c) == 'CULTIST' for c, v in chars.items())  # カルティストは暗躍禁止を無視できる
+    # 脚本家が人を殺せる（シリアルキラー・妄想拡大ウイルス・殺人事件・病院の事件・遠隔殺人）なら、3人目を殺して2人きりを作れる＝2人きりは常に揃うとみなす
+    alone_always = 'alone_death' in mm and kill_mechanism(state, mm=True)
+    alone_t = {i for i, (tt, k) in enumerate(targets) if k == 'pos' and tt.startswith('P:alone_with:')} if alone_always else set()
     cap = [max([n for _, need in route_need for i, n in need if i == j] or [0]) + (3 if k == 'par' else 0)
            for j, (_, k) in enumerate(targets)]
+    for _, ci, lim, _ in inc_specs:
+        cap[ci] = max(cap[ci], lim + 3)
     # 置き先の名前: 対象の人物・ボードと、位置の対象を揃えうる人物（2人きりは同じエリアの他の人物も）
     idx_of = {}
     for i, (t, k) in enumerate(targets):
@@ -693,7 +856,7 @@ def pc_holds(state, days, max_names=9, max_targets=8, max_routes=40, budget=120.
         return [(ts + bs, ix) for ts, ix in out for n in range(0, min(3 - len(ts) - (ix is not None), len(pos_t)) + 1)
                 for bs in combinations(pos_t, n)]
 
-    def after(vals, a, y):
+    def after(vals, a, y, day, rum):
         ts, ix = y
         v = list(vals)
         mm = {}
@@ -706,16 +869,33 @@ def pc_holds(state, days, max_names=9, max_targets=8, max_routes=40, budget=120.
                 # 揃っている位置を主人公が片方を動かして崩しても、脚本家は同じ日にもう片方を動かして追える（上限なので脚本家に有利に。
                 # 逃がした人物を相手が追う手を数えていなかった。selfplay/pc_solve で発見 2026-10-22）。
                 # 揃っていない位置を揃えに来た移動は、主人公が移動禁止で止められる
-                v[i] = 1 if 'MOVE' in cs and (v[i] or i not in ts) else 0 if i in ts else v[i]
+                v[i] = 1 if i in alone_t else 1 if 'MOVE' in cs and (v[i] or i not in ts) else 0 if i in ts else v[i]
             elif targets[i][1] == 'par':
                 if 'PARX' not in cs:
                     v[i] = max(0, min(v[i] + cs.count('PAR+') - (i in ts), cap[i]))
-            elif ix != i:
+            elif ix != i or not intx_ok:
                 v[i] = min(v[i] + sum(2 if c == 'INT2' else 1 for c in cs if c in ('INT1', 'INT2')), cap[i])
         vs = [tuple(v)]
         for idx in supply:  # 脚本家能力フェイズ: 持ち主ごとに対象1つに+1（いちばん脚本家に良い使い方を、すべて見る）
             vs = list(dict.fromkeys([w for x in vs for w in [x] + [tuple(min(y + (j == i), cap[j]) for j, y in enumerate(x)) for i in idx]]))
-        return vs
+        out = [(x, rum) for x in vs]
+        if rum:  # 不穏な噂（ループ1回）: 使う日を脚本家が選ぶ
+            out += [(tuple(min(y + (j == i), cap[j]) for j, y in enumerate(x)), False) for x in vs for i in rumor_t]
+        for d0, ci, lim, effs in inc_specs:  # 事件フェイズ: 犯人が臨界なら、効果の置き先をすべて見る
+            if d0 != day:
+                continue
+            nxt = []
+            for x, r in out:
+                if x[ci] < lim:
+                    nxt.append((x, r))
+                    continue
+                for ef in effs:
+                    y = list(x)
+                    for i, n in ef:
+                        y[i] = 1 if n == 'pos' else min(y[i] + n, cap[i])
+                    nxt.append((tuple(y), r))
+            out = nxt
+        return list(dict.fromkeys(out))
 
     import time
     t_end = time.time() + budget
@@ -724,7 +904,7 @@ def pc_holds(state, days, max_names=9, max_targets=8, max_routes=40, budget=120.
         pass
 
     @lru_cache(maxsize=None)
-    def hold(day, vals, pl, i2):
+    def hold(day, vals, pl, i2, rum):
         if day > days:
             return True
         if time.time() > t_end:
@@ -739,17 +919,17 @@ def pc_holds(state, days, max_names=9, max_targets=8, max_routes=40, budget=120.
                     for _ in [j for j in y[0] if targets[j][1] == 'par']:
                         npl[npl.index(True)] = False
                     npl = tuple(npl)
-                    if all(not lost(w, day) and hold(day + 1, w, npl, i2 and all(c != 'INT2' for c, _ in a))
-                           for a in rows for w in after(vals, a, y)):
+                    if all(not lost(w, day) and hold(day + 1, w, npl, i2 and all(c != 'INT2' for c, _ in a), r)
+                           for a in rows for w, r in after(vals, a, y, day, rum)):
                         ok_T = True
                         break
                 if not ok_T:
                     return False
         return True
 
-    v0 = tuple(min(_current(state, t, k), c) for (t, k), c in zip(targets, cap))
+    v0 = tuple(1 if i in alone_t else min(_current(state, t, k), c) for i, ((t, k), c) in enumerate(zip(targets, cap)))
     try:
-        ok = hold(state['day'], v0, tuple('PAR-' not in state['used'][p] for p in 'ABC'), 'INT2' not in state['used']['M'])
+        ok = hold(state['day'], v0, tuple('PAR-' not in state['used'][p] for p in 'ABC'), 'INT2' not in state['used']['M'], rumor0)
     except _Budget:
         ok = None  # 読み切れず
     return {'holds': ok, 'routes': [f"{r['id']}:{r['via']}" for r, _ in specs], 'skipped': skipped}
