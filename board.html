@@ -1943,8 +1943,11 @@ const RP = {
     this.go(0);
   },
   go(i) {
-    const st = this.steps; this.i = Math.max(0, Math.min(i, st.length - 1));
+    const st = this.steps, was = this.i; this.i = Math.max(0, Math.min(i, st.length - 1));
     const s = st[this.i];
+    // 1歩進めたときは、その歩の公開ログを演出に渡す（事件・能力・ターン終了の中身の見出しはログから作る。渡さずリプレイで出なかった。ユーザー指摘 2026-10-25）。
+    // シークで飛んだときは見出しを続けて出さない
+    fxLines = this.i === was + 1 ? this.data.log.filter(l => l.n > (s.prev_n || 0) && l.n <= s.log_n) : [];
     S = { ...s.state, reveal: null, waiting: { kind: 'none', text: `リプレイ ${this.i + 1}/${st.length}` } };
     // 受け付けなかった操作（公開ログには無い）も、その位置（直前の公開ログの後）に挟んで見せる
     const last = this.i === st.length - 1;
@@ -1956,10 +1959,13 @@ const RP = {
     $('rp-seek').value = this.i; $('rp-pos').textContent = `${this.i + 1} / ${st.length}`;
   },
   play() {
-    if (this.timer) { clearInterval(this.timer); this.timer = null; $('rp-play').textContent = '▶ 再生'; return; }
+    if (this.timer) { clearTimeout(this.timer); this.timer = null; $('rp-play').textContent = '▶ 再生'; return; }
     $('rp-play').textContent = '❚❚ 停止';
     const ms = 1500 * ({ slow: 1.6, normal: 1, fast: 0.5, none: 0.5 }[ux('speed')] || 1);
-    this.timer = setInterval(() => { if (this.i >= this.steps.length - 1) return this.play(); this.go(this.i + 1); }, ms);
+    // 次の歩は演出（中身の見出しなど）が終わってから。決まった間隔だと見出しが重なった
+    const tick = () => { if (!this.timer) return; if (this.i >= this.steps.length - 1) return this.play(); this.go(this.i + 1);
+      this.timer = setTimeout(tick, Math.max(ms, fxBusyUntil - Date.now() + 200)); };
+    this.timer = setTimeout(tick, ms);
   },
   exit() {
     if (this.timer) this.play();
