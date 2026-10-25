@@ -13,6 +13,7 @@
   - 主人公の推理そのものではなく近似である（主人公の乱数や仮説の引き方までは再現しない）。
 """
 import copy
+import itertools
 import os
 import sys
 import random
@@ -23,7 +24,7 @@ from engine.resolve import CARDS, ONCE, IllegalPlacement, card_targets, copy_sta
 from engine.features import state_features
 from engine.route_calc import forced_plan
 from engine.routes import enumerate_routes
-from selfplay.players import DUMMY_PC, PublicObserver, RouteMastermind, score
+from selfplay.players import DUMMY_PC, PublicObserver, RouteMastermind, cultist_options, score
 
 STOP = ('MVX', 'PAR-', 'INTX', 'MV_V', 'MV_H')
 _PAR = None  # 並列の計算（SearchMastermind._par_tables）に fork で渡す（関数, 組の一覧）
@@ -274,6 +275,8 @@ class SearchMastermind(RouteMastermind):
             self._note_blocked(s, events)
         if self.shadow is not None:
             self.shadow.observe(s, phase, events)
+        if getattr(self, 'reader', None) is not None:
+            self.reader.observe(s, phase, events)
 
     # ---- 伏せ札 ----
     def _focus(self, s):
@@ -1195,6 +1198,8 @@ class SearchMastermind(RouteMastermind):
         j = next((i for i, x in enumerate(mm) if x['card'] == 'MV_D'), None)
         if j is None:
             return mm
+        if (mm[j]['target'], 'MV_D') in (getattr(self, '_locks', None) or ()) and getattr(self, 'lock_moves', False):
+            return mm  # 決め手を仕込む斜め（効き目は翌朝。その日の結果だけで比べると他の札に替わる）
         from selfplay.players import _weight
         from selfplay.pc_v2 import after_incidents
         t = mm[j]['target']
@@ -1452,6 +1457,111 @@ class SearchMastermind(RouteMastermind):
         xr.shuffle(out)
         return out[:k]
 
+    def _decoy_moves(self, s, hand, xr, k=12, ratio=0.7):
+        """見せ札の二重の脅威 [(置き先の組, 手)]: 本当に押す1か所（_relevant）に加え、主人公から同じくらい危なく見える置き場所
+        （そこに押す札が1枚あったときの負け筋の近づき方 card_read._near が、本命の ratio 倍以上）に筋を進めない札を置く。
+        読む主人公は危なく見える所を止めに来るので、止める札が見せ札に割かれれば本命が通る。評価は探索がする（加点はしない）。"""
+        from selfplay.card_read import _after, _near
+        push = [c for c in ('PAR+', 'INT1', 'INT2') if c in hand]
+        weak = [c for c in ('PARX', 'GWX', 'PAR-') if c in hand]
+        if not push or not weak:
+            return []
+        base = _near(s)
+        allt = self._targets(s)
+
+        def one(u, c):  # 脚本家は3枚置くので、残り2か所に筋を進めない札を添えて測る（card_read.candidates の1枚の効果と同じ）
+            for o1, o2 in itertools.combinations([x for x in allt if x != u], 2):
+                a = _after(s, [(u, c), (o1, 'PARX'), (o2, 'GWX')]) or _after(s, [(u, c), (o1, 'GWX'), (o2, 'PARX')])
+                if a:
+                    return _near(a) - base
+            return None
+        look = {}
+        for u in allt:
+            vs = [v for c in push for v in [one(u, c)] if v is not None]
+            if vs:
+                look[u] = max(vs)
+        out = []
+        for a, kind in sorted(self._relevant(s)):
+            ca = next((c for c in (('INT1', 'INT2') if kind == 'int' else ('PAR+',)) if c in hand), None)
+            if ca is None or a not in look or look[a] <= 0:
+                continue
+            ds = sorted((u for u in look if u != a and look[u] >= ratio * look[a]), key=lambda u: -look[u])[:2]
+            if not ds:
+                continue
+            third = ds[1] if len(ds) > 1 else xr.choice([u for u in self._targets(s) if u not in (a, ds[0])])
+            for w1 in weak:
+                rest = [c for c in hand if c not in (ca, w1)]
+                w2 = next((c for c in weak if c in rest), None) or xr.choice(rest)
+                mm = [{'by': 'M', 'target': a, 'card': ca}, {'by': 'M', 'target': ds[0], 'card': w1}, {'by': 'M', 'target': third, 'card': w2}]
+                if _after(s, [(x['target'], x['card']) for x in mm]):
+                    out.append(((a, ds[0], third), mm))
+        xr.shuffle(out)
+        return out[:k]
+
+    def _lock_moves(self, s, hand, xr, k=12):
+        """決め手を仕込む候補 [(置き先の組, 手)]: その1枚が止められずに通ると、翌朝に必ず取れる形（forced_plan）になる札
+        （card_read の lock 型と同じ判定。d18 で Claude の脚本家が、大物を斜めの移動で動かせないカルティストの神社へ運んで2ループ取った。
+        2026-10-24）。今朝もう必ず取れるなら足さない。残り2枚は無作為（評価は探索がする。加点はしない）。"""
+        from selfplay.card_read import all_targets, lock_cards, lock_of, route_targets
+        self._locks = set()
+        if forced_plan(s, self.days, pos=True, pcab=True)['forced']:
+            return []
+        allt = self._targets(s)
+        out = []
+        rt = route_targets(s)
+        for t in [u for u in allt if u in rt]:
+            for c in sorted(set(hand) & lock_cards(rt[t])):
+                rest = [u for u in allt if u != t]
+                if not lock_of(s, t, c, all_targets(s)):
+                    continue
+                self._locks.add((t, c))
+                for _ in range(2):
+                    others = xr.sample(rest, 2)
+                    cards = xr.sample([x for x in hand if x != c], 2)
+                    out.append(((t, *others), [{'by': 'M', 'target': t, 'card': c}] +
+                                [{'by': 'M', 'target': u, 'card': x} for u, x in zip(others, cards)]))
+        xr.shuffle(out)
+        return out[:k]
+
+    def _once_waste(self, s, mm, reply):
+        """一度きりの札（暗躍+2・移動斜め）が、応手 reply の下で無効になる（暗躍禁止・移動禁止・禁止エリア）枚数。
+        gen_b31_005 L1D1: 主人公が毎日守る学校のボードに暗躍+2 を使い、二重の脅威に使えなくなった（目隠し対戦2、2026-10-25）。"""
+        once = [x for x in mm if x['card'] in ONCE['M']]
+        if not once:
+            return 0
+        try:
+            _, ev = resolve_actions(s, mm + reply, cultist_options(s, mm + reply))
+        except (IllegalPlacement, ph.LoopEnd):
+            return 0
+        n = 0
+        for x in once:
+            t, c = x['target'], x['card']
+            n += any((e.get('kind') == 'nullified' and e.get('target') == t and c in e.get('cards', [])) or
+                     (e.get('kind') in ('move_blocked', 'move_forbidden') and e.get('char') == t and c in e.get('cards', [])) for e in ev)
+        return n
+
+    def _lock_bonus(self, s, mm, reply, none_w=0.5):
+        """決め手の札を含む手: 予想した応手のあと（重み 1−none_w）と応手なしのあと（none_w）に、翌朝に必ず取れる形が残る見込み
+        （カルティストの無視も入れて解決）。読む主人公の写しの応手で数えるときは none_w=0（写しは止め損なわない）。"""
+        from selfplay.card_read import _locked
+        from selfplay.pc_solve import end_of_day
+        from selfplay.players import cultist_options
+        if not any((x['target'], x['card']) in self._locks for x in mm):
+            return 0.0
+        hit = 0.0
+        for pc, w in ((reply, 1 - none_w), (DUMMY_PC, none_w)):
+            if not w:
+                continue
+            try:
+                after, _ = resolve_actions(s, mm + pc, cultist_options(s, mm + pc))
+            except IllegalPlacement:
+                continue
+            except ph.LoopEnd as e:
+                hit += w * bool(e.loss)
+                continue
+            hit += w * _locked(after, self.days, end_of_day, forced_plan)
+        return hit
+
     def rank_moves(self, s):
         """候補の手を評価の高い順に [(評価, 手, 応手に対する評価, 平均の評価)]。"""
         plan_targets = self._plan_targets(s) if self.plan_w else set()
@@ -1520,8 +1630,16 @@ class SearchMastermind(RouteMastermind):
                     cards = xr.sample([x for x in hand if x != c], 2)
                     forced.setdefault((cul, *others), []).append([{'by': 'M', 'target': cul, 'card': c}] +
                                                                  [{'by': 'M', 'target': u, 'card': k} for u, k in zip(others, cards)])
+        self._doubles = set()
         if self.double:
             for ts, mm in self._double_moves(s, hand, xr):
+                forced.setdefault(ts, []).append(mm)
+                self._doubles.add(frozenset(ts))
+        if getattr(self, 'lock_moves', False):
+            for ts, mm in self._lock_moves(s, hand, xr):
+                forced.setdefault(ts, []).append(mm)
+        if getattr(self, 'decoy', False):
+            for ts, mm in self._decoy_moves(s, hand, xr):
                 forced.setdefault(ts, []).append(mm)
         if self.align:
             for ts, mm in self._align_moves(s, hand, xr):
@@ -1602,6 +1720,10 @@ class SearchMastermind(RouteMastermind):
                     v -= self.surplus * sum(1 for x in mm if x['card'] in ('INT1', 'INT2') and x['target'] in wasted)
                 if self.stuck:
                     v -= self._stuck_cost(s, mm)
+                if getattr(self, 'lock_moves', False) and getattr(self, '_locks', None):
+                    v += self.lock_w * self._lock_bonus(s, mm, replies[jstar], none_w=0)  # 応手で止められる決め手には付けない
+                if getattr(self, 'once_w', 0):
+                    v -= self.once_w * self._once_waste(s, mm, replies[jstar])
                 if self.conceal:
                     v -= self.conceal * sum(self.tcount.get((s['loop'], x['target']), 0) for x in mm)
                 if self.consp:
@@ -1614,8 +1736,60 @@ class SearchMastermind(RouteMastermind):
                 self._reply_of[id(mm)] = replies[jstar]
                 if best_v is None or v > best_v:
                     best, best_v = mm, v
+        if getattr(self, 'reader', None) is not None and scored:
+            self._read_rerank(s, order, scored)
         scored.sort(key=lambda x: -x[0])
         return scored
+
+    def _reader_reply(self, s, order, ts, keep_state=False):
+        """読む主人公の写し（selfplay/card_read.reader_pc。公開の出来事を毎日見せて型の重みを主人公と同じに保つ）が、置き場所 ts に打つ応手。
+        keep_state=False なら写しの記憶と乱数を元に戻す（候補を比べる用）。True は実際に置いた札で写しを進める（毎日1回）。"""
+        import types
+        rd = self.reader
+        keep = None if keep_state else {k: copy.deepcopy(v) for k, v in rd.__dict__.items() if not isinstance(v, types.FunctionType)}
+        try:
+            return rd.pc_cards(copy_state(s), order, list(ts))
+        finally:
+            if keep:
+                rd.__dict__.update(keep)
+
+    def _read_rerank(self, s, order, scored, k=6):
+        """評価の1位の置き場所に、読む主人公の写しの応手を出させ、その応手に対する値で評価を直す（模型の応手 row[jstar] を置き換える。重みは worst）。
+        1位が確かめ済みの置き場所になるまで繰り返す（最大 k 組）。上位だけ直すと、写しの応手は模型より上手に止めるので直した組が軒並み下がり、
+        直していない組が楽観的な値のまま1位に上がった（d18 seed1 game2 L1D1）。読みを外す中身（危なく見える所に弱い札）が上がる。"""
+        key = lambda x: frozenset(m['target'] for m in x[1])  # noqa: E731
+        done = set()
+        locks = getattr(self, '_locks', None) if getattr(self, 'lock_moves', False) else None
+        # 決め手の札を含む置き場所は、模型の応手では低く出ても写しでは通ることがある（読まれない強い札）ので、先に全部写しで見直す
+        ranked = sorted(scored, key=lambda x: -x[0])
+        queue = list(dict.fromkeys(key(x) for x in ranked
+                                   if locks and any((m['target'], m['card']) in locks for m in x[1])))[:self.lock_k]  # 評価の上位 lock_k 組だけ（写しは1日目で1回約5秒）
+        # 2本の筋を同時に押す置き場所（_double_moves）も先に写しで見直す。写しは本当に危ない1か所を止めに来るので、二重の脅威は写しで初めて上がる。
+        # 決め手の枠だけにすると、ループ1を守られる試合が 9→14 に増えた（ユーザーの見立て「2本の筋を同時に追うのをやめている」、2026-10-25）
+        doubles = getattr(self, '_doubles', set())
+        queue += [k_ for k_ in dict.fromkeys(key(x) for x in ranked if key(x) in doubles) if k_ not in queue][:getattr(self, 'double_k', 0)]
+        while len(done) < k:
+            top = queue.pop(0) if queue else key(max(scored, key=lambda x: x[0]))
+            if top in done:
+                if queue:
+                    continue
+                break
+            done.add(top)
+            rep = None
+            for i, x in enumerate(scored):
+                if key(x) != top:
+                    continue
+                rep = rep or self._reader_reply(s, order, [m['target'] for m in x[1]])
+                val = self._val(s, x[1], rep)
+                if val is not None:
+                    v = x[0] + self.worst * (val - x[2])
+                    old_rep = self._reply_of.get(id(x[1]), rep)
+                    if getattr(self, 'lock_moves', False) and getattr(self, '_locks', None):  # 決め手の加点も写しの応手で数え直す
+                        v += self.lock_w * (self._lock_bonus(s, x[1], rep, none_w=0) - self._lock_bonus(s, x[1], old_rep, none_w=0))
+                    if getattr(self, 'once_w', 0):  # 一度きりの札の空振りも写しの応手で数え直す
+                        v -= self.once_w * (self._once_waste(s, x[1], rep) - self._once_waste(s, x[1], old_rep))
+                    scored[i] = (v, x[1], val, x[3])
+                    self._reply_of[id(x[1])] = rep
 
     def _block_state(self, s):
         from selfplay.threat_table import Snap

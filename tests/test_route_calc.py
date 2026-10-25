@@ -273,3 +273,34 @@ def test_pc_killable_spares_death_triggers():
             assert not k, sid
         seen += bool(k)
     assert seen  # 殺せる人物のいる脚本がある
+
+
+def test_forced_unmovable_cultist():
+    """カルティスト（神社のご神木。ほかの3エリアは禁止エリア）と同じエリアのメインラバーズ（不安10）に、最終日に暗躍1つで主人公死亡。
+    暗躍禁止は無視され、カルティストは動かせず、対象を動かしても同じ日の暗躍は止まらない＝脚本家は必ず取れる
+    （d18 L2D6、Claude の脚本家が読む主人公から取った局面。以前はカルティストを札1枚で動かせるとみなし False だった）。"""
+    import json
+    import os
+    from engine.route_calc import forced_plan
+    s = json.load(open(os.path.join(os.path.dirname(__file__), 'data', 'd18_l2d6_cultist.json'), encoding='utf-8'))
+    assert forced_plan(s, s['script']['days'], pos=True, pcab=True)['forced']
+
+
+def test_forced_keeps_route_with_incident_supply():
+    """大物（メインラバーズ）を斜めでカルティストの神社へ運ぶと、筋に「不安拡大で補える」条件（incident_par）が付く。
+    以前はその筋を表から捨てて forced=False になり、読む主人公が移動を止めなかった（d18 L2D1、2026-10-24）。移動禁止で止めれば取れない。"""
+    import json
+    import os
+    from engine.resolve import resolve_actions
+    from engine.route_calc import forced_plan
+    from selfplay.pc_solve import end_of_day
+    from selfplay.players import cultist_options
+    s = json.load(open(os.path.join(os.path.dirname(__file__), 'data', 'd18_l2d1_shrine.json'), encoding='utf-8'))
+    mm = [{'by': 'M', 'target': 'C16', 'card': 'MV_D'}, {'by': 'M', 'target': 'C04', 'card': 'PAR+'}, {'by': 'M', 'target': 'C32', 'card': 'PAR+'}]
+
+    def forced(blk):
+        pc = [{'by': 'A', 'target': 'C04', 'card': 'PAR-'}, {'by': 'B', 'target': 'C16', 'card': blk}, {'by': 'C', 'target': 'C21', 'card': 'GW1'}]
+        a, _ = resolve_actions(s, mm + pc, cultist_options(s, mm + pc))
+        nxt, lost = end_of_day(a, 6)
+        return forced_plan(nxt, 6, pos=True, pcab=True)['forced']
+    assert forced('INTX') and not forced('MVX')

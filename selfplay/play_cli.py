@@ -156,11 +156,14 @@ class ClaudeMastermind:
     def __init__(self, decisions):
         self.d = list(decisions)
 
-    def _next(self, kind, s, title, options):
+    def _next(self, kind, s, title, options, check=None):
         if not self.d:
             show(s, title, options)
             raise NeedDecision(kind)
-        return _take(self.d.pop(0), kind)
+        ch = _take(self.d.pop(0), kind)
+        if check:
+            check(ch)
+        return ch
 
     def loop_setup(self, s, script):
         if 'C18' not in script['init'] and 'C19' not in script['init']:
@@ -169,8 +172,24 @@ class ClaudeMastermind:
                           {'C18': 'C18' in script['init'], 'C19': 'C19' in script['init']})
 
     def mm_cards(self, s):
-        ch = self._next('mm_cards', s, '伏せ札を3枚', {'hand_used': s['used']['M']})
+        ch = self._next('mm_cards', s, '伏せ札を3枚', {'hand_used': s['used']['M']}, lambda ch: _check_mm_cards(s, ch))
         return [{'by': 'M', **c} for c in ch]
+
+    def cultist_pick(self, s, placements):
+        """カルティストの任意能力（同一エリアへの暗躍禁止を無視）。移動の解決後に同一エリアの暗躍禁止があるときだけ聞く
+        （これが無く、Claude の脚本家ではカルティストの能力が一度も使われなかった。2026-10-24）。"""
+        from engine.resolve import IllegalPlacement, resolve_actions
+        try:
+            after, _ = resolve_actions(s, placements)
+        except (IllegalPlacement, ph.LoopEnd):
+            return []
+        cults = [c for c, v in after['chars'].items() if v['alive'] and ph.role(s, c) == 'CULTIST']
+        opts = [{'ability': 'CULTIST', 'char': c, 'target': x['target']} for x in placements if x['card'] == 'INTX' for c in cults
+                if x['target'] == 'B:' + after['chars'][c]['area']
+                or (x['target'] in after['chars'] and after['chars'][x['target']]['area'] == after['chars'][c]['area'])]
+        if not opts:
+            return []
+        return self._next('cultist', s, 'カルティストの暗躍禁止の無視（選べる手から0個以上の列）', {'options': opts})
 
     def mm_ability(self, s, actor, ability=None):
         return self._next('mm_ability', s, f'脚本家能力（{actor}={ph.role(s, actor)}、{ability or ph.role(s, actor)} の能力）',
@@ -275,6 +294,16 @@ class ClaudeProtagonist:
 
     def final_guesses(self, s):
         return self._next('final', s, '最後の戦い（全員の役職を宣言順に）', {}, lambda ch: _check_final(s, ch))
+
+
+def _check_mm_cards(s, choice):
+    """脚本家の札の反則（行動カードを置けないキャラ・手札にない札など）。主人公の札は無難な札で埋めて確かめる。
+    確かめないと、反則の置き方が主人公の読み（card_read）まで進んで落ちた（幻想に不安+1、2026-10-24）。"""
+    from engine.resolve import validate
+    from selfplay.players import DUMMY_PC
+    if not isinstance(choice, list) or len(choice) != 3 or not all(isinstance(c, dict) and {'target', 'card'} <= set(c) for c in choice):
+        raise ValueError('[{"target": ..., "card": ...}, ...] の形で3枚')
+    validate(s, [{'by': 'M', **c} for c in choice] + DUMMY_PC)
 
 
 def _check_pc_cards(s, mm_targets, choice):
@@ -417,6 +446,8 @@ def main(argv=None):
         print('=== 対戦終了', r)
     except NeedDecision:
         pass
+    if os.environ.get('PLAY_CLI_READ') and hasattr(pc, 'read_w'):  # 伏せ札を読む主人公（oreadc）の型の重み（Claude が脚本家のときの確かめ用）
+        print('  型の重み:', {k: round(v, 2) for k, v in pc.read_w.items()})
     # 前の Claude の決定から後の出来事を全部出す（直近の8件だけだと、ループが途中で終わった日の出来事を見落とした）。PLAY_CLI_LOG で件数を指定もできる。
     # 主人公側では、役職や理由を含む項目を伏せる（公開ログと同じ範囲）
     me = ('P', 'A', 'B', 'C') if a.side == 'pc' else ('M',)

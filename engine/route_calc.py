@@ -16,7 +16,7 @@ from functools import lru_cache
 from itertools import combinations
 
 from . import sets
-from .resolve import CHARS
+from .resolve import CHARS, destination
 from .routes import INF, enumerate_routes
 
 MAX_TARGETS = 5
@@ -58,6 +58,9 @@ def _route_spec(r, state, days, positional=True, pos_mode=False, future=False):
         elif k in ('same_area', 'alone_with', 'in_area'):
             if _raw(c) > 0 or not positional:
                 return None  # 位置がまだ揃っていない筋は数えない（下限）
+        elif k == 'incident_par':
+            continue  # 事件で補える分の条件（犯人の不安）。補いを数えなくても必要量は counter に残る＝下限のまま。以前は筋ごと捨て、
+            # d18 で大物がカルティストの神社に入ると不安拡大の補いが付いてメインラバーズの筋が表から消えた（読む主人公が移動を止めなかった。2026-10-24）
         else:
             return None  # incident_par・counter_max など v2.0 では扱わない
     if sets.rule(state, r['id']).get('loop_end_loss') and when is None:
@@ -136,7 +139,24 @@ def _abstract(rs, state, days, positional=True, pos_mode=False, future=False, ma
     return targets, [(sp[0], tuple((targets.index((t, k)), n) for t, k, n in sp[1])) for _, sp in specs], specs
 
 
+_FP = {}  # forced_plan の答えの使い回し（盤面が同じなら同じ答え。読む主人公の写しが応手×中身ごとに引き、半分以上が同じ盤面だった）
+
+
 def forced_plan(state, days, hidden=False, watch=None, pos=False, abil=False, pcab=False, only=None):
+    """_forced_plan_raw の答えを、盤面（脚本は id）と引数ごとに覚えて返す（写しを返す）。"""
+    import copy as _copy
+    import json as _json
+    key = _json.dumps([{k: v for k, v in state.items() if k != 'script'}, state.get('script', {}).get('id'),
+                       days, hidden, watch, pos, abil, pcab, sorted(only) if only else None], sort_keys=True, default=str)
+    hit = _FP.get(key)
+    if hit is None:
+        if len(_FP) > 20000:  # ponytail: 溢れたら全部捨てる（LRU にするのは、捨てた直後に遅くなるのが見えたら）
+            _FP.clear()
+        hit = _FP[key] = forced_plan_raw(state, days, hidden, watch, pos, abil, pcab, only)
+    return _copy.deepcopy(hit)
+
+
+def forced_plan_raw(state, days, hidden=False, watch=None, pos=False, abil=False, pcab=False, only=None):
     """このループを脚本家が必ず取れるか（下限）と、取れるなら今日の手（[(対象, 札)]）。
     hidden: 伏せ札の中身が主人公に見えない場合の、ループを取る確率 p と今日の混ぜ方 mix [(確率, [(対象, 札)])] も返す。
     watch: {置き先: 主人公に見張られている度合い}。賭けで同じ値の手のうち、暗躍+2 を見張られていない側に置く手を選ぶ。
@@ -243,6 +263,12 @@ def _cult(state, targets):
             continue
         idx = tuple(i for i, (t, k) in enumerate(targets) if k == 'int' and (
             (t.startswith('B:') and t[2:] == v['area']) or (t in chars and chars[t].get('area') == v['area'])))
+        # 主人公の移動札1枚（上下・左右）の行き先がどちらも禁止エリアなら、カルティストは動かせず止められない。先頭に -1 を付けて
+        # _dp に知らせる（-1 は対象の番号にならない）。対象を動かしても、その日に置かれた暗躍は止まらず、主人公どうしは同じ対象に
+        # 置けないので暗躍禁止と移動の両方を対象には置けない（d18 L2: 神社のご神木＝カルティストへ大物を運ばれ、読む主人公が落とした。2026-10-24）
+        fb = [] if c in state.get('unbound', []) else CHARS.get(c, {}).get('forbidden', [])
+        if idx and all(destination(v['area'], d) in fb for d in 'VH'):
+            idx = (-1,) + idx
         if idx:
             out.append(idx)
     return tuple(out)
@@ -429,7 +455,7 @@ def _dp(targets, route_need, days, idle, supply=(), pcab=(), cult=()):
                     for bs in combinations(brk_t, k):
                         full.append((ts + bs, ix))
             out = full
-        live = [h for h, a in enumerate(act) if a]
+        live = [h for h, a in enumerate(act) if a and not (h >= len(supply) and cult[h - len(supply)][:1] == (-1,))]  # 動かせないカルティストは除く
         res3 = []  # 能力の持ち主を動かして止める札（3枚まで）
         for ts, ix in out:
             room = 3 - len(ts) - (ix is not None)

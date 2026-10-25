@@ -26,6 +26,7 @@ from engine.resolve import CARDS, ONCE, IllegalPlacement, card_targets, copy_sta
 from engine.route_calc import forced_plan, pc_holds
 from engine.routes import INF, enumerate_routes
 from selfplay.pc_v2 import after_incidents
+from selfplay.players import cultist_options
 
 PCS = 'ABC'
 FILLER = ('GWX', 'PAR-', 'PARX', 'GW1')  # 筋に関わらない対象に置く札（効果の小さい順）
@@ -196,7 +197,7 @@ class Solver:
         rel, _ = relevant(s)
         for mm in self.contents(s, T, rel):
             try:
-                after, _ = resolve_actions(s, mm + R)
+                after, _ = resolve_actions(s, mm + R, cultist_options(s, mm + R))  # 脚本家はカルティストで暗躍禁止を無視しうる
             except IllegalPlacement:
                 continue
             except ph.LoopEnd as e:

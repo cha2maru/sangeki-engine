@@ -342,6 +342,7 @@ body.noimg .ch .rolec { position:static; order:0; width:100%; text-align:center;
 .fxf { position:fixed; z-index:40; pointer-events:none; font-weight:900; font-size:16px; color:#fff; text-shadow:0 0 3px #000, 0 0 6px #000; }
 .fxf.rew { font-size:26px; color:var(--acc); white-space:nowrap; } .fxf.ban { font-size:24px; white-space:nowrap; padding:4px 14px; background:rgba(0,0,0,.7); border-radius:6px; }
 .fxf.death { color:#ff7a6a; } .fxf.arrow { font-size:26px; color:#fff; } .fxf.arrow.combo { font-size:15px; white-space:nowrap; } .fxf.ok { color:#7be39a; } .fxf.lead { color:var(--acc); font-size:14px; white-space:nowrap; }
+.fxf.ban.box { white-space:pre-line; background:rgba(0,0,0,.9); font-size:17px; line-height:1.45; text-align:center; max-width:min(86vw, 640px); } .fxf.ban.ab { color:#b6f0c8; border:2px solid #50c878; }
 .fxf.ban.inc { color:#ff8a7a; border:2px solid #ff5a4a; } .fxf.ban.mm { color:#ff6b5e; border:2px solid #b00; background:rgba(40,0,0,.85); letter-spacing:.05em; } .fxf.mmf { font-size:22px; color:#ff8a7a; } .fxf.ban.incno { color:#ddd; border:1px solid #777; } .fxf.nul { color:#ffcf70; font-size:13px; } .fxghost { position:fixed; z-index:39; pointer-events:none; } .fxghost > * { width:100%; height:100%; } .fxf.p { color:#e2b6ff; } .fxf.g { color:#ffb3cc; } .fxf.i { color:#ddd; } .fxf.gd { color:#9fd4ff; } span.card .ow { font-size:.75em; opacity:.8; margin-right:2px; }
 .ccards span.card { font-size:clamp(8px,2.4cqi,12px); } .hand span.card { font-size:10px; }
 span.turf { position:absolute; right:6px; bottom:6px; background:#6b5a1a; color:#fff; font-weight:700; font-size:12px; padding:2px 8px; border-radius:10px; }
@@ -634,7 +635,8 @@ function fxPlay(prev) {
   });
   let t0 = tMove + (moved ? 500 * k : 0);
   // 脚本家能力フェイズ（どこからともなく置かれたカウンター）は見出しを先に出してから数字を動かす（ユーザー要望: もっと目立つように）
-  if (fxLines.some(l => MMLINE.test(l.text || ''))) { fxBanner('脚本家能力 ― どこからともなく…', 'mm', t0, 1300 * k); t0 += 800 * k; }
+  const mml = fxLines.map(l => l.text || '').filter(x => MMLINE.test(x));  // 何が置かれたかもボード中央に（ユーザー要望 2026-10-25: ループ終了時のように内容を表示）
+  if (mml.length) { fxBanner('脚本家能力フェイズ\n' + mml.slice(0, 5).join('\n'), 'mm box', t0, (1300 + 400 * Math.min(mml.length, 5)) * k); t0 += 800 * k; }
   // ③ カウンター: 数字がはずみ、増減が浮く（解決し終えた値だけを見せる。途中の値で臨界の印を出さない＝レビュー R10）
   const keys = { paranoia: 'p', goodwill: 'g', intrigue: 'i', guard: 'gd' };
   document.querySelectorAll('#board [data-char]').forEach(el => {
@@ -685,12 +687,25 @@ function fxLog(t, k, p, cur) {
   const lines = fxLines; fxLines = [];
   const ch = n => document.querySelector(`#board [data-char="${CSS.escape(n)}"]`);
   let end = t;
+  // 主人公能力・事件・ターン終了フェイズで何かあったら、その中身をボード中央にまとめて出す（ユーザー要望 2026-10-25）。
+  // 脚本家能力フェイズは fxPlay が数字を動かす前に出す。宣言の受付と、起きなかった事件（下の「不発」の見出し）は入れない
+  const GROUP = { '主人公能力フェイズ': 'ab', '事件フェイズ': 'inc', 'ターン終了フェイズ': 'inc' }, LOSS = /^ループ終了時の判定: 主人公の敗北|ループが終わった（主人公の敗北）|あなたたちは死亡した/;
+  let gph = null;
+  const flush = () => {
+    if (!gph || !gph.items.length) return;
+    const n = Math.min(gph.items.length, 5), d = (1400 + 600 * n) * k;
+    fxBanner(`${gph.title}\n${gph.items.slice(0, 5).join('\n')}${gph.items.length > 5 ? '\n…' : ''}`, gph.cls + ' box', end, d); end += d;
+  };
   const glow = (el, color, d) => el && el.animate([{ boxShadow: 'none' }, { boxShadow: `0 0 0 3px ${color}, 0 0 18px 4px ${color}` }, { boxShadow: 'none' }], { duration: 900 * k, delay: d, fill: 'backwards' });
   if (p.leader && cur.leader && p.leader !== cur.leader) fxFloat($('band'), `リーダー交代: 主人公${p.leader} → 主人公${cur.leader}`, 'lead', t, $('sheetbar').getBoundingClientRect());
   for (const l of lines) {
     const x = l.text || '';
     let m;
-    if ((m = /^\d+日目 (.+?): (発生した|発生しなかった)/.exec(x))) { fxBanner(`事件: ${m[1]} ― ${m[2] === '発生した' ? '発生' : '不発'}`, m[2] === '発生した' ? 'inc' : 'incno', end, 1500 * k); end += 1500 * k; }
+    const h = /^── .*?(\S+フェイズ|ループ終了時の判定) ──/.exec(x);
+    if (h) { flush(); gph = GROUP[h[1]] ? { title: h[1], cls: GROUP[h[1]], items: [] } : null; continue; }
+    if (gph && x && !/^宣言を受け付けた|発生しなかった/.test(x) && !LOSS.test(x)) gph.items.push(x);
+    if (LOSS.test(x)) flush(), gph = null;  // 中身を先に見せてから「ループ敗北」
+    if ((m = /^\d+日目 (.+?): 発生しなかった/.exec(x))) { fxBanner(`事件: ${m[1]} ― 不発`, 'incno', end, 1500 * k); end += 1500 * k; }
     else if ((m = /^(.+?) の友好能力を使った(.*)$/.exec(x))) {  // 使った人と、結果に名前の出た人（対象）を光らせる
       glow(ch(m[1]), '#50c878', t);
       for (const c of S.characters || []) if (c.name !== m[1] && m[2].includes(c.name)) glow(ch(c.name), '#9fe0b4', t + 300 * k);
@@ -709,6 +724,7 @@ function fxLog(t, k, p, cur) {
     else if (/^ループ終了時の判定: 主人公の敗北|ループが終わった（主人公の敗北）|あなたたちは死亡した/.test(x)) { fxBanner(/死亡/.test(x) ? 'あなたたちは死亡した ― ループ敗北' : 'ループ敗北', 'inc', end, 1400 * k); end += 1400 * k; }
     else if ((m = /^ゲーム終了: (.+)$/.exec(x))) { fxBanner(m[1], 'rew', end, 1800 * k); end += 1800 * k; }
   }
+  flush();
   return end;
 }
 // 主人公行動フェイズの手順（リーダーから時計回りに1人1枚）と、置けない置き先（ほかの主人公がすでに置いた場所。主人公の書 印刷p22）

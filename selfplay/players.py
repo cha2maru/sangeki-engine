@@ -16,6 +16,29 @@ DUMMY_PC = [{'by': 'A', 'target': 'B:HOS', 'card': 'GW1'}, {'by': 'B', 'target':
             {'by': 'C', 'target': 'B:CIT', 'card': 'GW1'}]
 
 
+
+def cultist_options(s, placements):
+    """カルティストが無視できる暗躍禁止（同一エリアのキャラクターかボード。範囲は移動の解決後）。"""
+    cul = [c for c, v in s['chars'].items() if v['alive'] and v.get('present', True) and ph.base_role(s, c) == 'CULTIST']
+    if not cul or not any(p['card'] == 'INTX' for p in placements):
+        return []
+    try:
+        moved, _ = resolve_actions(s, placements)
+    except IllegalPlacement:
+        return []
+    out = []
+    for p in placements:
+        if p['card'] != 'INTX':
+            continue
+        t = p['target']
+        for c in cul:
+            a = moved['chars'][c]['area']
+            if (t.startswith('B:') and t[2:] == a) or (t in moved['chars'] and moved['chars'][t]['area'] == a):
+                out.append({'char': c, 'ability': 'CULTIST', 'target': t})
+                break
+    return out
+
+
 _SCORE = {}
 
 
@@ -161,25 +184,7 @@ class RouteMastermind:
         return best or {}
 
     def cultist_options(self, s, placements):
-        """カルティストが無視できる暗躍禁止（同一エリアのキャラクターかボード。範囲は移動の解決後）。"""
-        cul = [c for c, v in s['chars'].items() if v['alive'] and v.get('present', True) and ph.base_role(s, c) == 'CULTIST']
-        if not cul or not any(p['card'] == 'INTX' for p in placements):
-            return []
-        try:
-            moved, _ = resolve_actions(s, placements)
-        except IllegalPlacement:
-            return []
-        out = []
-        for p in placements:
-            if p['card'] != 'INTX':
-                continue
-            t = p['target']
-            for c in cul:
-                a = moved['chars'][c]['area']
-                if (t.startswith('B:') and t[2:] == a) or (t in moved['chars'] and moved['chars'][t]['area'] == a):
-                    out.append({'char': c, 'ability': 'CULTIST', 'target': t})
-                    break
-        return out
+        return cultist_options(s, placements)
 
     def cultist_pick(self, s, placements):
         """暗躍禁止を無視すると勝ち筋の評価が上がるなら無視する。"""

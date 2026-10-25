@@ -57,6 +57,9 @@ def _make(kind, rng, script=None):
     if kind == 'oread':
         from selfplay.pc_v2 import OracleReader
         return OracleReader(rng, null_cost=0.1, model_mm=True)
+    if kind == 'oreadc':  # osolve＋守れる応手が無い日は伏せ札を思考の型で読む（selfplay/card_read.reader_pc、2026-10-23）
+        from selfplay.card_read import reader_pc
+        return reader_pc(rng)
     if kind == 'osolve':  # 脚本を知る主人公＋読み切り（selfplay/pc_solve: 伏せ札の中身がどれでも守れる応手を打つ）
         from selfplay.pc_solve import solver_pc
         return solver_pc(rng)
@@ -343,6 +346,28 @@ def _make(kind, rng, script=None):
         p = make('calcGBxhd', rng, script)
         w = int(kind[len('calcGBxhd_L'):] or 8)
         p.shadow.nh, p.shadow.min_worlds, p.shadow.samples = w, w, 20
+        return p
+    if kind in ('calcGBxhdKL', 'calcGBxhdKRL'):  # 決め手を仕込む候補（1枚が通ると翌朝に必ず取れる札）を探索に入れる。search_mm._lock_moves、2026-10-24
+        p = make(kind[:-1], rng, script)
+        p.lock_moves, p.lock_w, p.once_w, p.lock_k = True, 3.0, 1.5, 2
+        p.double, p.double_k = True, 2  # 二重の脅威の候補と、写しで見直す枠2組（決め手の枠は2組に減らした。計6組は変えない）  # ponytail: 重み3は1位と決め手の差（d18 初日 5.6 対 1.9）を越える程度。調整は対戦表で
+        return p
+    if kind in ('calcGBxhdKD', 'calcGBxhdKRD'):  # 見せ札の二重の脅威（本命と同じくらい危なく見える所に弱い札）を候補に。search_mm._decoy_moves、2026-10-24
+        p = make(kind[:-1], rng, script)
+        p.decoy = True
+        return p
+    if kind == 'calcGBxhdKR':  # calcGBxhdK＋読む主人公の写し（上位の置き場所に写しの応手を出させて評価を直す。search_mm._read_rerank、2026-10-24）
+        from selfplay.card_read import reader_pc
+        p = make('calcGBxhdK', rng, script)
+        p.reader = reader_pc(random.Random(f"{script['id']}:reader"))
+        orig = p.mm_cards
+
+        def mm_cards(s):
+            mm = orig(s)
+            i = 'ABC'.index(s['leader'])
+            p._reader_reply(s, list('ABC'[i:] + 'ABC'[:i]), [x['target'] for x in mm], keep_state=True)  # 写しにも実際の置き場所を見せる
+            return mm
+        p.mm_cards = mm_cards
         return p
     if kind == 'calcGBxhdK':  # calcGBxhd＋鍵の持ち主への先回り（必勝を崩す主人公の手の持ち主に友好禁止。search_mm._key_preempt、2026-10-23）
         p = make('calcGBxhd', rng, script)
