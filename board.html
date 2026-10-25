@@ -574,7 +574,8 @@ function render() {
 // 演出の速さ「なし」・過去の盤面やリプレイの表示の切り替え・試合の切り替えでは動かさない（数字が変わるだけ＝今どおり）
 const FXV = '演出の再生';  // 当日の流れの『▶ 演出』で、過去の場面の演出をもう一度見せている間の表示名
 const noAnimChg = new Set();  // 演出なしで変わった駒（次の操作で消す）
-let fxLast = null, fxBusyUntil = 0, fxLines = [];  // fxLines: いま見せる場面までに増えた公開ログの行（場面を1つずつ見せるときに渡す）
+let fxLast = null, fxBusyUntil = 0, fxLines = [], fxPh = null, fxSeenN = 0;  // fxPh: 最後に見たフェイズの見出し（能力の結果は見出しと別の更新で届く）。fxSeenN: 演出に渡した公開ログの最後の番号
+  // fxLines: いま見せる場面までに増えた公開ログの行（場面を1つずつ見せるときに渡す）
 function fxState() {
   return { game: S.game, view: viewing, loop: S.loop, leader: S.leader, chars: Object.fromEntries((S.characters || []).map(c => [c.name, c])), boards: S.boards || {},
     cards: Object.fromEntries(allCards().map(c => [c.owner + '|' + c.target, c])) };
@@ -690,7 +691,7 @@ function fxLog(t, k, p, cur) {
   // 主人公能力・事件・ターン終了フェイズで何かあったら、その中身をボード中央にまとめて出す（ユーザー要望 2026-10-25）。
   // 脚本家能力フェイズは fxPlay が数字を動かす前に出す。宣言の受付と、起きなかった事件（下の「不発」の見出し）は入れない
   const GROUP = { '主人公能力フェイズ': 'ab', '事件フェイズ': 'inc', 'ターン終了フェイズ': 'inc' }, LOSS = /^ループ終了時の判定: 主人公の敗北|ループが終わった（主人公の敗北）|あなたたちは死亡した/;
-  let gph = null;
+  let gph = GROUP[fxPh] ? { title: fxPh, cls: GROUP[fxPh], items: [] } : null;  // 見出しの行が前の更新で届いていても、そのフェイズの行としてまとめる
   const flush = () => {
     if (!gph || !gph.items.length) return;
     const n = Math.min(gph.items.length, 5), d = (1400 + 600 * n) * k;
@@ -702,7 +703,7 @@ function fxLog(t, k, p, cur) {
     const x = l.text || '';
     let m;
     const h = /^── .*?(\S+フェイズ|ループ終了時の判定) ──/.exec(x);
-    if (h) { flush(); gph = GROUP[h[1]] ? { title: h[1], cls: GROUP[h[1]], items: [] } : null; continue; }
+    if (h) { flush(); fxPh = h[1]; gph = GROUP[h[1]] ? { title: h[1], cls: GROUP[h[1]], items: [] } : null; continue; }
     if (gph && x && !/^宣言を受け付けた|発生しなかった/.test(x) && !LOSS.test(x)) gph.items.push(x);
     if (LOSS.test(x)) flush(), gph = null;  // 中身を先に見せてから「ループ敗北」
     if ((m = /^\d+日目 (.+?): 発生しなかった/.exec(x))) { fxBanner(`事件: ${m[1]} ― 不発`, 'incno', end, 1500 * k); end += 1500 * k; }
@@ -1672,7 +1673,7 @@ async function watchQueue(v) {
   const prevN = watchN;
   try { const sn = await snapshots(); if (!first) watchQ.push(...sn.filter(x => x.log_n > watchN)); watchN = sn.length ? sn[sn.length - 1].log_n : 0; } catch { return false; }
   if (!first && watchQ.length && shownN === Infinity) shownN = prevN;  // 最初の場面を見せるまでの間も、ログは盤面の場面まで
-  if (first) return false;
+  if (first) { fxSeenN = watchN; fxPh = null; return false; }  // 開いた時点までのログは演出に流さない
   if (watchQ.length > 24) watchQ.splice(0, watchQ.length - 24);  // 追いつき
   if (!watchT) watchT = setTimeout(watchStep, 300);  // 公開ログの読み込み（同じ poll の後半）を待ってから
   return true;
@@ -1680,8 +1681,11 @@ async function watchQueue(v) {
 function watchStep() {
   if (watchPaused && watchLatest && watchLatest.watch) { watchT = null; renderWatchbar(); return; }  // 観戦で止めている
   const next = watchQ.shift(), k = SPEED[ux('speed')] ?? 1;
-  if (!next || viewing) { watchT = null; if (watchLatest && !viewing) { shownN = Infinity; S = watchLatest; render(); renderOptions(); renderLog(); } return; }
-  fxLines = LOG.filter(l => l.n > (next.prev_n ?? 0) && l.n <= next.log_n);
+  if (!next || viewing) { watchT = null; if (watchLatest && !viewing) { shownN = Infinity;
+    // 場面の記録に入らなかった新しい公開ログ（その場で解決した友好能力の結果など）も演出に渡す（ユーザー指摘 2026-10-25: 友好能力が中央に出ない）
+    fxLines = LOG.filter(l => l.n > fxSeenN); fxSeenN = Math.max(fxSeenN, ...LOG.map(l => l.n));
+    S = watchLatest; render(); renderOptions(); renderLog(); } return; }
+  fxLines = LOG.filter(l => l.n > (next.prev_n ?? 0) && l.n <= next.log_n); fxSeenN = Math.max(fxSeenN, next.log_n);
   shownN = next.log_n;  // 追いついたら（次が無い・飛ばした）Infinity に戻す
   S = { ...next.state, waiting: watchLatest.waiting, phaseId: watchLatest.phaseId, watch: watchLatest.watch }; render(); renderLog();
   const mine = !watchLatest.watch && ['cards', 'ability', 'final', 'time_gap'].includes((watchLatest.waiting || {}).kind);
