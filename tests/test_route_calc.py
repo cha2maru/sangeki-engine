@@ -304,3 +304,13 @@ def test_forced_keeps_route_with_incident_supply():
         nxt, lost = end_of_day(a, 6)
         return forced_plan(nxt, 6, pos=True, pcab=True)['forced']
     assert forced('INTX') and not forced('MVX')
+
+
+def test_forced_plan_only_with_none_via():
+    """only に via が None の筋と人物の筋が混ざっても止まらない（v0.13.0 の使い回しの鍵が sorted(only) で
+    TypeError を出し、対AIモードがループの準備で止まった。X の報告 2026-10-27）。"""
+    from engine.route_calc import forced_plan
+    from engine.scripts import by_id
+    from selfplay.script_routes import start_state
+    s = start_state(by_id('s03_bomb'))
+    forced_plan(s, s['script']['days'], pos=True, only={('Y_BOMB', None), ('Y_BOMB', 'C02')})

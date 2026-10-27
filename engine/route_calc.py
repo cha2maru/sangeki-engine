@@ -147,7 +147,7 @@ def forced_plan(state, days, hidden=False, watch=None, pos=False, abil=False, pc
     import copy as _copy
     import json as _json
     key = _json.dumps([{k: v for k, v in state.items() if k != 'script'}, state.get('script', {}).get('id'),
-                       days, hidden, watch, pos, abil, pcab, sorted(only) if only else None], sort_keys=True, default=str)
+                       days, hidden, watch, pos, abil, pcab, sorted(only, key=repr) if only else None], sort_keys=True, default=str)  # only は repr で並べる（via が None の筋が混ざると v0.13.0 で止まった）
     hit = _FP.get(key)
     if hit is None:
         if len(_FP) > 20000:  # ponytail: 溢れたら全部捨てる（LRU にするのは、捨てた直後に遅くなるのが見えたら）
