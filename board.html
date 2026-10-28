@@ -1909,6 +1909,16 @@ function openReveal() {
 }
 // ---- リプレイ: 試合の記録（公開ログ・場面ごとの盤面・終了時の盤面と非公開シート）を JSON に書き出し、読み込んで見返す ----
 // エンジンは使わない（盤面の記録を順に表示するだけ）。サーバー版でもブラウザ版でも同じ。?replay=<URL> で開ける
+// el が見えるように、いちばん近いスクロールする枠の中だけを動かす（ページは動かさない）。scrollIntoView はページごと動かし、
+// スマホのリプレイで1歩ごとに盤面の下のログへ飛んだ（ユーザー指摘 2026-10-28）。枠が自分でスクロールしないなら何もしない
+function scrollInBox(el) {
+  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+    if (!/(auto|scroll)/.test(getComputedStyle(p).overflowY) || p.scrollHeight <= p.clientHeight) continue;
+    const r = el.getBoundingClientRect(), b = p.getBoundingClientRect();
+    if (r.top < b.top || r.bottom > b.bottom) p.scrollTop += r.top - b.top - (p.clientHeight - r.height) / 2;
+    return;
+  }
+}
 const RP = {
   on: false, data: null, i: 0, timer: null,
   async collect() {
@@ -1930,14 +1940,14 @@ const RP = {
       if (!d.complete) alert('試合の途中までを書き出しました。脚本の中身（非公開シート）は含みません。');
     } catch (e) { alert('書き出せなかった: ' + e.message); }
   },
-  async load(d) {
+  async load(d, built) {  // built: 短い URL から作り直したリプレイ（作り直した盤面がリプレイそのものなので、切り替えるかは聞かない）
     if (!d || d.format !== 'sangeki-replay' || !Array.isArray(d.snapshots) || !d.snapshots.length) return alert('リプレイのファイルではありません');
     // リプレイは他人が作れるデータ（?replay=・#r=・ファイル）。描画は数値の欄などを esc を通さずに HTML へ入れる所があるので、
     // 入口で全部の文字列から HTML の記号を全角に置き換える（細工したリプレイでスクリプトが動いた。2026-10-23）
     const safe = v => typeof v === 'string' ? v.replace(/[<>"'`]/g, c => ({ '<': '＜', '>': '＞', '"': '”', "'": '’', '`': '｀' }[c]))
       : Array.isArray(v) ? v.map(safe) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [safe(k), safe(x)])) : v;
     d = safe(d);
-    if (S.loop && !(S.phaseName || '').startsWith('ゲーム終了') && !RP.on && !await ask({ title: 'リプレイに切り替えますか？', html: para('いまの試合の表示をリプレイに切り替えます。' + '（試合はそのまま続いています。『リプレイを終える』で戻ります）'), ok: '切り替える', cancel: 'やめる' })) return;
+    if (!built && S.loop && !(S.phaseName || '').startsWith('ゲーム終了') && !RP.on && !await ask({ title: 'リプレイに切り替えますか？', html: para('いまの試合の表示をリプレイに切り替えます。' + '（試合はそのまま続いています。『リプレイを終える』で戻ります）'), ok: '切り替える', cancel: 'やめる' })) return;
     clearInterval(pollTimer); backToLive(); closeScene(); $('welcome').classList.remove('on'); $('start').classList.remove('on'); $('reveal').classList.remove('on');
     this.on = true; this.data = d; awaiting = 0; document.body.classList.add('replay');
     const steps = [...d.snapshots]; if (d.final && d.final.loop) steps.push({ prev_n: steps.length ? steps[steps.length - 1].log_n : 0, log_n: d.log.length ? d.log[d.log.length - 1].n : 0, state: d.final });
@@ -1959,7 +1969,7 @@ const RP = {
     LOG = [...this.data.log.filter(l => l.n <= s.log_n), ...rej].sort((a, b) => a.n - b.n);
     renderLog(); render();
     document.querySelectorAll('#log [data-log]').forEach(x => x.classList.toggle('rpnow', +x.dataset.log > (s.prev_n || 0) && +x.dataset.log <= s.log_n));
-    const now = document.querySelector('#log .rpnow'); if (now) { const d = now.closest('details'); if (d) d.open = true; now.scrollIntoView({ block: 'nearest' }); }
+    const now = document.querySelector('#log .rpnow'); if (now) { const d = now.closest('details'); if (d) d.open = true; scrollInBox(now); }
     $('rp-seek').value = this.i; $('rp-pos').textContent = `${this.i + 1} / ${st.length}`;
   },
   play() {
@@ -1994,6 +2004,8 @@ const RP = {
     try {
       const rec = JSON.parse(new TextDecoder().decode(await this.z(this.b64dec(code), false)));
       this.building = true;
+      // 記録の最後まで判断を復旧し終えるまで、待ちのダイアログを出したままにする（途中の盤面で「切り替えますか？」を出さない。ユーザー要望 2026-10-28）
+      $('rpbuild').querySelector('.box').firstChild.textContent = 'リプレイを再構成しています…（記録の最後まで判断を復旧してから表示します）';
       $('rpbuild').classList.add('on');
       dropGameNotes();
       const r = await fetch('/new', { method: 'POST', body: JSON.stringify({ replay: rec }) });
@@ -2038,8 +2050,8 @@ const RP = {
     this.building = false;
     const ok = (S.waiting || {}).ok;
     const d = await this.collect();
+    await this.load(d, true);
     $('rpbuild').classList.remove('on');
-    this.load(d);
     if (!ok) alert('再生した試合が、記録と一致しませんでした（作ったときとエンジンの版が違う可能性があります）。途中から違う手順になっているかもしれません。');
   },
   b64enc(b) { let bin = ''; for (const c of b) bin += String.fromCharCode(c); return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); },
