@@ -511,6 +511,7 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
   <div class="h">ゲーム</div>
   <button class="go" id="newgame" style="display:none">新しいゲーム…</button>
   <a href="editor.html" target="_blank" rel="noopener">シナリオを作る ↗（新しいタブ）</a>
+  <button id="open-editor" title="いま遊んでいるシナリオを、シナリオエディタで開く（犯人・ルール・役職が見えます）">このシナリオをシナリオエディタで開く ↗</button>
   <div class="h">リプレイ</div>
   <button id="rp-export">リプレイを書き出す（JSON）</button>
   <button id="rp-import">リプレイを読み込む…</button>
@@ -2117,6 +2118,20 @@ const para = s => s.split('\n').filter(Boolean).map(x => `<p>${esc(x)}</p>`).joi
 async function copyText(s, msg) {
   try { await navigator.clipboard.writeText(s); alert(msg); } catch { prompt(msg.split('。')[0].replace('コピーしました', '') + '（選んでコピーしてください）', s); }
 }
+// いま遊んでいるシナリオをシナリオエディタで開く（ユーザー要望 2026-10-28）。非公開シートが見えるので先に確かめる。
+// 目隠しの試合は記録（/record）が配信されないので開けない（目隠しを守る）
+$('open-editor').onclick = async e => {
+  e.stopPropagation(); $('filepanel').classList.remove('on');
+  if (!await ask({ title: 'シナリオエディタで開きますか？', html: para('いま遊んでいるシナリオを、シナリオエディタで別のタブに開きます。') +
+    para('エディタでは犯人・ルール・役職など、非公開シートの中身が見えます。この試合をゲームとして楽しめなくなるかもしれません。'), ok: '開く', cancel: 'やめる' })) return;
+  try {
+    const rec = await (await fetch('/record')).json();
+    let code = rec.c || '';
+    if (!code && rec.s) { const r = await (await fetch('/encode', { method: 'POST', body: JSON.stringify({ s: rec.s }) })).json(); code = r.code || ''; if (!code) throw new Error(r.error || 'コードを作れませんでした'); }
+    if (!code) throw new Error('この試合のシナリオが分かりません（目隠しの試合では開けません）');
+    window.open('editor.html?code=' + encodeURIComponent(code), '_blank', 'noopener');
+  } catch (err) { alert('シナリオエディタで開けませんでした: ' + err.message); }
+};
 $('rp-export').onclick = e => { e.stopPropagation(); $('filepanel').classList.remove('on'); RP.exportFile(); };
 $('rp-url').onclick = e => { e.stopPropagation(); $('filepanel').classList.remove('on'); RP.shareURL(); };
 $('rp-resume-url').onclick = e => { e.stopPropagation(); $('filepanel').classList.remove('on'); RP.resumeURL(); };
@@ -2127,7 +2142,7 @@ $('rp-last').onclick = () => RP.go(RP.steps.length - 1); $('rp-play').onclick = 
 $('rp-seek').oninput = e => RP.go(+e.target.value);
 $('rp-reveal').onclick = () => { const keep = S; S = { ...S, reveal: RP.data.final.reveal }; openReveal(); S = keep; };
 // ---- 開始画面（脚本・脚本家・乱数の種を選んで進行役を起動し直す。サーバーが SANGEKI_AI=1 のときだけ）----
-const MMLABEL = { calcGBxhdK: 'calcGBxhdK（最強・鍵の先回り・1手に数秒〜数十秒）', calcGBxhd: 'calcGBxhd（強い・1手に数秒〜数十秒）', search: 'search（速い・ふつう）', searchL: 'searchL（強い）', calcD: 'calcD（強い・1手に数十秒）', calcG: 'calcG（強い・1手に数十秒）', route: 'route（最速・弱い）' };
+const MMLABEL = { calcGBxhdK: 'Guignol（G）― 鍵を先回りで封じる最強の型・1手に数秒〜数十秒', calcGBxhd: 'Foreshadow（F）― 人の止め方を見越して外す・1手に数秒〜数十秒', calcD: 'Escalation（E）― 二重の脅威で追い込む・1手に数十秒', calcG: 'Dramaturge（D）― 主人公の知らない筋を逆算する・1手に数十秒', searchL: 'Cliffhanger（C）― その日の決着まで読む', search: 'Blocking（B）― 一手ずつ探る・速い', route: 'Antagonist（A）― 筋をまっすぐ進める・最速' };  // 通称（頭文字＝メジャー版）と説明。台帳 engine/data/players.json と合わせる（tests/test_players.py）
 let canStart = false;
 fetch('/scripts').then(r => r.ok ? r.json() : null).then(d => {
   if (!d) return;

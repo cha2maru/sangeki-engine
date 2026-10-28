@@ -32,6 +32,7 @@ t = t.replace('<script>\nconst EDITOR', '<script src="shim.js"></script>\n<scrip
 assert 'shim.js' in t, '差し込む場所が見つからない（editor.html が変わった）'
 open(sys.argv[2], 'w', encoding='utf-8').write(t)
 PY
+cp "$PLAY/open.html" "$OUT/open.html"  # 公開シート（URL の ?o= だけから描く。サーバーも Python も使わない）
 # Python のコード（エンジン・自動のプレイヤー・進行役）と脚本・重みを1つの zip に
 python3 - "$PLAY" "$WEB" "$OUT/engine.zip" <<'PY'
 import os, sys, zipfile

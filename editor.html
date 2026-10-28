@@ -53,6 +53,9 @@ td { overflow-wrap:anywhere; } select { max-width:100%; }
     <label for="loops">ループ数</label><input type="number" id="loops" min="1" max="9" value="3">
     <label for="days">1ループの日数</label><input type="number" id="days" min="1" max="9" value="5"></div>
   <label for="special">特殊ルール（任意）</label><textarea id="special" rows="2" maxlength="500"></textarea>
+  <div class="row"><label for="consult">相談</label><select id="consult"><option value="1">可</option><option value="0">不可</option></select>
+    <button id="openview">公開シートを表示</button><button id="openurl">公開シートの URL をコピー</button></div>
+  <div class="mut">公開シートの URL には、惨劇セット・ループ数・日数・相談・特殊ルール・事件の日と名前だけが入ります（犯人・ルール・役職は入らず、URL からシナリオはたどれません）。</div>
 </section>
 <section>
   <h2>ルール</h2>
@@ -238,6 +241,16 @@ $('fromcode').onclick = async () => {
 };
 $('clear').onclick = () => { if (confirm('入力を白紙にしますか？（保存したものは消えません）')) load({}); };
 $('copy').onclick = async () => { try { await navigator.clipboard.writeText(lastCode); $('copy').textContent = 'コピーしました'; setTimeout(() => $('copy').textContent = 'コードをコピー', 1500); } catch { $('code').select(); } };
+// 公開シート（open.html）の URL: 公開シートの項目だけを deflate-raw ＋ base64url で ?o= に入れる（シナリオのコードとは別に作るので、ここから脚本はたどれない）
+async function openURL() {
+  const o = { v: 1, s: 'Basic Tragedy X', l: +$('loops').value, d: +$('days').value, c: +$('consult').value, sp: $('special').value.trim(),
+    i: [...incs].filter(x => x.id && +x.day).sort((a, b) => a.day - b.day).map(x => [+x.day, (INC[x.id] || {}).name || x.id]) };
+  const s = new Blob([new TextEncoder().encode(JSON.stringify(o))]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+  const b = new Uint8Array(await new Response(s).arrayBuffer()); let bin = ''; for (const c of b) bin += String.fromCharCode(c);
+  return new URL('open.html?o=' + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''), location.href).href;
+}
+$('openview').onclick = async () => window.open(await openURL(), '_blank', 'noopener');
+$('openurl').onclick = async () => { const u = await openURL(); try { await navigator.clipboard.writeText(u); $('openurl').textContent = 'コピーしました'; setTimeout(() => $('openurl').textContent = '公開シートの URL をコピー', 1500); } catch { prompt('公開シートの URL（選んでコピーしてください）', u); } };
 const playURL = () => new URL((location.pathname.endsWith('editor.html') ? 'index.html' : '/') + '?code=' + encodeURIComponent(lastCode), location.href).href;
 $('copyurl').onclick = async () => { try { await navigator.clipboard.writeText(playURL()); $('copyurl').textContent = 'コピーしました'; setTimeout(() => $('copyurl').textContent = 'プレイ用の URL をコピー', 1500); } catch { prompt('プレイ用の URL（選んでコピーしてください）', playURL()); } };
 $('play').onclick = () => { if (lastCode) location.href = playURL(); };
@@ -375,5 +388,7 @@ Promise.all(['/chars', '/data/rules', '/data/roles', '/data/incidents'].map(u =>
   $('terr').innerHTML = Object.entries(AREAS).map(([a, n]) => opt(a, n)).join('');
   if (!location.pathname.endsWith('editor.html')) $('back').href = '/';
   render();
+  const qc = new URLSearchParams(location.search).get('code');  // 対戦の画面の「このシナリオをシナリオエディタで開く」から
+  if (qc) { $('incode').value = qc; $('fromcode').click(); }
 }).catch(e => { $('engine').textContent = '人物・ルールのデータを読み込めませんでした。ページを読み込み直してください（' + e.message + '）'; });
 </script>

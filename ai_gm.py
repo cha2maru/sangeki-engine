@@ -828,6 +828,16 @@ def _progress(t, every=0.3):
     return cb
 
 
+def scenario_code(sid):
+    """脚本の id → シナリオエディタのコード（s1.…）。脚本のファイルには人物の一覧が無いので、開始の盤面から足す。"""
+    from engine.scripts import by_id, encode
+    from selfplay.script_routes import start_state
+    sc = dict(by_id(sid))
+    sc.setdefault('characters', list(start_state(sc)['chars']))
+    sc['init'] = {k: v for k, v in (sc.get('init') or {}).items() if v}  # 手先の初期エリア（毎ループ脚本家が決める＝None）はエディタの形では書かない
+    return encode(sc)
+
+
 def short_id(sid):
     """開始時に出す脚本の ID。最後の _ 以降（例 s03_bomb の bomb、gen_s11_036 の 036）は隠す（名前は内容の手がかりになる）。"""
     head, _, base = sid.rpartition('/')
@@ -878,6 +888,7 @@ def main():
     ap.add_argument('--decode', action='store_true', help='標準入力のコードを読んで、シナリオの JSON を出して終わる（シナリオエディタ）')
     ap.add_argument('--replay', default='', help='リプレイの記録（record.json の形）のファイルを再生する（URL の #p=）')
     ap.add_argument('--resume', action='store_true', help='--replay の記録の終わりから、普通の対戦として続ける（途中から再開する URL）')
+    ap.add_argument('--encode', action='store_true', help='標準入力の {"s": 脚本の id} を、シナリオエディタのコード {"code": …} にして出して終わる（盤面の「シナリオエディタで開く」）')
     ap.add_argument('--check', action='store_true', help='標準入力のシナリオ（JSON）を検証し、{errors, warnings} を JSON で出して終わる（シナリオエディタ）')
     ap.add_argument('--analyze', action='store_true', help='標準入力のシナリオ（JSON）の負け筋と守りきれるかを JSON で出して終わる（シナリオエディタ）')
     ap.add_argument('--generate', action='store_true', help='ランダムなシナリオ（易しすぎるものは作り直す）を JSON で出して終わる（シナリオエディタ）')
@@ -889,6 +900,12 @@ def main():
         except ValueError:
             out = {'errors': ['シナリオを JSON として読めません']}
         print(json.dumps(out, ensure_ascii=False))
+        return
+    if a.encode:
+        try:
+            print(json.dumps({'code': scenario_code(json.loads(sys.stdin.read()).get('s', ''))}, ensure_ascii=False))
+        except (ValueError, KeyError, FileNotFoundError, AttributeError) as e:
+            print(json.dumps({'error': str(e)}, ensure_ascii=False))
         return
     if a.decode:
         from engine.scripts import decode

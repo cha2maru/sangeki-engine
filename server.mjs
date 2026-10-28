@@ -87,6 +87,7 @@ http.createServer(async (req, res) => {
     if (req.method === 'GET') {
       if (p === '/' || p === '/index.html') return sendFile(res, path.join(HERE, 'board.html'));  // index.html: ブラウザ版と同じ名前（シナリオエディタの「遊ぶ」）
       if (p === '/editor' || p === '/editor.html') return sendFile(res, path.join(HERE, 'editor.html'));
+      if (p === '/open' || p === '/open.html') return sendFile(res, path.join(HERE, 'open.html'));  // 公開シート（URL の ?o= だけから描く）
       if (p === '/data/incidents') return sendFile(res, path.join(HERE, 'engine', 'data', 'incidents.json'), '{}');
       if (p === '/state') return sendFile(res, path.join(GAME, 'state.json'), '{}');
       if (p === '/log') return sendFile(res, path.join(GAME, 'log.jsonl'), '');
@@ -127,7 +128,7 @@ http.createServer(async (req, res) => {
       startGame(await readBody(req));
       return send(res, 200, '{}', TYPES['.json']);
     }
-    if (req.method === 'POST' && ['/check', '/decode', '/analyze', '/generate'].includes(p)) {  // シナリオエディタの検証・コードの読み込み・分析・生成（ai_gm.py --check など）
+    if (req.method === 'POST' && ['/check', '/decode', '/analyze', '/generate', '/encode'].includes(p)) {  // シナリオエディタの検証・コードの読み込み・分析・生成（ai_gm.py --check など）
       const b = await readBody(req);
       const input = p === '/decode' ? String(b.code || '') : JSON.stringify(b);
       // 待つ間もほかの要求（盤面の更新・すぐ出す分析）に答える（execFileSync はサーバー全体を止める。守れるかの判定は十数秒かかる）

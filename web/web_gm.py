@@ -65,6 +65,15 @@ def analyze_json(s):
         return json.dumps({'errors': ['シナリオを JSON として読めません']}, ensure_ascii=False)
 
 
+def encode_json(s):
+    """盤面の「シナリオエディタで開く」: {"s": 脚本の id} → シナリオエディタのコード。"""
+    from ai_gm import scenario_code
+    try:
+        return json.dumps({'code': scenario_code(json.loads(s).get('s', ''))}, ensure_ascii=False)
+    except (ValueError, KeyError, FileNotFoundError, AttributeError) as e:
+        return json.dumps({'error': str(e)}, ensure_ascii=False)
+
+
 def generate_json(_=''):
     """シナリオエディタ: ランダムなシナリオ（易しすぎるものは作り直す）。"""
     from selfplay.editor_analysis import generate

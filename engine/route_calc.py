@@ -147,7 +147,7 @@ def forced_plan(state, days, hidden=False, watch=None, pos=False, abil=False, pc
     import copy as _copy
     import json as _json
     key = _json.dumps([{k: v for k, v in state.items() if k != 'script'}, state.get('script', {}).get('id'),
-                       days, hidden, watch, pos, abil, pcab, sorted(only, key=repr) if only else None], sort_keys=True, default=str)  # only は repr で並べる（via が None の筋が混ざると v0.13.0 で止まった）
+                       days, hidden, watch, pos, abil if isinstance(abil, bool) else sorted(abil), pcab, sorted(only, key=repr) if only else None], sort_keys=True, default=str)  # only は repr で並べる（via が None の筋が混ざると v0.13.0 で止まった）
     hit = _FP.get(key)
     if hit is None:
         if len(_FP) > 20000:  # ponytail: 溢れたら全部捨てる（LRU にするのは、捨てた直後に遅くなるのが見えたら）
@@ -185,7 +185,7 @@ def _forced_plan(state, days, hidden, watch, pos, positional=True, abil=False, p
     targets, route_need, specs = abst
     args = (targets, [_current(state, t, k) for t, k in targets], route_need, state['day'], days,
             tuple('PAR-' not in state['used'][p] for p in 'ABC'), 'INT2' not in state['used']['M'])
-    sup = _supply(state, targets) if abil else ()
+    sup = _supply(state, targets, holders=None if abil is True else abil) if abil else ()  # abil: True か、数える持ち主の組（割れた役職だけ）
     pa = _pc_abilities(state, targets, unlock=pcab == 'unlock') if pcab else ()
     cu = _cult(state, targets)
     ok, move = solve(*args, supply=sup, pcab=pa, cult=cu)
@@ -346,7 +346,7 @@ def _pc_abilities(state, targets, unlock=False, holders=False):
     return tuple((once, tuple(sorted(v))) for (_, _, once), v in sorted(out.items()))
 
 
-def _supply(state, targets, reach=False):
+def _supply(state, targets, reach=False, holders=None):
     """脚本家の能力で毎日（脚本家能力フェイズ）+1 できる対象（v2.2、2026-10-10、ユーザー「1,2 をすすめる」）。持ち主ごとに対象の番号の組。
     クロマク【任意】同一エリアのキャラ1人かこのキャラのいるボードに暗躍1、ミスリーダー（ファクターは学校の暗躍2以上で）同一エリアのキャラ1人に不安1。
     行動の札では止められない（行動フェイズの後）。主人公は持ち主を動かして止められる（札1枚。以後このループは止まったものとする＝下限）。
@@ -359,6 +359,8 @@ def _supply(state, targets, reach=False):
     for c, v in chars.items():
         if not (v['alive'] and v.get('present', True) and v.get('area')):
             continue
+        if holders is not None and c not in holders:
+            continue  # 数えない持ち主（主人公に役職が割れていない。数えると能力を使って役職を漏らす＝calcA の不採用の理由）
         r = base_role(state, c)
         kind = 'int' if r == 'KUROMAKU' else 'par' if r == 'MISLEADER' or (r == 'FACTOR' and (reach or state['boards'].get('SCH', 0) >= 2)) else None
         if not kind:

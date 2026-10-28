@@ -69,6 +69,8 @@ def route_targets(s):
                 out.setdefault('B:' + d[0], set()).add('int')
             elif c['kind'] == 'counter' and d[1] in ('par', 'int'):
                 out.setdefault(d[0], set()).add(d[1])
+            elif c['kind'] == 'incident_par' and len(d) > 1 and d[1] in s['chars']:
+                out.setdefault(d[1], set()).add('par')  # 事件の犯人に要る不安（遠隔殺人の教師など。d14 L3 で犯人の準備の手が候補に出なかった）
             elif c['kind'] in ('counter_max', 'same_area', 'alone_with', 'in_area'):
                 for x in d[:2]:
                     if isinstance(x, str) and x in s['chars']:

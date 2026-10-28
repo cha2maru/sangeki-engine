@@ -347,10 +347,18 @@ def _make(kind, rng, script=None):
         w = int(kind[len('calcGBxhd_L'):] or 8)
         p.shadow.nh, p.shadow.min_worlds, p.shadow.samples = w, w, 20
         return p
+    if kind in ('calcGBxhdKA', 'calcGBxhdKAM'):  # calcGBxhdK＋割れた役職の脚本家能力（ミスリーダーなど）を逆算と賭けに数える（search_mm._abil、2026-10-28）
+        p = make('calcGBxhdK', rng, script)
+        p.calc_abil = 'known'
+        p.ability_moves = kind == 'calcGBxhdKAM'  # M: 持ち主と対象を移動で同じエリアにそろえる候補（search_mm._ability_moves）
+        return p
     if kind in ('calcGBxhdKL', 'calcGBxhdKRL'):  # 決め手を仕込む候補（1枚が通ると翌朝に必ず取れる札）を探索に入れる。search_mm._lock_moves、2026-10-24
         p = make(kind[:-1], rng, script)
-        p.lock_moves, p.lock_w, p.once_w, p.lock_k = True, 3.0, 1.5, 2
-        p.double, p.double_k = True, 2  # 二重の脅威の候補と、写しで見直す枠2組（決め手の枠は2組に減らした。計6組は変えない）  # ponytail: 重み3は1位と決め手の差（d18 初日 5.6 対 1.9）を越える程度。調整は対戦表で
+        p.lock_moves, p.lock_w, p.once_w, p.lock_k = True, 3.0, 1.5, 4
+        # 二重の脅威の候補は KL にだけ入れる（4本で読む主人公の勝ち 30→24・読まない主人公 14→12）。KRL で写しの枠を2組回すと
+        # 21→30 に悪化した（d13・d18 で決め手の見直しが減った）ので、KRL は決め手の枠4組のまま（runs/lock_mm_2026-10-25、lock4_*）
+        if kind == 'calcGBxhdKL':
+            p.double = True  # ponytail: 重み3は1位と決め手の差（d18 初日 5.6 対 1.9）を越える程度。調整は対戦表で
         return p
     if kind in ('calcGBxhdKD', 'calcGBxhdKRD'):  # 見せ札の二重の脅威（本命と同じくらい危なく見える所に弱い札）を候補に。search_mm._decoy_moves、2026-10-24
         p = make(kind[:-1], rng, script)

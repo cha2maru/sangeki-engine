@@ -62,7 +62,7 @@
       case '/notes':
         if ((opt.method || 'GET') === 'POST') { try { localStorage.setItem(NOTES, opt.body); } catch {} return reply('{}'); }
         try { return reply(localStorage.getItem(NOTES) || '{}'); } catch { return reply('{}'); }
-      case '/check': case '/decode': case '/analyze': case '/generate': {  // シナリオエディタ: 検証・コードの読み込み・分析・生成（Python の準備を待つ）
+      case '/check': case '/decode': case '/analyze': case '/generate': case '/encode': {  // シナリオエディタ: 検証・コードの読み込み・分析・生成（Python の準備を待つ）
         const id = ++seq;
         const p = new Promise(r => { checks[id] = r; });
         const arg = u === '/decode' ? (body().code || '') : (opt.body || '{}');

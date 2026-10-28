@@ -1,0 +1,18 @@
+{
+  "_format": "自動の思考ルーチンの名前の台帳（規則は plan/naming.md）。code は対戦表・記録・試験で使う種類コード（変えない）。official は 陣営.系統.メジャー.マイナー、name は通称（頭文字＝メジャー版。脚本家は脚本の技法、主人公は時空・物理の用語）。status は 採用 / 比べ用 / 廃止。実験の種類はここに載せない",
+  "mastermind": [
+    {"code": "route", "official": "M.route.1.0", "name": "Antagonist", "status": "採用", "note": "筋をまっすぐ進める・最速"},
+    {"code": "search", "official": "M.search.2.0", "name": "Blocking", "status": "採用", "note": "一手ずつ探る・速い"},
+    {"code": "searchL", "official": "M.search.3.0", "name": "Cliffhanger", "status": "採用", "note": "その日の決着まで読む"},
+    {"code": "calcG", "official": "M.calc.4.0", "name": "Dramaturge", "status": "採用", "note": "主人公の知らない筋を逆算する・1手に数十秒"},
+    {"code": "calcD", "official": "M.calc.5.0", "name": "Escalation", "status": "採用", "note": "二重の脅威で追い込む・1手に数十秒"},
+    {"code": "calcGBxhd", "official": "M.calc.6.0", "name": "Foreshadow", "status": "採用", "note": "人の止め方を見越して外す・1手に数秒〜数十秒"},
+    {"code": "calcGBxhdK", "official": "M.calc.7.0", "name": "Guignol", "status": "採用", "since": "2026-10-23", "basis": "play/selfplay/runs/blind_calcGBxhdK_2026-10-23", "note": "鍵を先回りで封じる最強の型・1手に数秒〜数十秒"}
+  ],
+  "protagonist": [
+    {"code": "blind", "official": "P.blind.1.0", "name": "Anchor", "status": "採用", "note": "その場で守る基本の型"},
+    {"code": "read2", "official": "P.read.2.0", "name": "Barrier", "status": "採用", "note": "位置と札で負け筋を止める"},
+    {"code": "oreadc", "official": "P.read.3.0", "name": "Causality", "status": "採用", "since": "2026-10-23", "note": "伏せ札の中身を思考の型で読む（脚本を知る主人公の上に読みを載せた作り。今は自動の対戦用で、人とは遊ばない）"},
+    {"code": "oreadKQL", "official": "P.solve.0.0", "name": "Laplace", "status": "比べ用", "aliases": ["oread", "osolve"], "note": "脚本を知っている主人公（人とは遊ばない。強さの物差し）"}
+  ]
+}

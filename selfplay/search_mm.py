@@ -20,7 +20,7 @@ import random
 
 from engine import phases as ph
 from engine import sets
-from engine.resolve import CARDS, ONCE, IllegalPlacement, card_targets, copy_state, resolve_actions
+from engine.resolve import CARDS, CHARS, ONCE, IllegalPlacement, card_targets, copy_state, resolve_actions
 from engine.features import state_features
 from engine.route_calc import forced_plan
 from engine.routes import enumerate_routes
@@ -918,7 +918,7 @@ class SearchMastermind(RouteMastermind):
         self._gbonus, self._gp = {}, {}
         if self.calc and self.dg:  # 合成（dg）: 先に逆算と賭けを解き、閾値に届かない賭けの手も探索の候補に入れる
             fp = forced_plan(s, self.days, hidden=True, watch=self._watch(s),
-                             pos=getattr(self, 'calc_pos', False), abil=getattr(self, 'calc_abil', False),
+                             pos=getattr(self, 'calc_pos', False), abil=self._abil(s),
                              pcab=getattr(self, 'calc_pcab', False))
             if not fp['forced'] and fp.get('mix') and fp.get('p', 0) > 0:
                 for pr, mv in fp['mix']:
@@ -939,13 +939,13 @@ class SearchMastermind(RouteMastermind):
         if self.calc:
             self._prog(0.85, '負け筋を逆算しています（このループを取れるか' + ('・伏せ札の賭け' if self.gamble else '') + '）')
             fp = fp or forced_plan(s, self.days, hidden=bool(self.gamble), watch=self._watch(s) if self.gamble else None,
-                                   pos=getattr(self, 'calc_pos', False), abil=getattr(self, 'calc_abil', False),
+                                   pos=getattr(self, 'calc_pos', False), abil=self._abil(s),
                              pcab=getattr(self, 'calc_pcab', False))
             g = self._guide_loop_routes(s)
             if g and fp['forced'] and not (fp['locked'] or self._locked(s)):
                 # 指針がこのループに選んだ筋だけでも必ず取れるなら、そちらの手にする（ほかの筋を押して漏らさない。取る保証は変わらない）
                 fg = forced_plan(s, self.days, hidden=bool(self.gamble), watch=self._watch(s) if self.gamble else None,
-                                 pos=getattr(self, 'calc_pos', False), abil=getattr(self, 'calc_abil', False),
+                                 pos=getattr(self, 'calc_pos', False), abil=self._abil(s),
                                  pcab=getattr(self, 'calc_pcab', False), only=g)
                 if fg['forced'] and fg['move']:
                     fp = fg
@@ -1498,6 +1498,58 @@ class SearchMastermind(RouteMastermind):
         xr.shuffle(out)
         return out[:k]
 
+    def _abil(self, s):
+        """逆算・賭けに数える脚本家能力（calc_abil）: True＝全部、'known'＝公開の推理で役職がほぼ確定（9割以上）した持ち主だけ。
+        全部数えると能力を使って役職を漏らした（calcA 不採用）。割れた役職だけなら漏れは増えない（計画書の案。d14 L3 で
+        ミスリーダーの+1 を数えず、主人公が守れる応手2通りの賭けの手を見落とした 2026-10-28）"""
+        a = getattr(self, 'calc_abil', False)
+        if a != 'known':
+            return a
+        self.pub._ensure(s)
+        m, tot = self.pub.ded.marginals()
+        if not tot:
+            return ()
+        return tuple(sorted(c for c, d in m.items() if any(d.get(r, 0) / tot >= 0.9 for r in ('MISLEADER', 'KUROMAKU', 'FACTOR'))))
+
+    def _ability_moves(self, s, hand, xr, k=8):
+        """能力の持ち主と筋の対象を同じエリアにそろえる移動の候補 [(置き先の組, 手)]（ユーザー「キャラの移動と能力を複合して取る筋」2026-10-28）。
+        ミスリーダー（不安）・クロマク（暗躍）・ファクター（不安）の持ち主ごとに、筋で不安・暗躍の要る人物を持ち主のエリアへ、
+        または持ち主を対象のエリアへ、移動の札1枚で運ぶ手。数える持ち主は _abil と同じ（'known' なら役職の割れたものだけ）。
+        逆算（forced_plan）と負け筋の近さは持ち主・対象の位置を今のまま数えるので、この手は無作為の候補にしか出なかった。評価は探索がする"""
+        from engine.resolve import destination
+        from selfplay.card_read import route_targets
+        holders = self._abil(s)
+        if not holders:
+            return []
+        if holders is True:
+            holders = list(s['chars'])
+        rt, allt, out = route_targets(s), self._targets(s), []
+        free = lambda c, a: a not in CHARS.get(c, {}).get('forbidden', []) or c in s.get('unbound', [])  # noqa: E731
+        for h in holders:
+            v = s['chars'].get(h)
+            r = ph.base_role(s, h) if v and v['alive'] and v.get('present', True) else None
+            kind = 'int' if r == 'KUROMAKU' else 'par' if r in ('MISLEADER', 'FACTOR') else None
+            if not kind:
+                continue
+            areas = set(ph.mm_areas(s, h))
+            for t, need in rt.items():
+                tv = s['chars'].get(t)
+                if kind not in need or not tv or t == h or not tv['alive'] or tv['area'] in areas:
+                    continue
+                for mover, frm, goal in ((t, tv['area'], areas), (h, v['area'], {tv['area']})):
+                    for c in ('MV_V', 'MV_H', 'MV_D'):
+                        to = destination(frm, c[-1])
+                        if c not in hand or to not in goal or not free(mover, to):
+                            continue
+                        if any(mm[0]['target'] == mover and mm[0]['card'] == c for _, mm in out):
+                            continue  # 人物と札の組ごとに1件（変種で枠が埋まり、教師を運ぶ手がこぼれた）
+                        others = xr.sample([u for u in allt if u != mover], 2)
+                        cards = xr.sample([x for x in hand if x != c], 2)
+                        out.append(((mover, *others), [{'by': 'M', 'target': mover, 'card': c}] +
+                                    [{'by': 'M', 'target': u, 'card': x} for u, x in zip(others, cards)]))
+        xr.shuffle(out)
+        return out[:k]
+
     def _lock_moves(self, s, hand, xr, k=12):
         """決め手を仕込む候補 [(置き先の組, 手)]: その1枚が止められずに通ると、翌朝に必ず取れる形（forced_plan）になる札
         （card_read の lock 型と同じ判定。d18 で Claude の脚本家が、大物を斜めの移動で動かせないカルティストの神社へ運んで2ループ取った。
@@ -1635,6 +1687,9 @@ class SearchMastermind(RouteMastermind):
             for ts, mm in self._double_moves(s, hand, xr):
                 forced.setdefault(ts, []).append(mm)
                 self._doubles.add(frozenset(ts))
+        if getattr(self, 'ability_moves', False):
+            for ts, mm in self._ability_moves(s, hand, xr):
+                forced.setdefault(ts, []).append(mm)
         if getattr(self, 'lock_moves', False):
             for ts, mm in self._lock_moves(s, hand, xr):
                 forced.setdefault(ts, []).append(mm)
