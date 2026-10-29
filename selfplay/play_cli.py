@@ -218,8 +218,18 @@ class BlockingMastermind(ClaudeMastermind):
         super().__init__([])
         self.box, self.fallback = Mailbox(qpath, dpath), fallback
 
-    def _next(self, kind, s, title, options):
-        return self.box.ask(kind, _captured(show, s, title, options))
+    def _next(self, kind, s, title, options, check=None):
+        """反則（check が例外を出す）なら、理由を問いの頭に足して聞き直す（以前は check を受け取れず、最初の伏せ札で落ちた）。"""
+        why = ''
+        while True:
+            ch = self.box.ask(kind, (f'受け付けなかった: {why}\n' if why else '') + _captured(show, s, title, options))
+            if not check:
+                return ch
+            try:
+                check(ch)
+                return ch
+            except Exception as e:
+                why = str(e)
 
     def __getattr__(self, name):
         if name.startswith('__') or name in ('fallback', 'd', 'box'):

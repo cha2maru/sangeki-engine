@@ -23,7 +23,7 @@ from itertools import combinations, permutations
 
 from engine import phases as ph
 from engine.resolve import CARDS, ONCE, IllegalPlacement, card_targets, copy_state, resolve_actions
-from engine.route_calc import forced_plan, pc_holds
+from engine.route_calc import forced_lower, pc_holds
 from engine.routes import INF, enumerate_routes
 from selfplay.pc_v2 import after_incidents
 from selfplay.players import cultist_options
@@ -63,7 +63,11 @@ def end_of_day(after, days, pcab=False):
 
 
 def _key(s):
-    return repr({k: v for k, v in s.items() if k not in ('script', 'init')})
+    """同じ局面の鍵。主人公 A・B・C の使用済みの札は、誰が使ったかを区別しない（応手の札は誰にでも割り当てられる）。
+    d30 4日目で局面の使い回しが効く（サブエージェントの検討 2026-10-29、runs/backward_2026-10-29）。"""
+    u = s['used']
+    rest = {k: v for k, v in s.items() if k not in ('script', 'init', 'used')}
+    return repr((rest, tuple(sorted(tuple(sorted(u[p])) for p in PCS)), tuple(sorted(u['M']))))
 
 
 def ability_holders(s):
@@ -97,6 +101,9 @@ def relevant(s):
                 areas = {s['chars'][w].get('area') for w in d[:2] if w in s['chars']}
                 rel |= {cid for cid, v in s['chars'].items() if v.get('area') in areas}
     rel |= {i['culprit'] for i in s['script']['incidents'] if i['day'] >= s['day']}
+    # 補給の源（クロマク・ミスリーダー・ファクター）も応手の対象（動かして射程から外す。d30 の黒猫を神社から出す手を読めなかった）
+    rel |= {c for c, v in s['chars'].items() if v['alive'] and v.get('present', True) and v.get('area')
+            and any(ph.has_ability(s, c, a) for a in ('KUROMAKU', 'MISLEADER'))}
     ts = card_targets(s)
     return [t for t in ts if t in rel], [t for t in ts if t not in rel]
 
@@ -124,13 +131,30 @@ class Solver:
             if h['holds'] and not h['skipped']:
                 self.stats['cut_upper'] += 1
                 return True
-        if self.lower and s['day'] >= self.upper_from and forced_plan(s, self.days, pos=True, pcab=True)['forced']:
+        # 打ち切りは「守れない」の証明（forced_lower: 主人公に有利なこと＝友好を積めば使える能力と射程・殺害・護衛・蘇生などを数える）。
+        # 以前の forced_plan(pcab=True) は友好と位置を今のまま数え、主人公の友好能力で守れる筋を「守れない」と打ち切りえた（d30、2026-10-29）
+        if self.lower and s['day'] >= self.upper_from and forced_lower(s, self.days):
             self.stats['cut_lower'] += 1
             return False
         rel, other = relevant(s)
+        unknown = False
         for T in self.placements(rel, other):
-            if not any(self.survives(s, T, R) for R in self.responses(s, T, rel, other)):
-                return False
+            self._truncated = False
+            res = None
+            seen_unknown = False
+            for R in self.responses(s, T, rel, other):
+                r = self.survives(s, T, R)
+                if r:
+                    res = True
+                    break
+                seen_unknown |= r is None
+            if res is None:
+                if not (seen_unknown or self._truncated):
+                    return False  # 応手をすべて調べて、どれも守れない
+                unknown = True  # 応手の上限（max_resp）に当たった・先が分からない応手があった: 「守れない」とは言えない
+        if unknown:
+            self.stats['unknown'] += 1
+            return None
         return True
 
     def placements(self, rel, other):
@@ -190,6 +214,7 @@ class Solver:
                 yield ps
                 n += 1
                 if n >= self.max_resp:
+                    self._truncated = True
                     return
 
     def _assign(self, s, combo, ts):
@@ -211,7 +236,9 @@ class Solver:
         return out
 
     def survives(self, s, T, R):
+        """この置き先 T と応手 R で、中身がどれでも翌朝も守れるか。True／False／None（先が分からない局面がある）。"""
         rel, _ = relevant(s)
+        unknown = False
         for mm in self.contents(s, T, rel):
             try:
                 after, _ = resolve_actions(s, mm + R, cultist_options(s, mm + R))  # 脚本家はカルティストで暗躍禁止を無視しうる
@@ -223,9 +250,13 @@ class Solver:
                 continue
             self.stats['steps'] += 1
             nxt, lost = end_of_day(after, self.days, self.pcab)
-            if lost or (nxt is not None and not self.holds(nxt)):
+            if lost:
                 return False
-        return True
+            h = True if nxt is None else self.holds(nxt)
+            if h is False:
+                return False
+            unknown |= h is None
+        return None if unknown else True
 
 
 def solver_pc(rng, **kw):

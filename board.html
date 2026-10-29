@@ -212,6 +212,9 @@ button:disabled { opacity:.45; cursor:not-allowed; }
 #menu div.o { padding:4px 10px; cursor:pointer; } #menu div.o:hover, #menu div.o:focus { background:#444; outline:none; }
 #board .dropon { outline:3px dashed var(--acc); outline-offset:-3px; }
 #menu div.o.dim { color:var(--mut); }
+.ch .mmtag { position:absolute; left:0; right:0; top:2px; display:flex; flex-direction:column; align-items:center; gap:1px; pointer-events:none; z-index:3; }
+.ch .mmtag b, .ch .mmtag i { font-style:normal; font-size:10px; line-height:1.2; padding:0 3px; border-radius:3px; background:rgba(90,0,0,.85); color:#fff; white-space:nowrap; max-width:100%; overflow:hidden; text-overflow:ellipsis; }
+.ch .mmtag i { background:rgba(40,40,40,.85); white-space:normal; text-align:center; overflow:visible; }
 #msg { width:100%; box-sizing:border-box; background:#111; color:var(--fg); border:1px solid #555; }
 .mut { color:var(--mut); font-size:12px; }
 /* 推理の欄。エンジンの候補（ボタンで出し入れ）は、確定=緑・強い候補=橙・消えた=灰の取り消し線 */
@@ -309,6 +312,7 @@ span.card { display:inline-flex; align-items:center; justify-content:center; tex
 span.card.o-B { background:#246b70; } span.card.o-C { background:#41438f; } span.card.mm { background:#7a2626; }
 span.card.back { background:repeating-linear-gradient(45deg, #4a4a4a 0 4px, #353535 4px 8px); color:#ddd; }
 body.watching #p-ops .sec-hands, body.watching #p-ops .sec-send, body.watching #abilsec { display:none; }
+body.mmside #p-ops .sec-hands, body.mmside #p-ops .sec-send, body.mmside #abilsec { display:none; }
 body.timegap #send, body.timegap #clear, body.timegap #p-ops .sec-hands, body.timegap #pending { display:none; }  /* 時の狭間は選ぶだけ */
 /* 推理の区切りは見出しで畳め、📌 で一番上に固定できる（設計資料 8.3 ①・8.8） */
 #p-sheet .body > section.fold > :not(h3) { display:none; } #p-sheet .body > section > h3 { cursor:pointer; } #p-sheet .body { display:flex; flex-direction:column; }
@@ -790,6 +794,7 @@ function renderMain() {
   const w = S.waiting || {};
   document.body.classList.toggle('mode-ai', S.mode === 'ai' || canStart);
   document.body.classList.toggle('watching', !!S.watch);
+  document.body.classList.toggle('mmside', S.side === 'mm');  // 人が脚本家: 主人公の手札・送信待ち・友好能力の欄と、札を置くメニューは出さない
   if ($('start').classList.contains('on')) $('st-cancel').textContent = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '続きから遊ぶ' : 'やめる';
   document.body.classList.toggle('timegap', (S.waiting || {}).kind === 'time_gap');
   if (w.kind !== lastKind) { lastKind = w.kind; $('p-ops').querySelector('.body').scrollTop = 0; }  // 選ぶものが変わったら、上に来た一覧が見えるように
@@ -1149,6 +1154,15 @@ function roleWhen(name) {
   for (const h of S.loopHistory || []) { const r = (h.roles || []).find(x => x.name === name); if (r) return `公開された役職（ループ${h.loop}${r.day ? ' ' + r.day + '日目' : ''}に公開。公開の時点の役職）`; }
   return '公開された役職（公開の時点の役職）';
 }
+// 人が脚本家: 駒に非公開シートの役職と犯人の事件を常に出す（ユーザー「脚本家で遊ぶときは犯人や役職を常に見えるように」2026-10-30）
+function mmTag(name) {
+  const sh = S.side === 'mm' && S.mmSheet;
+  if (!sh) return '';
+  const role = (sh.roles.find(r => r.char === name) || {}).role;
+  const inc = sh.incidents.filter(i => i.culprit === name).map(i => `${i.day}日 ${i.name}`);
+  if (!role && !inc.length) return '';
+  return `<span class="mmtag" title="非公開シート（脚本家だけに見える）">${role ? `<b>${esc(role)}</b>` : ''}${inc.map(t => `<i>犯人 ${esc(t)}</i>`).join('')}</span>`;
+}
 function charTag(c) {
   const par = c.paranoia || 0, crit = par >= c.limit;
   const cnt = [badge('p', par, `/${c.limit}`, crit ? 'crit' : par ? (par + 1 >= c.limit ? 'near' : '') : 'zero'),
@@ -1157,7 +1171,7 @@ function charTag(c) {
   const hasM = (S.cards || []).some(x => x.owner === 'M' && x.target === c.name);
   return `<div class="ch ${c.alive === false ? 'dead' : ''} ${hasM ? 'hasm' : ''} ${CHG.has(c.name) || noAnimChg.has(c.name) ? 'chg' : ''} ${noPlace(c.name) ? 'noplace' : ''}" data-char="${esc(c.name)}" tabindex="0" aria-label="${esc(c.name)}">
     <div class="ccards">${cards}</div>${noimg() ? '' : `<img class="st" src="${IMG}chara_stand/chara_stand_${c.card}${IMGX}">`}
-    ${c.role ? `<span class="rolec" title="${esc(roleWhen(c.name))}"><small>${esc(roleAt(c.name))}</small>${esc(ROLENAMES[c.role] || c.role)}</span>` : ''}<div class="cap"><div class="nm${[...c.name].length >= 5 ? ' long' : ''}" style="--n:${[...c.name].length}">${esc(c.name)}</div><div class="cnt">${cnt}</div></div></div>`;
+    ${c.role ? `<span class="rolec" title="${esc(roleWhen(c.name))}"><small>${esc(roleAt(c.name))}</small>${esc(ROLENAMES[c.role] || c.role)}</span>` : ''}${mmTag(c.name)}<div class="cap"><div class="nm${[...c.name].length >= 5 ? ' long' : ''}" style="--n:${[...c.name].length}">${esc(c.name)}</div><div class="cnt">${cnt}</div></div></div>`;
 }
 // キャラクターの説明（ポイントすると大きめのポップアップ。ブラウザの title の小さな吹き出しの代わり）
 const AREA_JA = { HOS: '病院', SHR: '神社', CIT: '都市', SCH: '学校' };
@@ -1403,7 +1417,39 @@ document.addEventListener('click', e => { if (!$('menu').contains(e.target)) { h
 const alive = () => (S.characters || []).filter(c => c.alive !== false);
 const charOpts = go => (S.characters || []).map(c => ({ label: c.name + (c.alive === false ? '（死亡）' : ''), go: () => go(c.name) }));
 
+// 人が脚本家のときのメニュー（ユーザー「クリックで脚本家も手札おけるように」2026-10-30）。主人公の札・友好能力のメニューは出さず、
+// いまの問いの欄（伏せ札の置き先と札・能力や事件の対象など）を、クリックした人物・エリアで埋める。選んだ値は mmSel に覚えて描き直しで戻す
+let mmSel = { pid: null, v: {} };
+const mmApply = () => document.querySelectorAll('.mmpanel [data-mm]').forEach(e => {  // 覚えた値を欄に書く（render は欄を描き直さないことがある）
+  const x = mmSel.v[e.dataset.mm];
+  if (e.type === 'checkbox') e.checked = !!x; else e.value = x == null ? '' : String(x);
+});
+function mmMenu(x, y, target) {
+  const w = S.waiting || {}, ui = w.ui;
+  const who = target.startsWith('board:') ? target.slice(6) : target, isB = target.startsWith('board:');
+  if (w.kind !== 'mm' || !ui) return menu(x, y, who, [{ label: '（いまは脚本家の番ではありません）', dim: true, go: () => {} }]);
+  const hit = o => isB ? (o.label === who || o.label === 'ボード ' + who) : o.label === who;
+  if (mmSel.pid !== S.phaseId) mmSel = { pid: S.phaseId, v: {} };
+  const v = mmSel.v, set = (k, val) => { v[k] = val; mmApply(); }, opts = [];
+  if (ui.type === 'cards') {
+    const ti = ui.targets.findIndex(hit);
+    if (ti < 0) return menu(x, y, who, [{ label: '（ここには伏せ札を置けません）', dim: true, go: () => {} }]);
+    const slot = [0, 1, 2].find(i => v['t' + i] === ti);
+    if (slot != null) opts.push({ label: `${slot + 1}枚目を取り外す`, go: () => { delete v['t' + slot]; delete v['c' + slot]; mmApply(); } });
+    const free = [0, 1, 2].find(i => v['t' + i] == null);
+    const usedC = new Set([0, 1, 2].map(i => v['c' + i]).filter(c => c != null));
+    if (slot == null && free != null) ui.hand.forEach((h, ci) => { if (!usedC.has(ci)) opts.push({ label: `${h.label} を置く（${free + 1}枚目）`, go: () => { v['t' + free] = ti; v['c' + free] = ci; mmApply(); } }); });
+    if (slot == null && free == null) opts.push({ label: '（3枚置いています。取り外してから置く）', dim: true, go: () => {} });
+  } else if (ui.type === 'form') {
+    ui.fields.forEach((f, i) => { const oi = f.options.findIndex(hit); if (oi >= 0) opts.push({ label: `${f.label}: ${f.options[oi].label}`, go: () => set('f' + i, oi) }); });
+  } else if (ui.type === 'multi') {
+    ui.options.forEach((o, i) => { if (o.label.startsWith(who)) opts.push({ label: (v['m' + i] ? '✓ ' : '') + o.label, go: () => set('m' + i, !v['m' + i]) }); });
+  }
+  menu(x, y, who, opts.length ? opts : [{ label: '（この問いでは選べません）', dim: true, go: () => {} }]);
+}
+
 function targetMenu(x, y, target) {
+  if (S.side === 'mm') return mmMenu(x, y, target);  // 人が脚本家: 脚本家のメニュー（主人公の札・友好能力は出さない）
   const opts = [];
   const kind = S.waiting?.kind;
   const who = target.startsWith('board:') ? target.slice(6) : target;
@@ -1490,7 +1536,7 @@ function placeArmed(target) {
 }
 document.addEventListener('click', e => {
   const hc = e.target.closest('.card[data-armp]');
-  if (hc) {
+  if (hc && S.side !== 'mm') {
     const same = armed && armed.actor === hc.dataset.armp && armed.card === hc.dataset.armc;
     armed = same ? null : { actor: hc.dataset.armp, card: hc.dataset.armc };
     document.body.classList.toggle('arming', !!armed); render(); return;
@@ -1559,6 +1605,12 @@ function renderMM(box) {
     else if (ui.type === 'multi') h += ui.options.map((x, i) => `<label class="row"><input type="checkbox" data-mm="m${i}"> ${esc(x.label)}</label>`).join('') || '<div class="mut">選べるものはありません</div>';
     h += `<div class="row"><button class="go" data-mmgo="1">決定</button>${ui.skip ? '<button data-mmgo="0">使わない</button>' : ''}</div></div>`;
     p.insertAdjacentHTML('beforeend', h);
+    if (mmSel.pid !== S.phaseId) mmSel = { pid: S.phaseId, v: {} };  // 問いが変わったら選んだ値を捨てる
+    p.querySelectorAll('[data-mm]').forEach(e => {  // 盤面のメニューや前の描画で選んだ値を戻し、変えたら覚える
+      const k = e.dataset.mm, x = mmSel.v[k];
+      if (e.type === 'checkbox') { e.checked = !!x; e.onchange = () => { mmSel.v[k] = e.checked; }; }
+      else { if (x != null) e.value = String(x); e.onchange = () => { mmSel.v[k] = e.value === '' ? undefined : +e.value; }; }
+    });
     const val = id => { const e = p.querySelector(`[data-mm="${id}"]`); return e && e.value !== '' ? +e.value : null; };
     p.querySelectorAll('[data-mmgo]').forEach(b => b.onclick = () => {
       let choice;
@@ -2194,6 +2246,7 @@ fetch('/scripts').then(r => r.ok ? r.json() : null).then(d => {
     `<option value="${esc(s.id)}">${esc(s.title)}（${s.loops}ループ×${s.days}日）</option>`).join('') + '</optgroup>').join('');
   $('st-mm').innerHTML = d.mms.map((m, i) => `<option value="${m}" ${i === 0 ? 'selected' : ''}>${esc(MMLABEL[m] || m)}</option>`).join('')  // 既定は最強
     + '<option value="human">あなた（脚本家として遊ぶ。主人公は自動）</option>';
+  syncMM();
   $('st-seed').value = Math.floor(Math.random() * 10000);
   if (!d.blind) {  // 伏せて選べる脚本（自動生成。sangeki-scripts）が無い: 一覧から選ぶ
     $('st-blind').checked = false; $('st-blind').disabled = true; syncPick();
@@ -2220,6 +2273,18 @@ $('st-rand').onclick = () => { $('st-seed').value = Math.floor(Math.random() * 1
 // 伏せて遊ぶときは「脚本を選ぶ」を出さない（題名が見えないように）
 const syncPick = () => { $('st-pick').style.display = $('st-blind').checked ? 'none' : ''; };
 $('st-blind').onchange = syncPick;
+// 脚本家に「あなた」を選んだら、主人公は自動だけ（両方を人にはできない。以前は黙って read2 に置き換えていた。ユーザー指摘 2026-10-30）
+const syncMM = () => {
+  const human = $('st-mm').value === 'human', o = $('st-pc').querySelector('option[value=""]');
+  o.disabled = human;
+  if (human && $('st-pc').value === '') { $('st-pc').value = 'read2'; syncMM.auto = true; }
+  else if (!human && syncMM.auto) { $('st-pc').value = ''; syncMM.auto = false; }  // こちらで自動にした分は戻す
+  let n = $('st-mm-note');
+  if (!n) { n = document.createElement('div'); n.id = 'st-mm-note'; n.className = 'note'; $('st-pc').insertAdjacentElement('afterend', n); }
+  n.textContent = human ? '脚本家として遊ぶときは、主人公は自動です（両方を人にはできません）。' : '';
+  n.style.display = human ? '' : 'none';
+};
+$('st-mm').onchange = syncMM;
 $('st-cancel').onclick = () => $('start').classList.remove('on');
 // ?code=…（シナリオエディタの「このシナリオで遊ぶ」）: 新しいゲームの欄にコードを入れておく
 { const c = new URLSearchParams(location.search).get('code'); if (c) $('st-code').value = c; }

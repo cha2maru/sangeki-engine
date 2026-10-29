@@ -567,7 +567,8 @@ class ReadingBlocker(DeductiveBlocker):
                     tw += wt
                 if self.lock_block or self.calc_block:
                     br = block_rates(st, days, mm_targets, pos=self.calc_block, abil=self.calc_block,
-                                     max_targets=getattr(self, 'table_targets', 5), max_routes=getattr(self, 'table_routes', 8))
+                                     max_targets=getattr(self, 'table_targets', 5), max_routes=getattr(self, 'table_routes', 8),
+                                     pcab=getattr(self, 'look_pcab', False))
                     if br:
                         lock_w.append((br, wt))
             if self.lock_probe and tw and lk / tw >= 0.7:  # このループはもう取られている → 札は情報に（ル構-06）
@@ -835,7 +836,8 @@ class ReadingBlocker(DeductiveBlocker):
             from engine import route_calc
             route_calc.WORK['left'] = self._safe_left
             try:
-                cache[key] = 0.0 if forced_plan(dict(after, day=after['day'] + 1), days)['forced'] else 1.0
+                cache[key] = 0.0 if forced_plan(dict(after, day=after['day'] + 1, ability_used_today=[]), days,
+                                                pcab=getattr(self, 'look_pcab', False))['forced'] else 1.0  # 主人公の友好能力も数える（oreadKQLm）
             except route_calc.OverBudget:
                 route_calc.WORK['left'] = 0
                 return None  # 分からない（上限）
@@ -1129,5 +1131,6 @@ class OracleReader(ReadingBlocker):
         # final_truth: 最後の戦いも本当の配役で答える（Web の自動同士で「脚本を知っている主人公」として選ぶとき。2026-10-17）。
         # 既定は推理で答える（gen_filter の「盤面で勝つ手があるか」の目安を変えない）
         if getattr(self, 'final_truth', False):
-            return [{'char': c, 'role': s['script']['roles'].get(c, 'PERSON')} for c in s['chars']]
+            # アルバイトとアルバイト？は2人で1回だけ宣言する（裁定。engine.abilities.final_battle）。両方を出すと反則で進行役が落ちた（d18 の Claude 戦 2026-10-30）
+            return [{'char': c, 'role': s['script']['roles'].get(c, 'PERSON')} for c in s['chars'] if not (c == 'C33' and 'C32' in s['chars'])]
         return super().final_guesses(s)

@@ -1163,7 +1163,7 @@ def run(a, table_cls=None):
     rng = random.Random(a.seed)
     # 自動の主人公は専用の乱数（脚本家と共有すると、再生で脚本家を記録に置き換えたときに主人公の手がずれる）
     pc = make(auto_pc, random.Random(f'pc:{a.seed}:{auto_pc}'), script) if auto_pc else HumanProtagonist(t, rng)
-    if auto_pc.startswith('oread'):
+    if auto_pc.startswith('oread') or auto_pc == 'oplan':
         pc.final_truth = True  # 脚本を知っている主人公は、最後の戦いも本当の配役で答える
     if a.mm == 'human' and (not rp or getattr(a, 'resume', False)):  # 人が脚本家（盤面から）。主人公は自動（既定 read2 ＝脚本を知らない主人公）
         # 再開（?resume=）では記録の判断を流し込んだ後に、人の脚本家に戻る（RecordingMM の queue）

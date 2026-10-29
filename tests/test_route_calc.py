@@ -314,3 +314,23 @@ def test_forced_plan_only_with_none_via():
     from selfplay.script_routes import start_state
     s = start_state(by_id('s03_bomb'))
     forced_plan(s, s['script']['days'], pos=True, only={('Y_BOMB', None), ('Y_BOMB', 'C02')})
+
+
+def test_time_traveller_goodwill_is_counted():
+    """タイムトラベラー（最終日に友好2以下で敗北）を逆算・上限に数える（以前は counter_max を扱わず筋ごと外していた。ユーザー「実装漏れじゃないの？」）。
+    d12 の黒猫（タイムトラベラー）: 最終日の朝に友好2なら友好+1 で守れ、友好0なら友好+2 を置いても届かない。"""
+    from engine.route_calc import forced_plan, pc_holds
+    from engine.scripts import by_id
+    from selfplay.script_routes import start_state
+    s = start_state(by_id('designed/d12'))
+    for c, v in s['chars'].items():  # タイムトラベラー以外の筋を消す（全員を死なせると別の負けになるので、カウンターと位置だけ外す）
+        v.update(par=0, int=0)
+    s['boards'] = {a: 0 for a in s['boards']}
+    s['script'] = dict(s['script'], incidents=[], rules=['Y_FUTURE'], roles={'C26': 'TT', 'C02': 'CULTIST'})
+    s['day'] = 6
+    s['chars']['C26']['gw'] = 2
+    assert 'TT_LOSS:C26' in pc_holds(s, 6)['routes'] and pc_holds(s, 6)['holds']
+    assert not forced_plan(s, 6)['forced']
+    s['chars']['C26']['gw'] = 0
+    assert forced_plan(s, 6)['forced']
+    assert pc_holds(s, 6)['holds'] is False

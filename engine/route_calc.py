@@ -38,6 +38,8 @@ def _route_spec(r, state, days, positional=True, pos_mode=False, future=False):
         if k == 'days':
             if c['detail'][0] == '事件':
                 when = c['detail'][2]
+            elif c['detail'][0] == '最終日':  # タイムトラベラー: 最終日のターン終了フェイズ
+                when = c['detail'][1]
             elif future and c['detail'][0] == '登場':
                 continue  # 登場を待つ日数（routes の登場前の筋）。主人公の見積もりでは、登場の前から押せるとみなす（脚本家に有利＝上限）
             else:
@@ -58,6 +60,13 @@ def _route_spec(r, state, days, positional=True, pos_mode=False, future=False):
         elif k in ('same_area', 'alone_with', 'in_area'):
             if _raw(c) > 0 or not positional:
                 return None  # 位置がまだ揃っていない筋は数えない（下限）
+        elif k == 'counter_max' and c['detail'][1] == 'gw':
+            # タイムトラベラー（最終日のターン終了フェイズに友好2以下で敗北）: 足りない友好を対象 'gwd' にする（1以上残れば負け）。
+            # 主人公が友好の札で減らし、脚本家は友好禁止で止められない（特性 ignores_gwx）。上限（future）は札1枚で1つ、
+            # 下限は友好+2 で2つ（主人公に有利）。噂の流布で友好を奪われうる間は、上限では数えない（ユーザー「実装漏れじゃないの？」2026-10-29）
+            if future and any(i['id'] == 'RUMOR_SPREAD' and i['day'] >= state['day'] for i in state['script']['incidents']):
+                return None
+            need.append((c['detail'][0], 'gwd' if future else 'gwd2', 1))
         elif k == 'incident_par':
             continue  # 事件で補える分の条件（犯人の不安）。補いを数えなくても必要量は counter に残る＝下限のまま。以前は筋ごと捨て、
             # d18 で大物がカルティストの神社に入ると不安拡大の補いが付いてメインラバーズの筋が表から消えた（読む主人公が移動を止めなかった。2026-10-24）
@@ -73,6 +82,8 @@ def _route_spec(r, state, days, positional=True, pos_mode=False, future=False):
 
 
 def _current(state, t, kind):
+    if kind in ('gwd', 'gwd2'):  # 足りない友好（友好2以下で負け＝3 まであといくつ）
+        return max(0, 3 - state['chars'][t]['gw'])
     if kind == 'pos':
         return int(_pos_raw(state, t) == 0)
     if t.startswith('B:'):
@@ -388,8 +399,9 @@ WORK = {'left': None}  # None なら上限なし。数で区切る（時間で�
 
 def _dp(targets, route_need, days, idle, supply=(), pcab=(), cult=()):
     # 不安は主人公の不安−1（ループに最大3枚）で減るので、必要量より3つ上まで余りを数える（切ると不安4 の余りが消える）
-    cap = [max([n for _, need in route_need for i, n in need if i == j] or [0]) + (3 if k == 'par' else 0)
+    cap = [3 if k in ('gwd', 'gwd2') else max([n for _, need in route_need for i, n in need if i == j] or [0]) + (3 if k == 'par' else 0)
            for j, (_, k) in enumerate(targets)]
+    gwd_idx = [i for i, (t, k) in enumerate(targets) if k in ('gwd', 'gwd2')]  # 足りない友好（主人公が友好の札で減らす）
     par_idx = [i for i, (t, k) in enumerate(targets) if k == 'par']
     int_idx = [i for i, (t, k) in enumerate(targets) if k == 'int']
     # 位置の対象（v2.1）: 脚本家は移動札1枚で揃える（↑↓・←→の2枚まで。斜めは数えない＝下限）、主人公は誰でも札1枚で崩せる
@@ -457,6 +469,15 @@ def _dp(targets, route_need, days, idle, supply=(), pcab=(), cult=()):
                     for bs in combinations(brk_t, k):
                         full.append((ts + bs, ix))
             out = full
+        gwd_t = [i for i in gwd_idx if vals[i] > 0]
+        if gwd_t:  # 友好の札（不安−1・暗躍禁止・崩す札と合わせて3枚まで）。対象は不安−1 の組に混ぜて返す（apply で見分ける）
+            full = []
+            for ts, ix in out:
+                room = 3 - len(ts) - (ix is not None)
+                for k in range(0, min(room, len(gwd_t)) + 1):
+                    for gs in combinations(gwd_t, k):
+                        full.append((ts + gs, ix))
+            out = full
         live = [h for h, a in enumerate(act) if a and not (h >= len(supply) and cult[h - len(supply)][:1] == (-1,))]  # 動かせないカルティストは除く
         res3 = []  # 能力の持ち主を動かして止める札（3枚まで）
         for ts, ix in out:
@@ -473,7 +494,10 @@ def _dp(targets, route_need, days, idle, supply=(), pcab=(), cult=()):
         v = list(vals)
         for i in pos_idx:
             v[i] = 0 if i in ts else 1 if mm.get(i) == 'MOVE' else v[i]
-        ts = tuple(i for i in ts if i not in pos_idx)
+        for i in gwd_idx:
+            if i in ts:
+                v[i] = max(0, v[i] - (2 if targets[i][1] == 'gwd2' else 1))
+        ts = tuple(i for i in ts if i not in pos_idx and i not in gwd_idx)
         for i in par_idx:
             plus = mm.get(i) == 'PAR+'
             lock = mm.get(i) == 'PARX'
@@ -564,8 +588,9 @@ def solve_hidden(targets, current, route_need, day0, days, par_left, int2, watch
     {(不安−1 の置き先の組, 暗躍禁止の置き先): (割り当ての最悪, 平均)} を返す（block_rates）。"""
     import numpy as np
     from scipy.optimize import linprog
-    cap = [max([n for _, need in route_need for i, n in need if i == j] or [0]) + (3 if k == 'par' else 0)
+    cap = [3 if k in ('gwd', 'gwd2') else max([n for _, need in route_need for i, n in need if i == j] or [0]) + (3 if k == 'par' else 0)
            for j, (_, k) in enumerate(targets)]
+    gwd_idx = [i for i, (t, k) in enumerate(targets) if k in ('gwd', 'gwd2')]  # 足りない友好（主人公が友好の札で減らす）
     vals = tuple(min(v, c) for v, c in zip(current, cap))
     pl = tuple(par_left)
     names = sorted({t for t, _ in targets})
@@ -581,6 +606,8 @@ def solve_hidden(targets, current, route_need, day0, days, par_left, int2, watch
         out = [(BLUFF, None)]
         for i in idx_of.get(nm, []):  # 負け筋に関わらない置き先は効果の無い札だけ
             k = targets[i][1]
+            if k in ('gwd', 'gwd2'):  # 足りない友好には脚本家の札は効かない（友好禁止を無視するタイムトラベラー）
+                continue
             out += [('PAR+', i), ('PARX', i)] if k == 'par' else [('MOVE', i)] if k == 'pos' else [('INT1', i)] + ([('INT2', i)] if int2 else [])
         return out
 
@@ -604,6 +631,10 @@ def solve_hidden(targets, current, route_need, day0, days, par_left, int2, watch
         if pos_t:  # 位置を崩す札（v2.1。主人公の札は合わせて3枚まで）。応手は (不安−1 の組＋崩す位置の組, 暗躍禁止) の形
             out = [(ts + bs, ix) for ts, ix in out for n in range(0, min(3 - len(ts) - (ix is not None), len(pos_t)) + 1)
                    for bs in combinations(pos_t, n)]
+        gwd_t = [i for i in gwd_idx if vals[i] > 0]
+        if gwd_t:  # 足りない友好への友好の札（同じく3枚まで）
+            out = [(ts + gs, ix) for ts, ix in out for n in range(0, min(3 - len(ts) - (ix is not None), len(gwd_t)) + 1)
+                   for gs in combinations(gwd_t, n)]
         return out
 
     def value(a, y):
@@ -613,6 +644,8 @@ def solve_hidden(targets, current, route_need, day0, days, par_left, int2, watch
         for i in range(len(targets)):
             if targets[i][1] == 'pos':
                 v[i] = 0 if i in ts else 1 if mm.get(i) == 'MOVE' else v[i]
+            elif targets[i][1] in ('gwd', 'gwd2'):
+                v[i] = max(0, v[i] - (2 if targets[i][1] == 'gwd2' else 1) * (i in ts))
             elif targets[i][1] == 'par':
                 if mm.get(i) != 'PARX':
                     v[i] = max(0, min(v[i] + (mm.get(i) == 'PAR+') - (i in ts), cap[i]))
@@ -671,7 +704,7 @@ def solve_hidden(targets, current, route_need, day0, days, par_left, int2, watch
     return best, (best_mix if best > 0 else None)
 
 
-def block_rates(state, days, mm_targets, pos=False, abil=False, max_targets=MAX_TARGETS, max_routes=MAX_ROUTES):
+def block_rates(state, days, mm_targets, pos=False, abil=False, max_targets=MAX_TARGETS, max_routes=MAX_ROUTES, pcab=False):
     """主人公から見た今日: 脚本家の伏せ札の置き先（mm_targets）は見え、中身は見えない。応手ごとに、今日の後で脚本家が
     このループを必ず取れるようになる割合 {(不安−1 の置き先, 暗躍禁止の置き先): (最悪, 平均)}。負け筋が無ければ None。
     位置の条件は今の位置のまま（主人公の移動は数えない）。
@@ -696,7 +729,8 @@ def block_rates(state, days, mm_targets, pos=False, abil=False, max_targets=MAX_
             movers[i] = ms & set(mm_targets)
     return solve_hidden(targets, [_current(state, t, k) for t, k in targets], route_need, state['day'], days,
                         tuple('PAR-' not in state['used'][p] for p in 'ABC'), 'INT2' not in state['used']['M'],
-                        fixed_T=[t for t in mm_targets if t != 'C20'], supply=_supply(state, targets) if abil else (), movers=movers)
+                        fixed_T=[t for t in mm_targets if t != 'C20'], supply=_supply(state, targets) if abil else (), movers=movers,
+                        pcab=_pc_abilities(state, targets) if pcab else ())  # pcab: 主人公の友好能力（今の友好と位置のまま）も応手に数える
 
 
 
@@ -855,8 +889,9 @@ def pc_holds(state, days, max_names=9, max_targets=8, max_routes=40, budget=120.
     # 脚本家が人を殺せる（シリアルキラー・妄想拡大ウイルス・殺人事件・病院の事件・遠隔殺人）なら、3人目を殺して2人きりを作れる＝2人きりは常に揃うとみなす
     alone_always = 'alone_death' in mm and kill_mechanism(state, mm=True)
     alone_t = {i for i, (tt, k) in enumerate(targets) if k == 'pos' and tt.startswith('P:alone_with:')} if alone_always else set()
-    cap = [max([n for _, need in route_need for i, n in need if i == j] or [0]) + (3 if k == 'par' else 0)
+    cap = [3 if k in ('gwd', 'gwd2') else max([n for _, need in route_need for i, n in need if i == j] or [0]) + (3 if k == 'par' else 0)
            for j, (_, k) in enumerate(targets)]
+    gwd_idx = [i for i, (t, k) in enumerate(targets) if k in ('gwd', 'gwd2')]  # 足りない友好（主人公が友好の札で減らす）
     for _, ci, lim, _ in inc_specs:
         cap[ci] = max(cap[ci], lim + 3)
     # 置き先の名前: 対象の人物・ボードと、位置の対象を揃えうる人物（2人きりは同じエリアの他の人物も）
@@ -883,6 +918,8 @@ def pc_holds(state, days, max_names=9, max_targets=8, max_routes=40, budget=120.
         out = [(BLUFF, None)]
         for i in idx_of[nm]:
             k = targets[i][1]
+            if k in ('gwd', 'gwd2'):  # 足りない友好には脚本家の札は効かない
+                continue
             out += [('PAR+', i), ('PARX', i)] if k == 'par' else [('MOVE', i)] if k == 'pos' else [('INT1', i)] + ([('INT2', i)] if i2 else [])
         return out
 
@@ -902,8 +939,11 @@ def pc_holds(state, days, max_names=9, max_targets=8, max_routes=40, budget=120.
                 out.append((ts, None))
                 if k < 3:
                     out += [(ts, i) for i in int_t if targets[i][0] not in {targets[j][0] for j in ts}]
-        return [(ts + bs, ix) for ts, ix in out for n in range(0, min(3 - len(ts) - (ix is not None), len(pos_t)) + 1)
-                for bs in combinations(pos_t, n)]
+        out = [(ts + bs, ix) for ts, ix in out for n in range(0, min(3 - len(ts) - (ix is not None), len(pos_t)) + 1)
+               for bs in combinations(pos_t, n)]
+        gwd_t = [i for i in gwd_idx if vals[i] > 0]  # 足りない友好への友好の札（合わせて3枚まで）
+        return [(ts + gs, ix) for ts, ix in out for n in range(0, min(3 - len(ts) - (ix is not None), len(gwd_t)) + 1)
+                for gs in combinations(gwd_t, n)] if gwd_t else out
 
     def after(vals, a, y, day, rum):
         ts, ix = y
@@ -919,6 +959,8 @@ def pc_holds(state, days, max_names=9, max_targets=8, max_routes=40, budget=120.
                 # 逃がした人物を相手が追う手を数えていなかった。selfplay/pc_solve で発見 2026-10-22）。
                 # 揃っていない位置を揃えに来た移動は、主人公が移動禁止で止められる
                 v[i] = 1 if i in alone_t else 1 if 'MOVE' in cs and (v[i] or i not in ts) else 0 if i in ts else v[i]
+            elif targets[i][1] in ('gwd', 'gwd2'):
+                v[i] = max(0, v[i] - (2 if targets[i][1] == 'gwd2' else 1) * (i in ts))
             elif targets[i][1] == 'par':
                 if 'PARX' not in cs:
                     v[i] = max(0, min(v[i] + cs.count('PAR+') - (i in ts), cap[i]))

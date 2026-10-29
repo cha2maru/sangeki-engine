@@ -78,6 +78,12 @@ def _make(kind, rng, script=None):
         if kind == 'oreadKQLb':
             p.safe_worst, p.min_worlds = True, 48
         return p
+    if kind.startswith('plan_'):  # 脚本を知らない主人公＋予約（推理の世界ごとに作って多数決）。plan_read2 など（2026-10-30）
+        from selfplay.pc_plan import plan_pc
+        return plan_pc(rng, script, base_kind=kind[5:], fair=True)
+    if kind == 'oplan':  # oreadKQLm＋資源の割り当て（予約）。selfplay/pc_plan（2026-10-29）
+        from selfplay.pc_plan import plan_pc
+        return plan_pc(rng, script)
     if kind == 'oreadKQLm':  # oreadKQL＋先読みに主人公の友好能力・移動で友好能力の射程に入れる候補（2026-10-29、d30 の Claude の手順から）
         p = make('oreadKQL', rng, script)
         p.look_pcab, p.move_abil = True, True
