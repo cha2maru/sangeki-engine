@@ -84,6 +84,7 @@ class Table:
         self.game = int(time.time())  # 試合の識別子（盤面が前の試合の送信済みを出さないため）
         self.s, self.placed, self.phase_name = None, [], '準備'
         self.watch = False  # 自動同士（観戦）: 盤面は場面を1つずつ見せる
+        self.mm_side = False  # 人が脚本家（主人公は自動）。盤面に非公開シートを載せる
         self.waiting = {'kind': 'none', 'text': '脚本家の番', 'options': []}
         self.reveal = None  # ゲーム終了後の非公開シート（盤面のダイアログ）
         self.reply = ''  # 「脚本家の返答」の欄（反則の置き方などの知らせ。公開ログには書かない＝振り返りに出さない）
@@ -180,7 +181,13 @@ class Table:
         pub['loop'] = min(pub['loop'], self.script['loops'])  # 最後の戦いではエンジンのループ番号が1つ進んでいる
         pub['live'] = self.replay is None  # 記録から作り直している間は False（途中から再開する盤面が、作り直しの終わりを待つ）
         pub['loopHistory'] = [self.loop_hist[k] for k in sorted(self.loop_hist)]
-        pub.update({'mode': 'ai', 'watch': self.watch, 'blind': self.record_file != 'record.json' and not self.reveal,  # 伏せた脚本の試合の途中（判断の記録は非公開） 'reply': self.reply, 'reveal': self.reveal,  # 対AIモード（盤面は手動モード用の欄＝脚本家に伝える・ハッシュ・異議を出さない）
+        if self.mm_side:  # 人が脚本家: 非公開シート（ルール・役職・事件と犯人）と脚本家の手札の使用済みを盤面に（この試合では脚本家が遊び手）
+            pub['mmSheet'] = {'rules': [RULE_JA.get(x, x) for x in sc['rules']],
+                              'roles': [{'char': name(c), 'id': c, 'role': ROLE_JA.get(r, r)} for c, r in sc['roles'].items()],
+                              'incidents': [{'day': i['day'], 'name': INC_JA.get(i['id'], i['id']), 'culprit': name(i['culprit']), 'cid': i['culprit']}
+                                            for i in sc['incidents']],
+                              'used': list(self.s.get('used', {}).get('M', []))}
+        pub.update({'mode': 'ai', 'side': 'mm' if self.mm_side else 'pc', 'watch': self.watch, 'blind': self.record_file != 'record.json' and not self.reveal,  # 伏せた脚本の試合の途中（判断の記録は非公開） 'reply': self.reply, 'reveal': self.reveal,  # 対AIモード（盤面は手動モード用の欄＝脚本家に伝える・ハッシュ・異議を出さない）
                     'game': self.game, 'phaseId': self.phase_id, 'phaseName': self.phase_name, 'waiting': self.waiting,
                     'loops': self.script['loops'], 'days': self.script['days'],
                     # 盤面は「キャラクター名#番号」で使用済みを判定する（エンジンは「C07#0」）
@@ -458,6 +465,189 @@ def describe(e):
         return head + ('あなたたちは死亡した。ループが終わった' if e.get('reason') == '主人公死亡' else 'ループが終わった（主人公の敗北）')
     rest = {kk: vv for kk, vv in e.items() if kk not in SECRET and kk != 'kind'}
     return f'{k} {json.dumps(rest, ensure_ascii=False)}'
+
+
+class HumanMastermind:
+    """人が脚本家（ユーザー「ブラウザで脚本家として遊べるように」2026-10-28）。判断の種類・選べる手・確かめは play_cli の ClaudeMastermind と同じで、
+    問いを盤面の待ち（kind 'mm'、mmKind に判断の種類）に出し、盤面からの操作 {type: 'mm', choice} を待つ。反則は理由を返して聞き直す。
+    人の型に無い判断（ルールXの公開の選び方など）は自動の脚本家（fallback）に任せる。"""
+
+    TITLES = {'mm_cards': '脚本家行動フェイズ ― 伏せ札を3枚置く', 'mm_ability': '脚本家能力フェイズ ― 能力を使う',
+              'incident': '事件フェイズ ― 事件の対象を選ぶ', 'killer': 'ターン終了フェイズ ― 任意能力を使う',
+              'cultist': '行動解決 ― カルティストで暗躍禁止を無視するか', 'refuse': '主人公能力フェイズ ― 友好能力を拒否するか',
+              'rumor': '脚本家能力フェイズ ― 不穏な噂（ボード1つに暗躍1）', 'loop_setup': 'ループの準備',
+              'doctor': '脚本家能力フェイズ ― 医者［友好2］を使う（友好無視・友好2以上）', 'tree': '脚本家能力フェイズ ― ご神木の特性（強制）',
+              'rule_x': '主人公能力フェイズ ― 情報屋で公開するルールXを選ぶ'}
+
+    def __init__(self, table, fallback):
+        from selfplay.play_cli import ClaudeMastermind
+        self.t, self.fallback, self._cm = table, fallback, ClaudeMastermind([])
+        self._cm._next = self._next
+
+    @staticmethod
+    def _ui(kind, s, options):
+        """盤面に出す選択肢（ラベル付き）。type: cards（伏せ札3枚）・form（欄ごとに1つ選ぶ。raw なら最初の欄の値そのものが答え）・multi（いくつでも）。"""
+        from engine.resolve import CARDS, ONCE
+        o = lambda v, lab: {'value': v, 'label': lab}  # noqa: E731
+        alive = [c for c, v in s['chars'].items() if v['alive'] and v.get('present', True) and v.get('area')]
+        chars = [o(c, name(c)) for c in alive]
+        boards = [o(a, AREA_JA.get(a, a)) for a in ('HOS', 'SHR', 'CIT', 'SCH')]
+        if kind == 'mm_cards':
+            hand = [c for c in CARDS['mastermind_hand'] if not (c in ONCE['M'] and c in s['used']['M'])]
+            return {'type': 'cards', 'hand': [o(c, CARD_UI.get(c, c)) for c in hand],
+                    'targets': [o(c, name(c)) for c in alive if c != 'C20'] + [o('B:' + a['value'], 'ボード ' + a['label']) for a in boards]}
+        if kind == 'mm_ability':
+            areas = set(ph.mm_areas(s, options['actor']))
+            tg = [o(c, name(c)) for c in alive if s['chars'][c]['area'] in areas]
+            abl = options.get('ability') or ph.role(s, options['actor'])  # ファクターなどが得た能力は役職と違う
+            if abl == 'KUROMAKU':
+                tg += [o('B:' + a, 'ボード ' + AREA_JA.get(a, a)) for a in sorted(areas)]
+            return {'type': 'form', 'raw': True, 'skip': True, 'fields': [{'key': 'target', 'label': f'{name(options["actor"])}の{ROLE_JA.get(abl, abl)}の能力の対象', 'options': tg}]}
+        if kind in ('doctor', 'tree'):
+            me = 'C08' if kind == 'doctor' else 'C30'
+            tg = [o(c, name(c)) for c in ph.alive_in(s, s['chars'][me]['area']) if c != me]
+            if kind == 'doctor':
+                return {'type': 'form', 'skip': True, 'fields': [{'key': 'target', 'label': '対象', 'options': tg},
+                        {'key': 'mode', 'label': '不安', 'options': [o('place', '1つ置く'), o('remove', '1つ取り除く')]}]}
+            ks = [o(k, lab) for k, lab in (('par', '不安'), ('gw', '友好'), ('int', '暗躍')) if s['chars'][me].get(k, 0) > 0]
+            return {'type': 'form', 'fields': [{'key': 'target', 'label': '移す相手', 'options': tg}, {'key': 'counter', 'label': '移すカウンター', 'options': ks}]}
+        if kind == 'rule_x':
+            return {'type': 'form', 'raw': True, 'fields': [{'key': 'rule', 'label': '公開するルールX', 'options': [o(x, RULE_JA.get(x, x)) for x in options]}]}
+        if kind == 'incident':
+            iid = options.get('id')
+            from selfplay.run import incident_options
+            legal = incident_options(s, options) or []  # 合法な選択（殺人は犯人と同じエリアの犯人以外など）。欄ごとの値はここから
+            only = lambda key, opts: [x for x in opts if any(c.get(key) == x['value'] for c in legal)] if legal else opts  # noqa: E731
+            f = {'MURDER': [('target', '殺す対象', chars)], 'REMOTE': [('target', '殺す対象（暗躍2以上）', [x for x in chars if s['chars'][x['value']]['int'] >= 2])],
+                 'MISSING': [('board', '犯人を動かすボード', boards)], 'RUMOR_SPREAD': [('from', '友好を2つ取り除く人', chars), ('to', '友好を2つ置く人', chars)],
+                 'BUTTERFLY': [('target', 'カウンターを置く人', chars), ('counter', 'カウンター', [o('par', '不安'), o('int', '暗躍'), o('gw', '友好')])],
+                 'SPREAD': [('par_target', '不安を2つ置く人', chars), ('int_target', '暗躍を1つ置く人', chars)]}.get(iid, [])
+            return {'type': 'form', 'fields': [{'key': k, 'label': lab, 'options': only(k, opts)} for k, lab, opts in f],
+                    'note': f'{INC_JA.get(iid, iid)}（犯人 {name(options.get("culprit", ""))}）'}
+        if kind in ('killer', 'cultist'):
+            xs = options if kind == 'killer' else options.get('options', [])
+            return {'type': 'multi', 'options': [o(x, f'{name(x["char"])} の {ROLE_JA.get(x.get("ability"), x.get("ability"))}'
+                                                    + (f'（{name(x["target"])} への暗躍禁止を無視）' if x.get('target') else '')) for x in xs]}
+        if kind == 'refuse':
+            return {'type': 'form', 'raw': True, 'fields': [{'key': 'refuse', 'label': f'{name(options["char"])} の友好能力', 'options': [o(True, '拒否する'), o(False, '拒否しない')]}]}
+        if kind == 'rumor':
+            return {'type': 'form', 'raw': True, 'skip': True, 'fields': [{'key': 'board', 'label': '暗躍を1つ置くボード', 'options': [o('B:' + b['value'], b['label']) for b in boards]}]}
+        if kind == 'loop_setup':
+            f = ([{'key': 'C18', 'label': '手先の初期エリア', 'options': boards}] if options.get('C18') else []) + \
+                ([{'key': 'scholar', 'label': '学者（Exゲージの代わりに置くカウンター）', 'options': [o('gw', '友好'), o('par', '不安'), o('int', '暗躍')]}] if options.get('C19') else [])
+            return {'type': 'form', 'fields': f}
+        return {'type': 'form', 'fields': []}
+
+    @staticmethod
+    def _offered(ui, ch):
+        """盤面の答えが、出した選択肢の中の値だけでできているか（盤面から勝手な値を送られても受け付けない）。"""
+        ok = lambda v, opts: any(json.dumps(v, sort_keys=True) == json.dumps(o['value'], sort_keys=True) for o in opts)  # noqa: E731
+        if ui['type'] == 'cards':
+            if not (isinstance(ch, list) and len(ch) == 3 and all(isinstance(x, dict) for x in ch)
+                    and all(ok(x.get('target'), ui['targets']) and ok(x.get('card'), ui['hand']) for x in ch)):
+                raise ValueError('伏せ札は、出した置き先と手札から3枚')
+        elif ui['type'] == 'form':
+            if not isinstance(ch, dict) or any(f['key'] in ch and not ok(ch[f['key']], f['options']) for f in ui['fields']) \
+                    or (ch and any(f['key'] not in ch for f in ui['fields'])):
+                raise ValueError('選択肢に無い値')
+        elif ui['type'] == 'multi':
+            if not isinstance(ch, list) or any(not ok(x, ui['options']) for x in ch):
+                raise ValueError('選択肢に無い値')
+        return ch
+
+    @staticmethod
+    def _choice(kind, ui, ch):
+        """盤面の答えをエンジンの形に（form は {欄: 値}、raw は最初の欄の値、ループの準備は {'init': {'C18': …}, 'scholar': …}）。"""
+        if ui['type'] == 'form' and isinstance(ch, dict):
+            if ui.get('raw'):
+                return ch.get(ui['fields'][0]['key']) if ui['fields'] else None
+            if kind == 'loop_setup':
+                return {**({'init': {'C18': ch['C18']}} if ch.get('C18') else {}), **({'scholar': ch['scholar']} if ch.get('scholar') else {})}
+            return ch or None
+        return ch
+
+    @staticmethod
+    def _as_choice(kind, ui, ans):
+        """自動の脚本家の答えを、盤面の答えの形に（_choice の逆）。試験用の hint にだけ使う。"""
+        if ui['type'] in ('cards', 'multi'):
+            return [{k: x[k] for k in ('target', 'card')} if ui['type'] == 'cards' else x for x in ans or []]
+        keys = [f['key'] for f in ui['fields']]
+        if ui.get('raw'):
+            return {keys[0]: ans} if ans is not None and keys else {}
+        if kind == 'loop_setup':
+            ans = {'C18': (ans or {}).get('init', {}).get('C18'), 'scholar': (ans or {}).get('scholar')}
+        if kind in ('doctor', 'tree'):
+            ans = next((u for u in ans or [] if u.get('char') == ('C08' if kind == 'doctor' else 'C30')), {})
+        return {k: ans[k] for k in keys if isinstance(ans, dict) and ans.get(k) is not None}
+
+    def _next(self, kind, s, title, options, check=None):
+        self.t.s = s
+        ui = self._ui(kind, s, options)
+        if '_hint' in self.__dict__:
+            ui['hint'] = self._as_choice(kind, ui, self.__dict__['_hint'])
+        while True:
+            self.t.show(s, f'L{s["loop"]} {s["day"]}日目 ' + self.TITLES.get(kind, title) if s.get('day') else self.TITLES.get(kind, title),
+                        {'kind': 'mm', 'mmKind': kind, 'text': (f'{self.t.reply} ／ ' if self.t.reply else '') + self.TITLES.get(kind, title),
+                         'ui': json.loads(json.dumps(ui, default=str)), 'options': []})
+            rec = self.t.take(('mm',))
+            try:
+                ch = self._choice(kind, ui, self._offered(ui, rec.get('choice')))
+                if check:
+                    check(ch)
+                if kind == 'incident':  # 事件の効果を写しの盤面に当てて確かめる（反則で進行役ごと落ちた: 不安拡大で同じ人に暗躍）
+                    from engine.resolve import copy_state
+                    ph.incident_effect(copy_state(s), options['id'], options['culprit'], ch, [])
+            except Exception as e:  # 反則（置けない札・手札に無い札など）は理由を返して置き直してもらう
+                self.t.reject('脚本家: ' + json.dumps(rec.get('choice'), ensure_ascii=False, default=str)[:200], f'受け付けなかった: {e}')
+                continue
+            self.t.reply = ''
+            return ch
+
+    def mm_ability(self, s, actor, ability=None):
+        return self._next('mm_ability', s, '脚本家能力', {'actor': actor, 'ability': ability})
+
+    def mm_extra_uses(self, s):
+        """医者［友好2］（友好無視・友好2以上なら脚本家も使える。任意）と、ご神木の強制の特性（必ず1つ）。"""
+        from engine.resolve import copy_state
+        uses = []
+        d = s['chars'].get('C08')
+        if d and d['alive'] and d.get('present', True) and sets.refusal(s, ph.role(s, 'C08')) and d['gw'] >= 2 \
+                and any(c != 'C08' for c in ph.alive_in(s, d['area'])):
+            ch = self._next('doctor', s, '医者', {}, check=lambda ch: ch and ph.doctor_by_mastermind(copy_state(s), 'C08', ch['target'], ch['mode']))
+            if ch:
+                uses.append({'char': 'C08', 'ability': 'DOCTOR', **ch})
+        if ph.tree_forced(s):
+            ch = self._next('tree', s, 'ご神木', {}, check=lambda ch: ph.mm_phase(copy_state(s), uses + [{'char': 'C30', 'ability': 'SHINBOKU', **(ch or {})}]))
+            uses.append({'char': 'C30', 'ability': 'SHINBOKU', **ch})
+        return uses
+
+    def choose_rule_x(self, s, choose_from):
+        return self._next('rule_x', s, 'ルールX', list(choose_from))
+
+    def __getattr__(self, n):
+        if n.startswith('__') or n in ('t', 'fallback', '_cm'):
+            raise AttributeError(n)
+        f = getattr(self._cm, n, None)
+        return f if f is not None and n in Combo.MM else getattr(self.fallback, n)
+
+
+class _HintMM:
+    """試験用（SANGEKI_MM_HINT）: 人の脚本家に聞く前に自動の脚本家（fallback）にも同じ判断をさせ、その答えを問いの ui['hint'] に添える。"""
+    def __init__(self, hm):
+        self.hm = hm
+
+    def __getattr__(self, n):
+        f = getattr(self.hm, n)
+        if n not in Combo.MM:
+            return f
+
+        def w(*a, **k):
+            try:
+                self.hm.__dict__['_hint'] = getattr(self.hm.fallback, n)(*a, **k)
+            except Exception:
+                self.hm.__dict__['_hint'] = None
+            return f(*a, **k)
+        return w
 
 
 class HumanProtagonist:
@@ -944,6 +1134,8 @@ def run(a, table_cls=None):
         a.script, a.code, a.mm, a.blind = rp.get('s') or '', rp.get('c') or '', rp.get('mm') or 'calcG', False
         if rp.get('pc'):  # 自動同士の試合の記録: 主人公の種類と乱数の種で、主人公の手を作り直す
             a.pc, a.seed = rp['pc'], rp.get('seed', a.seed)
+    if a.mm == 'human':
+        a.blind = False  # 人が脚本家なら脚本を知っている（伏せて選ばない。ブラウザ版の開始画面の目隠しも）
     if a.blind:
         a.script, n = pick_blind(random.Random(f'blind:{a.seed}:{time.time()}'), pool=getattr(a, 'blind_pool', 'recommended'))
         os.makedirs(os.path.join(a.dir, 'private'), exist_ok=True)
@@ -962,7 +1154,7 @@ def run(a, table_cls=None):
     if a.blind:
         t.record_file = os.path.join('private', 'record.json')
     t.record.update({'s': '' if a.script == 'user' else a.script, 'c': getattr(a, 'code', '') or '', 'mm': a.mm})
-    auto_pc = getattr(a, 'pc', '') or ''
+    auto_pc = getattr(a, 'pc', '') or ('read2' if a.mm == 'human' else '')
     if auto_pc:  # 自動同士（ユーザー 2026-10-17）: 主人公も自動。記録に種類と乱数の種を残し、再生で作り直す
         t.watch = True
         t.record.update({'pc': auto_pc, 'seed': a.seed})
@@ -973,12 +1165,18 @@ def run(a, table_cls=None):
     pc = make(auto_pc, random.Random(f'pc:{a.seed}:{auto_pc}'), script) if auto_pc else HumanProtagonist(t, rng)
     if auto_pc.startswith('oread'):
         pc.final_truth = True  # 脚本を知っている主人公は、最後の戦いも本当の配役で答える
-    if a.mm == 'claude' and not rp:  # Claude が脚本家（問いは private/ に書くので盤面からは見えない）
+    if a.mm == 'human' and (not rp or getattr(a, 'resume', False)):  # 人が脚本家（盤面から）。主人公は自動（既定 read2 ＝脚本を知らない主人公）
+        # 再開（?resume=）では記録の判断を流し込んだ後に、人の脚本家に戻る（RecordingMM の queue）
+        t.mm_side, t.watch = True, False
+        mm = HumanMastermind(t, make('search', rng, script))
+        if os.environ.get('SANGEKI_MM_HINT'):  # 試験用: 自動の脚本家の答えを問いに添える（盤面の通し試験で最後の戦いまで進めるため）
+            mm = _HintMM(mm)
+    elif a.mm == 'claude' and not rp:  # Claude が脚本家（問いは private/ に書くので盤面からは見えない）
         from selfplay.play_cli import BlockingMastermind
         mm = BlockingMastermind(os.path.join(a.dir, 'private', 'mm_question.txt'), os.path.join(a.dir, 'private', 'mm_decisions.jsonl'),
                                 make('search', rng, script))
     else:
-        mm = make('search' if a.mm == 'claude' else a.mm, rng, script)
+        mm = make('search' if a.mm in ('claude', 'human') else a.mm, rng, script)  # human の作り直し（リプレイ）は記録の判断を流し込む
     # 再生: 記録の判断を順に返し、記録し直す（作り直した試合からまた共有できるように）。尽きたら、ただの再生なら止まり（ReplayEnd）、
     # 再開（resume）なら本物の脚本家が考える。持っている判断の種類は、同じ型の脚本家と同じ
     if rp and not getattr(a, 'resume', False):
@@ -987,7 +1185,7 @@ def run(a, table_cls=None):
         mm.progress = _progress(t)
     mm = RecordingMM(mm, t.record, t, queue=rp.get('m') if rp else None)
     # 脚本家が考えている間は、盤面に「考え中」を出す（何を考えているかと開始時刻。calcG は1手に数十秒かかる）
-    for meth, what in THINK.items():
+    for meth, what in ({} if a.mm == 'human' else THINK).items():  # 人の脚本家は「考え中」を出さない（盤面の待ちを上書きする）
         f = getattr(mm, meth, None)
         if callable(f):
             setattr(mm, meth, _thinking(t, what, f))

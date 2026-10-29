@@ -69,6 +69,8 @@ onmessage = async e => {
   if (m.type === 'new') {
     await booted;
     py.globals.set('ARGS', py.toPy({ script: m.script || '', mm: m.mm, pc: m.pc || '', seed: m.seed, blind: !!m.blind, code: m.code || '', replay: m.replay ? JSON.stringify(m.replay) : '', resume: !!m.resume }));
+    // 試験用（?mmhint=1）: 人の脚本家の問いに自動の脚本家の答えを添える（サーバー版の SANGEKI_MM_HINT と同じ。通し試験で最後の戦いまで進める）
+    if (new URL(self.location.href).searchParams.get('mmhint') === '1') py.runPython("import os; os.environ['SANGEKI_MM_HINT'] = '1'");
     try {
       await py.runPythonAsync('web_gm.start(**ARGS)');
     } catch (err) { postMessage({ type: 'error', msg: String(err) }); }

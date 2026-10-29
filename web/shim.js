@@ -6,8 +6,8 @@
   let worker = null, ready = false, list = null, waitList = [], step = '準備しています', since = Date.now() / 1000, started = false, pendingNew = null, seq = 0;
   function boot() {
     ready = false; since = Date.now() / 1000; step = '準備しています';
-    const sp = new URLSearchParams(location.search), wq = new URLSearchParams();  // Worker へ渡す: pyodide（置き場所）・helpers（並列の補助の数）
-    for (const k of ['pyodide', 'helpers']) if (sp.get(k) !== null) wq.set(k, sp.get(k));
+    const sp = new URLSearchParams(location.search), wq = new URLSearchParams();  // Worker へ渡す: pyodide（置き場所）・helpers（並列の補助の数）・mmhint（試験用）
+    for (const k of ['pyodide', 'helpers', 'mmhint']) if (sp.get(k) !== null) wq.set(k, sp.get(k));
     worker = new Worker('worker.js' + (wq.toString() ? '?' + wq : ''), { type: 'module' });
     worker.onerror = e => fail(e.message || 'Worker を起動できなかった');
     worker.onmessage = e => {

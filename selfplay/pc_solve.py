@@ -32,10 +32,11 @@ PCS = 'ABC'
 FILLER = ('GWX', 'PAR-', 'PARX', 'GW1')  # 筋に関わらない対象に置く札（効果の小さい順）
 
 
-def end_of_day(after, days):
+def end_of_day(after, days, pcab=False):
     """行動解決の後の盤面から今日の残り（脚本家能力・事件・ターン終了・最終日ならループ終了）を進める（selfplay/pc_game.py と同じ）。
+    pcab: 主人公能力フェイズも入れる（pc_v2._pc_abilities_greedy。盤面に効く友好能力を評価のよい順に。主人公の手の部分集合なので「守れる」は崩れない）。
     返り値 (翌朝の盤面 or None, 負けたか)。"""
-    s = after_incidents(after)
+    s = after_incidents(after, pcab)
     if s.get('_loss') is not None:
         return None, bool(s['_loss'])
     try:
@@ -65,6 +66,18 @@ def _key(s):
     return repr({k: v for k, v in s.items() if k not in ('script', 'init')})
 
 
+def ability_holders(s):
+    """盤面に効く友好能力の持ち主で、このループのうちに友好が届きうる者（友好+2 で届く。拒否できる役職は除く）。"""
+    from engine import abilities as ab
+    out = []
+    for (c, i), (need, _once, _k) in ab.ABILITIES.items():
+        v = s['chars'].get(c)
+        if v and v['alive'] and v.get('present', True) and v.get('area') and c not in out \
+                and ((c, i) in ab.UNREFUSABLE or not ab.REFUSAL.get(ph.role(s, c))) and need - v['gw'] <= 2 * (s['script']['days'] - s['day'] + 1):
+            out.append(c)
+    return out
+
+
 def relevant(s):
     """筋に関わる対象（筋の条件に出る人物・ボード、事件の犯人、2人きりの筋のエリアにいる人物）と、その他。"""
     rel = set()
@@ -89,10 +102,11 @@ def relevant(s):
 
 
 class Solver:
-    def __init__(self, days, upper=True, lower=True, hold_budget=0.5, max_resp=60, upper_from=1):
+    def __init__(self, days, upper=True, lower=True, hold_budget=0.5, max_resp=60, upper_from=1, pcab=False):
         """upper_from: 上限・下限の表を引き始める日（それより前は本物のエンジンで読む＝表の「守れる」をその日数ぶん確かめる）。"""
         self.days, self.upper, self.lower, self.hold_budget, self.max_resp = days, upper, lower, hold_budget, max_resp
         self.upper_from = upper_from
+        self.pcab = pcab  # 主人公の友好能力（先読み）・持ち主への友好と移動の応手（ユーザー「友好能力、事件の利用」「キャラクターの移動も有効活用」2026-10-29）
         self.memo, self.stats = {}, {'nodes': 0, 'steps': 0, 'cut_upper': 0, 'cut_lower': 0, 'unknown': 0}
 
     def holds(self, s):
@@ -156,6 +170,9 @@ class Solver:
                 opts.append((t, 'INTX'))
                 continue
             opts += [(t, 'PAR-'), (t, 'MVX'), (t, 'MV_V'), (t, 'MV_H'), (t, 'INTX')]
+        if self.pcab:
+            for h in ability_holders(s):
+                opts += [(h, 'GW2'), (h, 'GW1')] + ([] if h in rel else [(h, 'MV_V'), (h, 'MV_H')])
         opts.sort(key=lambda o: (o[0] not in T, o[1] not in ('PAR-', 'INTX')))
         ts = card_targets(s)
         seen, n = set(), 0
@@ -205,7 +222,7 @@ class Solver:
                     return False
                 continue
             self.stats['steps'] += 1
-            nxt, lost = end_of_day(after, self.days)
+            nxt, lost = end_of_day(after, self.days, self.pcab)
             if lost or (nxt is not None and not self.holds(nxt)):
                 return False
         return True

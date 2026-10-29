@@ -42,11 +42,11 @@ function startGame({ script, mm, pc, seed, blind, code, replay, resume }) {
     child = spawn(PY, [path.join(HERE, 'ai_gm.py'), '--replay', f, ...(resume ? ['--resume'] : []), '--dir', GAME], { cwd: HERE, env: ENV, stdio: ['ignore', out, out] });
     return;
   }
-  if (!MMS.includes(mm)) throw new Error('脚本家の型が不正');
+  if (!MMS.includes(mm) && mm !== 'human') throw new Error('脚本家の型が不正');  // human: 人が脚本家（主人公は自動。ai_gm の既定は read2）
   if (pc && !PCS.includes(pc)) throw new Error('主人公の型が不正');
   // code: シナリオエディタのコード（s1.＋base64url）。中身の検証は ai_gm.py がする
   if (code && !/^s1\.[A-Za-z0-9_-]{1,20000}$/.test(code)) throw new Error('シナリオのコードが不正');
-  if (code) blind = false;
+  if (code || mm === 'human') blind = false;  // 人が脚本家なら脚本を知っている（伏せて選ばない）
   else if (!blind && !listScripts().scripts.some(s => s.id === script)) throw new Error('脚本が無い');
   if (blind && !listScripts().blind) throw new Error('伏せて選べる脚本（自動生成）が無い');
   seed = Number.isInteger(+seed) ? String(+seed) : '1';

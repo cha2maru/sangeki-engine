@@ -412,3 +412,75 @@ def test_every_ability_choice_round_trips():
     # 妹[5] は大人の友好能力1つを使わせる（カード）。対象を取らない能力（情報屋のルールの宣言など）も候補に出る
     s['chars'].update({'C31': dict(area='CIT', alive=True, par=0, gw=5, int=0, guard=0), 'C07': dict(area='CIT', alive=True, par=0, gw=0, int=0, guard=0)})
     assert any(c == 'C31' and a['target'] == 'C07' and 'declare' in (a['arg'] or {}) for c, i, a in ab.declaration_options(s, full=True))
+
+
+class _Table:
+    """盤面の代わり: 出した問い（ui）を記録し、用意した答えを順に返す。受け付けなかった答えは rejected に。"""
+    def __init__(self, answers):
+        self.answers, self.asked, self.rejected, self.reply, self.s = list(answers), [], [], '', None
+
+    def show(self, s, title, w, **kw):
+        self.asked.append(w)
+
+    def take(self, kinds):
+        return {'type': 'mm', 'choice': self.answers.pop(0)}
+
+    def reject(self, what, why):
+        self.rejected.append(why)
+
+
+def _human(answers):
+    t = _Table(answers)
+    return ai_gm.HumanMastermind(t, None), t
+
+
+def test_human_mastermind_doctor_tree_rule_x_and_gained_ability():
+    s = _state()
+    s['script']['roles'] = {'C08': 'KUROMAKU', 'C30': 'KUROMAKU', 'C25': 'FACTOR'}
+    s['chars']['C30'] = {'area': 'CIT', 'alive': True, 'par': 0, 'gw': 1, 'int': 0, 'guard': 0}
+    # 医者[友好2]: 同エリアの医者以外が対象。反則（自分）は聞き直し、使わない（{}）も可
+    h, t = _human([{'target': 'C08', 'mode': 'place'}, {'target': 'C19', 'mode': 'remove'},
+                   {'target': 'C21', 'counter': 'par'}, {'target': 'C21', 'counter': 'gw'}])
+    uses = h.mm_extra_uses(s)
+    assert [x['value'] for x in t.asked[0]['ui']['fields'][0]['options']] == ['C19', 'C25']
+    assert [x['value'] for x in t.asked[-1]['ui']['fields'][1]['options']] == ['gw']  # 木の上にあるカウンターだけ
+    assert len(t.rejected) == 2  # 医者自身・木に無い不安
+    assert uses == [{'char': 'C08', 'ability': 'DOCTOR', 'target': 'C19', 'mode': 'remove'},
+                    {'char': 'C30', 'ability': 'SHINBOKU', 'target': 'C21', 'counter': 'gw'}]
+    h, t = _human([{}])
+    s['chars']['C30']['gw'] = 0
+    assert h.mm_extra_uses(s) == []
+    # ルールX の選び方
+    h, t = _human([{'rule': 'X_B'}])
+    assert h.choose_rule_x(s, ['X_A', 'X_B']) == 'X_B'
+    # 得た能力（ファクターのクロマク）ではボードも対象に出る
+    h, t = _human([{'target': 'B:HOS'}])
+    assert h.mm_ability(s, 'C25', 'KUROMAKU') == 'B:HOS'
+    h, t = _human([{'target': 'C19'}])
+    h.mm_ability(s, 'C25', 'MISLEADER')
+    assert not any(x['value'].startswith('B:') for x in t.asked[0]['ui']['fields'][0]['options'])
+
+
+def test_human_mastermind_rumor_answers_a_board():
+    """不穏な噂の答えはエンジンの形（'B:HOS'）。以前は 'HOS' を返して進行役ごと落ちた。"""
+    from engine import phases as ph
+    s = _state()
+    s['script']['rules'] = ['X_RUMOR']
+    h, t = _human([{'board': 'B:HOS'}])
+    b = h.mm_rumor(s)
+    ph.rumor(s, b)
+    assert s['boards']['HOS'] == 1
+
+
+def test_human_mastermind_chooses_informant_rule_x():
+    """情報屋で脚本に無いルールXを宣言すると、残る2つのどちらを公開するかを人の脚本家に聞く（run._use の経路）。"""
+    from engine.scripts import by_id
+    from selfplay.run import _use
+    from selfplay.script_routes import start_state
+    s = start_state(by_id('s01_seal'))  # ルールX: X_THREAD・X_VIRUS
+    s['chars']['C07']['gw'] = 5
+    h, t = _human([{'rule': 'X_LOVE'}, {'rule': 'X_VIRUS'}])
+    ev = _use(s, h, 'C07', 0, {'declare': 'X_LOVE'}, False)
+    assert sorted(x['value'] for x in t.asked[0]['ui']['fields'][0]['options']) == ['X_THREAD', 'X_VIRUS']
+    assert len(t.rejected) == 1  # 選択肢に無いルールは聞き直し
+    assert any(e.get('reveal_rule_x') == 'X_VIRUS' for e in ev)

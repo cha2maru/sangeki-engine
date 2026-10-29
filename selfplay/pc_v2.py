@@ -32,22 +32,48 @@ def score_cut(state, known=None, sc=None):
 _AFTER = {}
 
 
-def after_incidents(after):
+def after_incidents(after, pcab=False):
     """その日の事件を、脚本家が最も得をする選択で解決した盤面（ループが終わる事件はその場の盤面のまま、距離0 として score が高く出る）。
     同じ盤面（候補の手の多くは同じ盤面になる）は覚えておき、写しを返す（1試合で約10万回呼ばれ、時間の半分を占めていた）。"""
     # 鍵に主人公の使用済みの札は入れない（この先読み＝脚本家能力・事件・負け筋の評価が読むのは脚本家の分だけ。書き換えもしない）
-    key = (id(after['script']), after['used']['M'], repr({k: v for k, v in after.items() if k not in ('script', 'init', 'used')}))
-    key = (key[0], tuple(key[1]), key[2])
+    key = (id(after['script']), after['used']['M'], repr({k: v for k, v in after.items() if k not in ('script', 'init', 'used')}), pcab)
+    key = (key[0], tuple(key[1]), key[2], key[3])
     if key not in _AFTER:
         if len(_AFTER) > 50000:
             _AFTER.clear()
-        _AFTER[key] = _after_incidents(after)
+        _AFTER[key] = _after_incidents(after, pcab)
     out = copy_state(_AFTER[key])
     out['used'] = {p: list(v) for p, v in after['used'].items()}
     return out
 
 
-def _after_incidents(after):
+def _pc_abilities_greedy(out):
+    """先読みの主人公能力フェイズ: 盤面に効く友好能力を、脚本家の評価（score）が最も下がるものから1つずつ使う（各能力1日1回）。
+    拒否できる役職の持ち主は脚本家が拒否するとみなして使わない（脚本を知る主人公の読み）。情報の能力は盤面を変えないので選ばれない。
+    ユーザー「友好能力、事件の利用も含めて考える必要がある」「キャラクターの移動も有効活用」（2026-10-29、d30 の巫女を病院へ動かしてナース[2]）。"""
+    from engine import abilities as ab
+    from engine import phases as ph
+    out['ability_used_today'] = []  # 本物の進行（selfplay/run.play_day）と同じく、主人公能力フェイズの前に前日の使用を消す（消さないと前日に使った能力が使えない）
+    for _ in range(3):
+        base, best = score(out), None
+        for cid, idx, a in ab.declaration_options(out):
+            if (cid, idx) not in ab.UNREFUSABLE and ab.REFUSAL.get(ph.role(out, cid)):
+                continue
+            s2 = copy_state(out)
+            try:
+                ab.use_ability(s2, cid, idx, a, refuse=False)
+            except (IllegalPlacement, ph.LoopEnd):
+                continue
+            d = score(s2) - base
+            if d < -1e-6 and (best is None or d < best[0]):
+                best = (d, s2)
+        if best is None:
+            return out
+        out = best[1]
+    return out
+
+
+def _after_incidents(after, pcab=False):
     from engine import phases as ph
     from selfplay.players import RouteMastermind
     out = copy_state(after)
@@ -61,6 +87,8 @@ def _after_incidents(after):
                 ph.mm_ability(out, actor, t, abl)
         except IllegalPlacement:
             continue
+    if pcab:  # 主人公能力フェイズ（脚本家能力フェイズの後・事件の前）
+        out = _pc_abilities_greedy(out)
     for inc in out['script']['incidents']:
         if inc['day'] != out['day'] or not ph.incident_occurs(out, inc):
             continue
@@ -637,6 +665,20 @@ class ReadingBlocker(DeductiveBlocker):
                 if p:
                     cands.append(fill((p, c, 'PAR-')))
 
+        if getattr(self, 'move_abil', False):  # 筋に関わる人物・能力の持ち主を縦・横に動かす手（移動で友好能力の射程に入れる。d30 の巫女を病院のナースへ）
+            from engine import abilities as _ab
+            holders = {c for c, i, _a in _ab.declaration_options(s)} | {c for (c, i), v in _ab.ABILITIES.items()
+                                                                        if c in s['chars'] and s['chars'][c]['gw'] + 2 >= v[0]}
+            for c in list(dict.fromkeys([f for f in focus if f in s['chars']] + sorted(holders & set(s['chars'])))):
+                if not s['chars'][c].get('area') or c == 'C20':
+                    continue
+                for mv in ('MV_V', 'MV_H'):
+                    if _moves_into_forbidden(s, c, mv):
+                        continue
+                    p = next((p for p in order if mv in hands[p]), None)
+                    if p:
+                        cands.append(fill((p, c, mv)))
+
         def worst_of(pc):
             pm = frozenset(x['target'] for x in pc if x['card'] == 'PAR-')
             # 位置を崩す札: 筋の人物への移動禁止・移動（ponytail: 動かした先で揃わないかは見ない）
@@ -666,7 +708,7 @@ class ReadingBlocker(DeductiveBlocker):
                 try:
                     after, _ = resolve_actions(dict(s, script=sc), w + pc)
                     if self.lookday:
-                        after = after_incidents(after)
+                        after = after_incidents(after, getattr(self, 'look_pcab', False))
                 except IllegalPlacement:
                     continue
                 z = self.zero * any(r['total'] <= 0 for r in enumerate_routes(after)) if self.zero else 0.0

@@ -342,6 +342,8 @@ body.noimg .ch .rolec { position:static; order:0; width:100%; text-align:center;
 .fxf { position:fixed; z-index:40; pointer-events:none; font-weight:900; font-size:16px; color:#fff; text-shadow:0 0 3px #000, 0 0 6px #000; }
 .fxf.rew { font-size:26px; color:var(--acc); white-space:nowrap; } .fxf.ban { font-size:24px; white-space:nowrap; padding:4px 14px; background:rgba(0,0,0,.7); border-radius:6px; }
 .fxf.death { color:#ff7a6a; } .fxf.arrow { font-size:26px; color:#fff; } .fxf.arrow.combo { font-size:15px; white-space:nowrap; } .fxf.ok { color:#7be39a; } .fxf.lead { color:var(--acc); font-size:14px; white-space:nowrap; }
+.mmpanel .mmsheet { background:#2a1414; border:1px solid #7a2626; border-radius:4px; padding:6px 8px; margin:6px 0; font-size:13px; } .mmpanel .mmsheet div { margin:2px 0; }
+.mmpanel .mmq { border:1px solid var(--acc); border-radius:4px; padding:6px 8px; margin:6px 0; } .mmpanel .row { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:4px 0; }
 .fxf.ban.box { white-space:pre-line; background:rgba(0,0,0,.9); font-size:17px; line-height:1.45; text-align:center; max-width:min(86vw, 640px); } .fxf.ban.ab { color:#b6f0c8; border:2px solid #50c878; }
 .fxf.ban.inc { color:#ff8a7a; border:2px solid #ff5a4a; } .fxf.ban.mm { color:#ff6b5e; border:2px solid #b00; background:rgba(40,0,0,.85); letter-spacing:.05em; } .fxf.mmf { font-size:22px; color:#ff8a7a; } .fxf.ban.incno { color:#ddd; border:1px solid #777; } .fxf.nul { color:#ffcf70; font-size:13px; } .fxghost { position:fixed; z-index:39; pointer-events:none; } .fxghost > * { width:100%; height:100%; } .fxf.p { color:#e2b6ff; } .fxf.g { color:#ffb3cc; } .fxf.i { color:#ddd; } .fxf.gd { color:#9fd4ff; } span.card .ow { font-size:.75em; opacity:.8; margin-right:2px; }
 .ccards span.card { font-size:clamp(8px,2.4cqi,12px); } .hand span.card { font-size:10px; }
@@ -1533,8 +1535,46 @@ function renderOptions() {
   const o = S.waiting?.options || [];
   const box = $('pending').parentElement;
   box.querySelectorAll('.optbtn').forEach(b => b.remove());
+  renderMM(box);
   o.forEach(label => { const b = document.createElement('button'); b.className = 'optbtn go'; b.title = '押すとすぐ送信される'; b.textContent = label;
     b.style.margin = '6px 6px 0 0'; b.onclick = async () => { if (await confirmEndFinal(label)) post({ type: 'option', choice: label }); }; box.appendChild(b); });
+}
+// ---- 人が脚本家（ユーザー「ブラウザで脚本家として遊べるように」2026-10-28）: 進行役が出す ui（cards・form・multi）を描き、{type: 'mm', choice} を送る ----
+function renderMM(box) {
+  box.querySelectorAll('.mmpanel').forEach(x => x.remove());
+  if (S.side !== 'mm') return;
+  const p = document.createElement('div'); p.className = 'mmpanel';
+  const sh = S.mmSheet;
+  if (sh) p.insertAdjacentHTML('beforeend', `<details class="mmsheet" open><summary>非公開シート（あなたの脚本）</summary>
+    <div><b>ルール</b> ${sh.rules.map(esc).join('・')}</div>
+    <div><b>配役</b> ${sh.roles.map(r => `${esc(r.char)}＝${esc(r.role)}`).join('、') || 'パーソンのみ'}</div>
+    <div><b>事件</b> ${sh.incidents.map(i => `${i.day}日目 ${esc(i.name)}（犯人 ${esc(i.culprit)}）`).join('、') || 'なし'}</div>
+    <div class="mut">使った一度きりの札: ${sh.used.length ? sh.used.map(esc).join('・') : 'なし'}</div></details>`);
+  const w = S.waiting || {}, ui = w.ui;
+  if (w.kind === 'mm' && ui) {
+    const sel = (opts, id) => `<select data-mm="${id}"><option value="">—</option>${opts.map((x, i) => `<option value="${i}">${esc(x.label)}</option>`).join('')}</select>`;
+    let h = `<div class="mmq"><b>${esc(w.text || '')}</b>${ui.note ? `<div class="mut">${esc(ui.note)}</div>` : ''}`;
+    if (ui.type === 'cards') h += [0, 1, 2].map(i => `<div class="row">${i + 1}枚目 ${sel(ui.targets, 't' + i)} に ${sel(ui.hand, 'c' + i)}</div>`).join('');
+    else if (ui.type === 'form') h += ui.fields.map((f, i) => `<div class="row">${esc(f.label)} ${sel(f.options, 'f' + i)}</div>`).join('');
+    else if (ui.type === 'multi') h += ui.options.map((x, i) => `<label class="row"><input type="checkbox" data-mm="m${i}"> ${esc(x.label)}</label>`).join('') || '<div class="mut">選べるものはありません</div>';
+    h += `<div class="row"><button class="go" data-mmgo="1">決定</button>${ui.skip ? '<button data-mmgo="0">使わない</button>' : ''}</div></div>`;
+    p.insertAdjacentHTML('beforeend', h);
+    const val = id => { const e = p.querySelector(`[data-mm="${id}"]`); return e && e.value !== '' ? +e.value : null; };
+    p.querySelectorAll('[data-mmgo]').forEach(b => b.onclick = () => {
+      let choice;
+      if (b.dataset.mmgo === '0') choice = {};
+      else if (ui.type === 'cards') {
+        choice = [0, 1, 2].map(i => ({ ti: val('t' + i), ci: val('c' + i) }));
+        if (choice.some(x => x.ti == null || x.ci == null)) return alert('3枚とも、置き先と札を選んでください');
+        choice = choice.map(x => ({ target: ui.targets[x.ti].value, card: ui.hand[x.ci].value }));
+      } else if (ui.type === 'form') {
+        choice = {};
+        for (const [i, f] of ui.fields.entries()) { const v = val('f' + i); if (v == null) return alert(`「${f.label}」を選んでください`); choice[f.key] = f.options[v].value; }
+      } else choice = ui.options.filter((_, i) => p.querySelector(`[data-mm="m${i}"]`).checked).map(x => x.value);
+      post({ type: 'mm', choice, label: w.mmKind });
+    });
+  }
+  box.appendChild(p);
 }
 // 最後の戦い: 『宣言を終える』を押したら、まだ宣言していない人を並べて確かめる（ユーザー 2026-10-17、レビュー R8）。
 // 宣言していない人物はパーソンとして1人ずつ判定されるので、うっかり押すと全員パーソンで答えたことになる
@@ -1552,6 +1592,7 @@ async function confirmEndFinal(label) {
 // 送った内容は、そのフェイズの間「送信済み」として残す（再読み込みしても sessionStorage から戻す）
 let sent = []; try { sent = JSON.parse(sessionStorage.getItem('sent') || '[]'); } catch {}
 function describeAction(a) {
+  if (a.type === 'mm') return '脚本家: ' + (S.waiting?.text || a.label || '') ;
   if (a.type === 'cards') return a.placements.map(describe).join(' ／ ');
   if (a.type === 'ability') return `友好能力 ${a.char} ${a.label}` + (a.target ? ` → ${a.target}` : '') + (a.mode ? `（${a.mode}）` : '')
     + (a.declare ? ` 宣言: ${a.declare}` : '') + (a.incident ? ` 事件: ${a.incident}` : '');
@@ -2151,7 +2192,8 @@ fetch('/scripts').then(r => r.ok ? r.json() : null).then(d => {
   for (const s of d.scripts) (groups[s.group] = groups[s.group] || []).push(s);
   $('st-script').innerHTML = Object.entries(groups).map(([g, ss]) => `<optgroup label="${esc(g)}">` + ss.map(s =>
     `<option value="${esc(s.id)}">${esc(s.title)}（${s.loops}ループ×${s.days}日）</option>`).join('') + '</optgroup>').join('');
-  $('st-mm').innerHTML = d.mms.map((m, i) => `<option value="${m}" ${i === 0 ? 'selected' : ''}>${esc(MMLABEL[m] || m)}</option>`).join('');  // 既定は最強
+  $('st-mm').innerHTML = d.mms.map((m, i) => `<option value="${m}" ${i === 0 ? 'selected' : ''}>${esc(MMLABEL[m] || m)}</option>`).join('')  // 既定は最強
+    + '<option value="human">あなた（脚本家として遊ぶ。主人公は自動）</option>';
   $('st-seed').value = Math.floor(Math.random() * 10000);
   if (!d.blind) {  // 伏せて選べる脚本（自動生成。sangeki-scripts）が無い: 一覧から選ぶ
     $('st-blind').checked = false; $('st-blind').disabled = true; syncPick();

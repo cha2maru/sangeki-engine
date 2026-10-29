@@ -78,6 +78,10 @@ def _make(kind, rng, script=None):
         if kind == 'oreadKQLb':
             p.safe_worst, p.min_worlds = True, 48
         return p
+    if kind == 'oreadKQLm':  # oreadKQL＋先読みに主人公の友好能力・移動で友好能力の射程に入れる候補（2026-10-29、d30 の Claude の手順から）
+        p = make('oreadKQL', rng, script)
+        p.look_pcab, p.move_abil = True, True
+        return p
     if kind in ('oreadKQ', 'oreadKQL', 'oreadK0w', 'oreadK0h'):  # 脚本を知る主人公の仮説の検証（ユーザー「複数の仮説をたて検証」2026-10-17）
         from selfplay.pc_v2 import OracleReader
         p = OracleReader(rng, null_cost=0.1, model_mm=True, calc_block=True, info_weight=0.0, info_adapt=0.0, reveal=False)
@@ -376,6 +380,10 @@ def _make(kind, rng, script=None):
             p._reader_reply(s, list('ABC'[i:] + 'ABC'[:i]), [x['target'] for x in mm], keep_state=True)  # 写しにも実際の置き場所を見せる
             return mm
         p.mm_cards = mm_cards
+        return p
+    if kind == 'calcGBxhdKN':  # calcGBxhdK＋逆算と確定の判定に主人公の友好能力（calc_pcab）。d30 L1D6 でナース[2] を数えず確定と誤って隠した（2026-10-29）
+        p = make('calcGBxhdK', rng, script)
+        p.calc_pcab = True
         return p
     if kind == 'calcGBxhdK':  # calcGBxhd＋鍵の持ち主への先回り（必勝を崩す主人公の手の持ち主に友好禁止。search_mm._key_preempt、2026-10-23）
         p = make('calcGBxhd', rng, script)
