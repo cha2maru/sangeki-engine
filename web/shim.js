@@ -48,7 +48,7 @@
       case '/record': return reply(store.record || '{}');
       case '/record-blind': return reply(store.recordBlind || '{}');  // 伏せた試合の途中の記録（脚本名入り）
       case '/rejected': return reply(store.rejected || '[]');
-      case '/scripts': return reply(JSON.stringify({ ...(ready ? list : await new Promise(r => waitList.push(r))), mms: ['calcGBxhdK', 'calcGBxhd', 'calcD', 'calcG', 'searchL', 'search', 'route'] }));
+      case '/scripts': return reply(JSON.stringify({ ...(ready ? list : await new Promise(r => waitList.push(r))), mms: ['calcGBxhdKN', 'calcGBxhdK', 'calcGBxhd', 'calcD', 'calcG', 'searchL', 'search', 'route'] }));
       case '/new': {
         const a = body();
         if (started) { worker.terminate(); boot(); }  // 試合の途中は Python が操作を待って止まっているので、Worker ごと作り直す

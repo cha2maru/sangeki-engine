@@ -7,7 +7,8 @@
     {"code": "calcG", "official": "M.calc.4.0", "name": "Dramaturge", "status": "採用", "note": "主人公の知らない筋を逆算する・1手に数十秒"},
     {"code": "calcD", "official": "M.calc.5.0", "name": "Escalation", "status": "採用", "note": "二重の脅威で追い込む・1手に数十秒"},
     {"code": "calcGBxhd", "official": "M.calc.6.0", "name": "Foreshadow", "status": "採用", "note": "人の止め方を見越して外す・1手に数秒〜数十秒"},
-    {"code": "calcGBxhdK", "official": "M.calc.7.0", "name": "Guignol", "status": "採用", "since": "2026-10-23", "basis": "play/selfplay/runs/blind_calcGBxhdK_2026-10-23", "note": "鍵を先回りで封じる最強の型・1手に数秒〜数十秒"}
+    {"code": "calcGBxhdK", "official": "M.calc.7.0", "name": "Guignol", "status": "採用", "since": "2026-10-23", "basis": "play/selfplay/runs/blind_calcGBxhdK_2026-10-23", "note": "鍵を先回りで封じる型・1手に数秒〜数十秒"},
+    {"code": "calcGBxhdKN", "official": "M.calc.7.1", "name": "Guignol 2", "status": "採用", "since": "2026-10-30", "basis": "play/selfplay/runs/blind_calcGBxhdKN_2026-10-30", "note": "鍵を先回りで封じ、主人公の友好能力まで読む最強の型・1手に数秒〜数十秒"}
   ],
   "protagonist": [
     {"code": "blind", "official": "P.blind.1.0", "name": "Anchor", "status": "採用", "note": "その場で守る基本の型"},

@@ -2259,7 +2259,7 @@ $('rp-last').onclick = () => RP.go(RP.steps.length - 1); $('rp-play').onclick = 
 $('rp-seek').oninput = e => RP.go(+e.target.value);
 $('rp-reveal').onclick = () => { const keep = S; S = { ...S, reveal: RP.data.final.reveal }; openReveal(); S = keep; };
 // ---- 開始画面（脚本・脚本家・乱数の種を選んで進行役を起動し直す。サーバーが SANGEKI_AI=1 のときだけ）----
-const MMLABEL = { calcGBxhdK: 'Guignol（G）― 鍵を先回りで封じる最強の型・1手に数秒〜数十秒', calcGBxhd: 'Foreshadow（F）― 人の止め方を見越して外す・1手に数秒〜数十秒', calcD: 'Escalation（E）― 二重の脅威で追い込む・1手に数十秒', calcG: 'Dramaturge（D）― 主人公の知らない筋を逆算する・1手に数十秒', searchL: 'Cliffhanger（C）― その日の決着まで読む', search: 'Blocking（B）― 一手ずつ探る・速い', route: 'Antagonist（A）― 筋をまっすぐ進める・最速' };  // 通称（頭文字＝メジャー版）と説明。台帳 engine/data/players.json と合わせる（tests/test_players.py）
+const MMLABEL = { calcGBxhdKN: 'Guignol 2（G）― 鍵を先回りで封じ、主人公の友好能力まで読む最強の型・1手に数秒〜数十秒', calcGBxhdK: 'Guignol（G）― 鍵を先回りで封じる型・1手に数秒〜数十秒', calcGBxhd: 'Foreshadow（F）― 人の止め方を見越して外す・1手に数秒〜数十秒', calcD: 'Escalation（E）― 二重の脅威で追い込む・1手に数十秒', calcG: 'Dramaturge（D）― 主人公の知らない筋を逆算する・1手に数十秒', searchL: 'Cliffhanger（C）― その日の決着まで読む', search: 'Blocking（B）― 一手ずつ探る・速い', route: 'Antagonist（A）― 筋をまっすぐ進める・最速' };  // 通称（頭文字＝メジャー版）と説明。台帳 engine/data/players.json と合わせる（tests/test_players.py）
 let canStart = false;
 fetch('/scripts').then(r => r.ok ? r.json() : null).then(d => {
   if (!d) return;

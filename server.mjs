@@ -26,7 +26,7 @@ const PY = process.env.SANGEKI_PYTHON || 'python3';
 const WORKERS = process.env.SANGEKI_WORKERS || String(Math.max(1, Math.min(6, os.cpus().length - 1)));
 const ENV = { ...process.env, SANGEKI_WORKERS: WORKERS };
 const PCS = ['read2', 'read', 'lockQA', 'oreadKQL', 'oread'];  // 自動の主人公（自動同士で観る。lockQA はどこからともなく置かれたカウンターも読む。oreadKQL は脚本を知る。oread は v0.6 の版）。空なら人が主人公
-const MMS = ['calcGBxhdK', 'calcGBxhd', 'calcD', 'calcG', 'searchL', 'search', 'route'];  // 先頭が既定（最強）  // 開始画面で選べる自動の脚本家（ほかの型は ai_gm.py を直接起動）
+const MMS = ['calcGBxhdKN', 'calcGBxhdK', 'calcGBxhd', 'calcD', 'calcG', 'searchL', 'search', 'route'];  // 先頭が既定（最強）  // 開始画面で選べる自動の脚本家（ほかの型は ai_gm.py を直接起動）
 let child = null, scriptList = null;
 // サーバーが止まるときは進行役（子の ai_gm.py）も止める。止めないと、再起動した後も古い進行役が同じ置き場所（game/）に書き続け、
 // 新しい試合の記録と書き合って落ちた（モンキー試験で見つけた。1日半前の進行役が残っていた 2026-10-30）
@@ -50,6 +50,13 @@ function startGame({ script, mm, pc, seed, blind, code, replay, resume }) {
   if (pc && !PCS.includes(pc)) throw new Error('主人公の型が不正');
   // code: シナリオエディタのコード（s1.＋base64url）。中身の検証は ai_gm.py がする
   if (code && !/^s1\.[A-Za-z0-9_-]{1,20000}$/.test(code)) throw new Error('シナリオのコードが不正');
+  if (code) {  // 進行役を起動する前に確かめ、誤りは開始画面に返す（以前は進行役が開始時に落ち、理由が出ないまま盤面が固まった）
+    const run = (flag, input) => JSON.parse(execFileSync(PY, [path.join(HERE, 'ai_gm.py'), flag], { cwd: HERE, input }).toString());
+    const d = run('--decode', code);
+    if (d.error) throw new Error('シナリオのコードを読めない: ' + d.error);
+    const r = run('--check', JSON.stringify(d.script));
+    if ((r.errors || []).length) throw new Error('シナリオに誤りがある: ' + r.errors.join(' ／ '));
+  }
   if (code || mm === 'human') blind = false;  // 人が脚本家なら脚本を知っている（伏せて選ばない）
   if (!code && !blind && !listScripts().scripts.some(s => s.id === script)) throw new Error('脚本が無い');  // 人の脚本家も確かめる（空の脚本で進行役が落ち、盤面が固まった。モンキー試験）
   if (blind && !listScripts().blind) throw new Error('伏せて選べる脚本（自動生成）が無い');

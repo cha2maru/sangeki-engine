@@ -162,8 +162,8 @@ def plan_pc(rng, script, base_kind='oreadKQLm', fair=False):
             for x, n in p['reserve'].items():
                 if x not in out['reserve'] and cnt(x, lambda pp: pp['reserve']) >= need:
                     out['reserve'][x] = min(pp['reserve'][x] for pp in plans if x in pp['reserve'])
-            for c in p['cut']:
-                if c not in out['cut'] and cnt(c, lambda pp: pp['cut']) >= need:
+            for c in p['cut']:  # 補給の源を外す移動は札を使う守りなので、すべての世界で一致するときだけ（d30: 教祖をミスリーダーと見て2回動かした）
+                if c not in out['cut'] and cnt(c, lambda pp: pp['cut']) == len(plans):
                     out['cut'].append(c)
             for c, v in p.get('gw_need', {}).items():
                 if cnt(c, lambda pp: pp.get('gw_need', {})) >= need:
@@ -201,13 +201,13 @@ def plan_pc(rng, script, base_kind='oreadKQLm', fair=False):
         # 妄想拡大ウイルス: パーソンは不安3以上の間シリアルキラー。脚本を知らない主人公は、推理の世界のどれかにあれば見込む
         # （人数を保つのは安い守りなので危険を広めに見る。d13: ループ1の2日目はいちばん目の世界にウイルスが無く、2人きりを防がなかった）
         wsv = [sv['script']] if not fair else (base._worlds(s)[:4] or [sv['script']])
-        virus = any('X_VIRUS' in w.get('rules', []) for w in wsv)
+        virus = sum('X_VIRUS' in w.get('rules', []) for w in wsv) * 2 >= len(wsv)  # 半分以上の世界（どれか1つでは広すぎ: plan_read2 が 13 → 9 勝）
 
         def sk_soon(k):
             """シリアルキラーか、今日の札でなりうる（ウイルスがあり、不安があと1でパーソンが3に届く）。d13 の Claude 戦: 幻想は朝は不安2で、
             その日の札で3になりシリアルキラーとしてご神木を殺した（朝のシリアルキラーだけ見ていて、人数で防がなかった）"""
-            r = ph.role(sv, k)
-            return r == 'SK' or (virus and ch[k]['par'] + 1 >= 3 and any(ph.base_role(dict(s, script=w), k) == 'PERSON' for w in wsv))
+            r = 'SK' if all(ph.role(dict(s, script=w), k) == 'SK' for w in wsv) else None  # すべての世界でシリアルキラーのときだけ（d30: 神格を動かした）
+            return r == 'SK' or (virus and ch[k]['par'] + 1 >= 3 and sum(ph.base_role(dict(s, script=w), k) == 'PERSON' for w in wsv) * 2 >= len(wsv))
         for k, v in ch.items():
             if not (v['alive'] and v.get('present', True) and v.get('area')) or not sk_soon(k):
                 continue
@@ -225,8 +225,8 @@ def plan_pc(rng, script, base_kind='oreadKQLm', fair=False):
                         mv = _move_to(s, c2, v['area'])
                         if mv and put(c2, [mv]):
                             break
-            elif k in T:
-                put(k, ['MVX'])
+            elif k in T and not any(i['id'] == 'MURDER' and i['culprit'] == k and i['day'] >= day for i in sv['script']['incidents']):
+                put(k, ['MVX'])  # 殺人事件の犯人は留めない（人数では事件の殺しは止まらない。d18 の Claude 戦: 巫女を幻想と同じ神社に留めた）
             # 今日追い出されうる人数を数え、残る人数が2人を下回るなら、移動禁止で止め、足りない分は隣の人物を入れて埋める
             # （ユーザー「ほかの人を入れるのも移動禁止より確実なケースがある。ただし行方不明などもあるので確実ではない」2026-10-30）。
             # 追い出されうる: 脚本家の伏せ札がある人物（移動の札かもしれない）と、今日の行方不明の犯人（臨界に届きうる。事件の移動は移動禁止で止まらない）
@@ -278,6 +278,21 @@ def plan_pc(rng, script, base_kind='oreadKQLm', fair=False):
                 else:
                     continue
                 int_need[t] = min(int_need.get(t, 99), n)
+        # 補給の源を断つ: ボードの暗躍で脚本家の能力（ミスリーダー・クロマク）を得る役職（ファクター）がいれば、そのボードの暗躍も条件に
+        # （d13 の Claude 戦: 学校の暗躍2でご神木がミスリーダーの能力を得て、犯人に不安を足し、不安−1 1枚/日では追いつかなかった）
+        from engine import sets as _sets
+        # 暗躍禁止を使う守りなので、脚本を知らない主人公は推理の世界4つすべてで同じ役職のときだけ（外れると止めるべき所の札を失う。
+        # 世界のどれかで判断したら plan_read2 が 13 → 9 勝に落ちた）
+        for c, v in ch.items():
+            if not (v['alive'] and v.get('present', True)):
+                continue
+            rs = {ph.role(dict(s, script=w), c) for w in wsv}
+            if len(rs) != 1:
+                continue
+            for g in _sets.role(sv, rs.pop()).get('gains', []):
+                if g['ability'] in ('MISLEADER', 'KUROMAKU'):
+                    t = 'B:' + g['board']
+                    int_need[t] = min(int_need.get(t, 99), g['min'])
         base_cards = orig_cards(s, order, mm_targets)  # oreadKQLm の手（応手表で選んだ守り）。暗躍禁止の置き先はこちらに従う
         bx = next((c['target'] for c in base_cards if c['card'] == 'INTX'), None)
         if bx is not None:  # d14: 残り量の少ない病院より、取り返せない学校（巨大時限爆弾X）を止めるべきだった。その判断は応手表がしている
