@@ -194,6 +194,40 @@ def plan_pc(rng, script, base_kind='oreadKQLm', fair=False):
                         out.append({'by': p, 'target': t, 'card': c}); free.remove(p); taken.add(t)
                         return True
             return False
+        # 人数で2人きりを防ぐ（学び7、d12）: シリアルキラーは、ほかに2人以上いるエリアに置く。1人だけのエリアにいると、
+        # そこへ動かされた人物と2人きりで殺される（脚本家の一度きりの斜めの移動はいつ来るか分からない）。人の多い隣へ動かし、戻されそうなら移動禁止
+        def others(a, me):
+            return [c for c, v in ch.items() if v['alive'] and v.get('present', True) and v.get('area') == a and c != me]
+        virus = 'X_VIRUS' in sv['script'].get('rules', [])  # 妄想拡大ウイルス: パーソンは不安3以上の間シリアルキラー
+
+        def sk_soon(k):
+            """シリアルキラーか、今日の札でなりうる（ウイルスがあり、不安があと1でパーソンが3に届く）。d13 の Claude 戦: 幻想は朝は不安2で、
+            その日の札で3になりシリアルキラーとしてご神木を殺した（朝のシリアルキラーだけ見ていて、人数で防がなかった）"""
+            r = ph.role(sv, k)
+            return r == 'SK' or (virus and ph.base_role(sv, k) == 'PERSON' and ch[k]['par'] + 1 >= 3)
+        for k, v in ch.items():
+            if not (v['alive'] and v.get('present', True) and v.get('area')) or not sk_soon(k):
+                continue
+            if len(others(v['area'], k)) < 2:
+                moved = False
+                for mv in MOVES if k != 'C20' else ():  # 幻想（C20）には札を置けない
+                    to = destination(v['area'], combine_moves([mv]))
+                    if to not in CHARS.get(k, {}).get('forbidden', []) and len(others(to, k)) >= 2:
+                        moved = put(k, [mv])
+                        break
+                if not moved and len(others(v['area'], k)) == 1:  # 動かせないなら、隣の人物を入れて3人目にする（2人きりを崩す）
+                    for c2, v2 in ch.items():
+                        if c2 in (k, 'C20') or not (v2['alive'] and v2.get('present', True) and v2.get('area')) or c2 in others(v['area'], k):
+                            continue
+                        mv = _move_to(s, c2, v['area'])
+                        if mv and put(c2, [mv]):
+                            break
+            elif k in T:
+                put(k, ['MVX'])
+            if len(others(v['area'], k)) == 2:  # 3人ぎりぎり: 残りの人物に伏せ札があれば追い出されないよう移動禁止（d13 の Claude 戦: 男子学生を病院へ動かされ、幻想とご神木が2人きりに）
+                for c2 in others(v['area'], k):
+                    if c2 in T:
+                        put(c2, ['MVX'])
         # 暗躍の条件（層②の句のうち暗躍・ボード）: 負け筋の暗躍の対象に伏せ札があり、暗躍+2 で必要量に届きうるなら暗躍禁止を最優先
         # （d14: 予約の手が札の枠を取り、学校の暗躍2（巨大時限爆弾X）を止めずにループ終了で負けた）。暗躍禁止は1日1枚だけ
         cult_areas = {v['area'] for c, v in ch.items() if v['alive'] and ph.base_role(sv, c) == 'CULTIST'}
@@ -223,21 +257,6 @@ def plan_pc(rng, script, base_kind='oreadKQLm', fair=False):
             lack = need - ch[c]['gw']
             if ch[c]['alive'] and lack > 0 and s['script']['days'] - day + 1 <= lack + 1:
                 put(c, ['GW2', 'GW1'] if lack >= 2 else ['GW1', 'GW2'])
-        # 人数で2人きりを防ぐ（学び7、d12）: シリアルキラーは、ほかに2人以上いるエリアに置く。1人だけのエリアにいると、
-        # そこへ動かされた人物と2人きりで殺される（脚本家の一度きりの斜めの移動はいつ来るか分からない）。人の多い隣へ動かし、戻されそうなら移動禁止
-        def others(a, me):
-            return [c for c, v in ch.items() if v['alive'] and v.get('present', True) and v.get('area') == a and c != me]
-        for k, v in ch.items():
-            if not (v['alive'] and v.get('present', True) and v.get('area')) or ph.role(sv, k) != 'SK':
-                continue
-            if len(others(v['area'], k)) < 2:
-                for mv in MOVES:
-                    to = destination(v['area'], combine_moves([mv]))
-                    if to not in CHARS.get(k, {}).get('forbidden', []) and len(others(to, k)) >= 2:
-                        put(k, [mv])
-                        break
-            elif k in T:
-                put(k, ['MVX'])
         def danger_here(c):
             """c のエリアで、これからの殺人事件・シリアルキラーの殺しが起きうるか（その犯人か、犯人と同じエリア）。"""
             a = ch[c]['area']
@@ -245,7 +264,7 @@ def plan_pc(rng, script, base_kind='oreadKQLm', fair=False):
                 cu = inc['culprit']
                 if inc['id'] == 'MURDER' and inc['day'] >= day and cu in ch and ch[cu]['alive'] and ch[cu]['area'] == a:
                     return True
-            return any(v['alive'] and v.get('area') == a and ph.role(sv, k) == 'SK' and k != c for k, v in ch.items())
+            return any(v['alive'] and v.get('area') == a and sk_soon(k) and k != c for k, v in ch.items())
         hold_pos = set()  # 射程に入っていて動かさない人物
         done = base.__dict__.setdefault('_cut_done', set())
         for c in plan['cut']:  # 補給の源を守る人物のエリアから出す（1ループに1回。戻されそうなら移動禁止）

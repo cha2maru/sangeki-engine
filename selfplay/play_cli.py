@@ -199,7 +199,14 @@ class ClaudeMastermind:
         return self._next('rumor', s, '不穏な噂（任意のボード1つに暗躍1。使わなければ null）', {})
 
     def incident_choice(self, s, inc):
-        return self._next('incident', s, f"事件 {inc['id']}（犯人 {inc['culprit']}）", inc)
+        """事件の効果の選び方。写しの盤面で効果を当てて確かめる（d13 の Claude 戦: 殺人事件の対象に null を送り、進行役ごと落ちた）。"""
+        from engine.resolve import copy_state
+
+        def check(ch):
+            if isinstance(ch, list):  # 教祖が犯人の事件は効果を2回（2要素の列）。ここでは確かめない
+                return
+            ph.incident_effect(copy_state(s), inc['id'], ph.acting_culprit(s, inc) or inc['culprit'], ch, [])
+        return self._next('incident', s, f"事件 {inc['id']}（犯人 {inc['culprit']}）", inc, check)
 
     def killer_pick(self, s):
         opts = ph.killer_options(s)

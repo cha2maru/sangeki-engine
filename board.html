@@ -214,6 +214,8 @@ button:disabled { opacity:.45; cursor:not-allowed; }
 #menu div.o.dim { color:var(--mut); }
 .ch .mmtag { position:absolute; left:0; right:0; top:2px; display:flex; flex-direction:column; align-items:center; gap:1px; pointer-events:none; z-index:3; }
 .ch .mmtag b, .ch .mmtag i { font-style:normal; font-size:10px; line-height:1.2; padding:0 3px; border-radius:3px; background:rgba(90,0,0,.85); color:#fff; white-space:nowrap; max-width:100%; overflow:hidden; text-overflow:ellipsis; }
+.ch.mmopt { box-shadow:0 0 0 2px #e0b040, 0 0 8px 2px rgba(224,176,64,.6); }
+.area.mmopt { box-shadow:inset 0 0 0 3px rgba(224,176,64,.75); }
 .ch .mmtag i { background:rgba(40,40,40,.85); white-space:normal; text-align:center; overflow:visible; }
 #msg { width:100%; box-sizing:border-box; background:#111; color:var(--fg); border:1px solid #555; }
 .mut { color:var(--mut); font-size:12px; }
@@ -312,7 +314,8 @@ span.card { display:inline-flex; align-items:center; justify-content:center; tex
 span.card.o-B { background:#246b70; } span.card.o-C { background:#41438f; } span.card.mm { background:#7a2626; }
 span.card.back { background:repeating-linear-gradient(45deg, #4a4a4a 0 4px, #353535 4px 8px); color:#ddd; }
 body.watching #p-ops .sec-hands, body.watching #p-ops .sec-send, body.watching #abilsec { display:none; }
-body.mmside #p-ops .sec-hands, body.mmside #p-ops .sec-send, body.mmside #abilsec { display:none; }
+body.mmside #p-ops .sec-hands, body.mmside #abilsec, body.mmside .sec-send > h3, body.mmside #pending, body.mmside #sent, body.mmside #send, body.mmside #clear { display:none; }
+/* 脚本家の問いの欄（.mmpanel）は送信待ちの欄の中に描くので、欄そのものは隠さない（隠していて、問いの欄も見えなくなっていた） */
 body.timegap #send, body.timegap #clear, body.timegap #p-ops .sec-hands, body.timegap #pending { display:none; }  /* 時の狭間は選ぶだけ */
 /* 推理の区切りは見出しで畳め、📌 で一番上に固定できる（設計資料 8.3 ①・8.8） */
 #p-sheet .body > section.fold > :not(h3) { display:none; } #p-sheet .body > section > h3 { cursor:pointer; } #p-sheet .body { display:flex; flex-direction:column; }
@@ -822,7 +825,7 @@ function renderMain() {
     // 大物のテリトリー（公開情報。ゲームの準備に縄張りトークンを置く＝大物の特性）。文字だけだと見つからなかった（ユーザー指摘）
     const turf = (S.publicSheet || {}).territory !== name ? '' : noimg() ? '<span class="turf" title="縄張りトークン（大物のテリトリー）">縄張り</span>'
       : `<img class="turf" src="${IMG}tokens/turf${IMGX}" title="縄張りトークン（大物のテリトリー）" alt="縄張り">`;
-    return `<div class="area tgt ${areaM ? 'hasm' : ''} ${crowd} ${noPlace('board:' + name) ? 'noplace' : ''} ${zoomArea === name ? 'zoom' : ''}" data-area="${name}" tabindex="0" aria-label="${name}" style="background-image:url(${IMG}board/${img}${IMGX})">
+    return `<div class="area tgt ${mmOpt('board:' + name) ? 'mmopt' : ''} ${areaM ? 'hasm' : ''} ${crowd} ${noPlace('board:' + name) ? 'noplace' : ''} ${zoomArea === name ? 'zoom' : ''}" data-area="${name}" tabindex="0" aria-label="${name}" style="background-image:url(${IMG}board/${img}${IMGX})">
       <button class="azoom" data-zoom="${name}" title="${name}を大きく" aria-label="${name}を大きく表示">⤢</button><span class="alabel">${name}</span><div class="slots ${side}">${slots}</div><div class="acards ${side}">${cards}</div><div class="chars">${chars}</div>${turf}</div>`;
   }).join(''));
   fxPlay(fxPrev);
@@ -1127,7 +1130,28 @@ $('p-sheet').addEventListener('focusout', () => setTimeout(renderSheet, 0));
 // 送信済みの札は、脚本家がフェイズを進める（phaseId が変わる）まで盤面に残す
 const sentCards = () => sent.filter(x => x.game === S.game && x.phaseId === S.phaseId && x.placements).flatMap(x => x.placements)
   .map(p => ({ owner: p.actor, target: p.target, card: p.card, sent: true }));
-const allCards = () => [...(S.cards || []), ...sentCards(), ...pending.map(p => ({ owner: p.actor, target: p.target, card: p.card, pending: true }))];
+let mmSel = { pid: null, v: {} };  // 人が脚本家: いまの問いで選んだ値（欄の id → 値）。描き直しで戻す
+const allCards = () => [...(S.cards || []), ...sentCards(), ...pending.map(p => ({ owner: p.actor, target: p.target, card: p.card, pending: true })), ...mmPending()];
+// 人が脚本家: 伏せ札の欄で選んだ札を、置く予定として盤面にも出す（置き先の人物・ボードの上。欄だけでは盤面のどこに置いたか見えなかった）
+// 人が脚本家: いまの問いで選べる人物・ボードか（盤面で光らせる。どこをクリックすればよいかが盤面で分かるように）
+function mmOpt(target) {
+  const w = S.waiting || {}, ui = w.ui;
+  if (S.side !== 'mm' || w.kind !== 'mm' || !ui) return false;
+  const isB = target.startsWith('board:'), who = isB ? target.slice(6) : target;
+  const hit = o => isB ? (o.label === who || o.label === 'ボード ' + who) : o.label === who;
+  if (ui.type === 'cards') return ui.targets.some(hit);
+  if (ui.type === 'form') return ui.fields.some(f => f.options.some(hit));
+  if (ui.type === 'multi') return !isB && ui.options.some(o => o.label.startsWith(who));
+  return false;
+}
+function mmPending() {
+  const w = S.waiting || {}, ui = w.ui;
+  if (S.side !== 'mm' || w.kind !== 'mm' || !ui || ui.type !== 'cards' || mmSel.pid !== S.phaseId) return [];
+  return [0, 1, 2].filter(i => mmSel.v['t' + i] != null && mmSel.v['c' + i] != null).map(i => {
+    const t = ui.targets[mmSel.v['t' + i]], h = ui.hand[mmSel.v['c' + i]];
+    return { owner: 'M', target: t.label.startsWith('ボード ') ? 'board:' + t.label.slice(4) : t.label, card: h.label, pending: true };
+  });
+}
 function cardTag(c) {
   return cardEl(c.owner, c.card, `${c.owner === 'M' ? 'mm' : 'pc'} ${c.nullified ? 'nul' : ''} ${c.pending ? 'pend' : ''} ${c.sent ? 'sent' : ''}`,
     `data-ck="${esc(c.owner + '|' + c.target)}" title="${esc(c.owner === 'M' ? '脚本家' : '主人公' + c.owner)}${c.card ? '：' + esc(c.card) : '（伏せ）'}"`);
@@ -1169,7 +1193,7 @@ function charTag(c) {
     c.goodwill && badge('g', c.goodwill), c.intrigue && badge('i', c.intrigue), c.guard && badge('gd', c.guard)].filter(Boolean).join('');
   const cards = allCards().filter(x => x.target === c.name).map(cardTag).join('');
   const hasM = (S.cards || []).some(x => x.owner === 'M' && x.target === c.name);
-  return `<div class="ch ${c.alive === false ? 'dead' : ''} ${hasM ? 'hasm' : ''} ${CHG.has(c.name) || noAnimChg.has(c.name) ? 'chg' : ''} ${noPlace(c.name) ? 'noplace' : ''}" data-char="${esc(c.name)}" tabindex="0" aria-label="${esc(c.name)}">
+  return `<div class="ch ${mmOpt(c.name) ? 'mmopt' : ''} ${c.alive === false ? 'dead' : ''} ${hasM ? 'hasm' : ''} ${CHG.has(c.name) || noAnimChg.has(c.name) ? 'chg' : ''} ${noPlace(c.name) ? 'noplace' : ''}" data-char="${esc(c.name)}" tabindex="0" aria-label="${esc(c.name)}">
     <div class="ccards">${cards}</div>${noimg() ? '' : `<img class="st" src="${IMG}chara_stand/chara_stand_${c.card}${IMGX}">`}
     ${c.role ? `<span class="rolec" title="${esc(roleWhen(c.name))}"><small>${esc(roleAt(c.name))}</small>${esc(ROLENAMES[c.role] || c.role)}</span>` : ''}${mmTag(c.name)}<div class="cap"><div class="nm${[...c.name].length >= 5 ? ' long' : ''}" style="--n:${[...c.name].length}">${esc(c.name)}</div><div class="cnt">${cnt}</div></div></div>`;
 }
@@ -1419,11 +1443,10 @@ const charOpts = go => (S.characters || []).map(c => ({ label: c.name + (c.alive
 
 // 人が脚本家のときのメニュー（ユーザー「クリックで脚本家も手札おけるように」2026-10-30）。主人公の札・友好能力のメニューは出さず、
 // いまの問いの欄（伏せ札の置き先と札・能力や事件の対象など）を、クリックした人物・エリアで埋める。選んだ値は mmSel に覚えて描き直しで戻す
-let mmSel = { pid: null, v: {} };
-const mmApply = () => document.querySelectorAll('.mmpanel [data-mm]').forEach(e => {  // 覚えた値を欄に書く（render は欄を描き直さないことがある）
+const mmApply = () => { document.querySelectorAll('.mmpanel [data-mm]').forEach(e => {  // 覚えた値を欄に書く（render は欄を描き直さないことがある）
   const x = mmSel.v[e.dataset.mm];
   if (e.type === 'checkbox') e.checked = !!x; else e.value = x == null ? '' : String(x);
-});
+}); render(); };  // 置く予定の伏せ札を盤面にも描き直す
 function mmMenu(x, y, target) {
   const w = S.waiting || {}, ui = w.ui;
   const who = target.startsWith('board:') ? target.slice(6) : target, isB = target.startsWith('board:');
@@ -1609,7 +1632,7 @@ function renderMM(box) {
     p.querySelectorAll('[data-mm]').forEach(e => {  // 盤面のメニューや前の描画で選んだ値を戻し、変えたら覚える
       const k = e.dataset.mm, x = mmSel.v[k];
       if (e.type === 'checkbox') { e.checked = !!x; e.onchange = () => { mmSel.v[k] = e.checked; }; }
-      else { if (x != null) e.value = String(x); e.onchange = () => { mmSel.v[k] = e.value === '' ? undefined : +e.value; }; }
+      else { if (x != null) e.value = String(x); e.onchange = () => { mmSel.v[k] = e.value === '' ? undefined : +e.value; render(); }; }
     });
     const val = id => { const e = p.querySelector(`[data-mm="${id}"]`); return e && e.value !== '' ? +e.value : null; };
     p.querySelectorAll('[data-mmgo]').forEach(b => b.onclick = () => {

@@ -1194,7 +1194,7 @@ def run(a, table_cls=None):
     # 題名は内容の手がかりになるので、開始時は ID だけ出す（題名はゲーム終了時の非公開シートの公開で出す）
     shown = f'「{script["title"]}」（ユーザーのシナリオ）' if a.script == 'user' else short_id(a.script)
     t.log(f'対AIモード開始。脚本 {shown}（ループ {script["loops"]} 回・1ループ {script["days"]} 日・'
-          f'{script.get("set", "BTX")}）。脚本家は' + ('Claude' if a.mm == 'claude' else f'自動（{a.mm}）')
+          f'{script.get("set", "BTX")}）。脚本家は' + ('Claude' if a.mm == 'claude' else 'あなた' if a.mm == 'human' else f'自動（{a.mm}）')
           + (f'、主人公は自動（{auto_pc}）' if auto_pc else ''))
 
     def log0(kind, rec):
