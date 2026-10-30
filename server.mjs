@@ -28,6 +28,10 @@ const ENV = { ...process.env, SANGEKI_WORKERS: WORKERS };
 const PCS = ['read2', 'read', 'lockQA', 'oreadKQL', 'oread'];  // 自動の主人公（自動同士で観る。lockQA はどこからともなく置かれたカウンターも読む。oreadKQL は脚本を知る。oread は v0.6 の版）。空なら人が主人公
 const MMS = ['calcGBxhdK', 'calcGBxhd', 'calcD', 'calcG', 'searchL', 'search', 'route'];  // 先頭が既定（最強）  // 開始画面で選べる自動の脚本家（ほかの型は ai_gm.py を直接起動）
 let child = null, scriptList = null;
+// サーバーが止まるときは進行役（子の ai_gm.py）も止める。止めないと、再起動した後も古い進行役が同じ置き場所（game/）に書き続け、
+// 新しい試合の記録と書き合って落ちた（モンキー試験で見つけた。1日半前の進行役が残っていた 2026-10-30）
+for (const sig of ['SIGTERM', 'SIGINT', 'SIGHUP']) process.on(sig, () => { if (child && child.exitCode === null) child.kill('SIGTERM'); process.exit(0); });
+process.on('exit', () => { if (child && child.exitCode === null) child.kill('SIGTERM'); });
 function listScripts() {
   if (!scriptList) scriptList = JSON.parse(execFileSync(PY, [path.join(HERE, 'ai_gm.py'), '--list'], { cwd: HERE }).toString());
   return scriptList;
@@ -47,7 +51,7 @@ function startGame({ script, mm, pc, seed, blind, code, replay, resume }) {
   // code: シナリオエディタのコード（s1.＋base64url）。中身の検証は ai_gm.py がする
   if (code && !/^s1\.[A-Za-z0-9_-]{1,20000}$/.test(code)) throw new Error('シナリオのコードが不正');
   if (code || mm === 'human') blind = false;  // 人が脚本家なら脚本を知っている（伏せて選ばない）
-  else if (!blind && !listScripts().scripts.some(s => s.id === script)) throw new Error('脚本が無い');
+  if (!code && !blind && !listScripts().scripts.some(s => s.id === script)) throw new Error('脚本が無い');  // 人の脚本家も確かめる（空の脚本で進行役が落ち、盤面が固まった。モンキー試験）
   if (blind && !listScripts().blind) throw new Error('伏せて選べる脚本（自動生成）が無い');
   seed = Number.isInteger(+seed) ? String(+seed) : '1';
   if (child && child.exitCode === null) child.kill('SIGTERM');

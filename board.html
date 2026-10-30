@@ -1626,7 +1626,7 @@ function renderMM(box) {
     if (ui.type === 'cards') h += [0, 1, 2].map(i => `<div class="row">${i + 1}枚目 ${sel(ui.targets, 't' + i)} に ${sel(ui.hand, 'c' + i)}</div>`).join('');
     else if (ui.type === 'form') h += ui.fields.map((f, i) => `<div class="row">${esc(f.label)} ${sel(f.options, 'f' + i)}</div>`).join('');
     else if (ui.type === 'multi') h += ui.options.map((x, i) => `<label class="row"><input type="checkbox" data-mm="m${i}"> ${esc(x.label)}</label>`).join('') || '<div class="mut">選べるものはありません</div>';
-    h += `<div class="row"><button class="go" data-mmgo="1">決定</button>${ui.skip ? '<button data-mmgo="0">使わない</button>' : ''}</div></div>`;
+    h += `<div class="row"><button class="go" data-mmgo="1">決定</button>${ui.skip ? '<button data-mmgo="0">使わない</button>' : ''}<button data-mmclear="1" title="選んだ値をすべて外す">選び直す</button></div></div>`;
     p.insertAdjacentHTML('beforeend', h);
     if (mmSel.pid !== S.phaseId) mmSel = { pid: S.phaseId, v: {} };  // 問いが変わったら選んだ値を捨てる
     p.querySelectorAll('[data-mm]').forEach(e => {  // 盤面のメニューや前の描画で選んだ値を戻し、変えたら覚える
@@ -1635,6 +1635,7 @@ function renderMM(box) {
       else { if (x != null) e.value = String(x); e.onchange = () => { mmSel.v[k] = e.value === '' ? undefined : +e.value; render(); }; }
     });
     const val = id => { const e = p.querySelector(`[data-mm="${id}"]`); return e && e.value !== '' ? +e.value : null; };
+    p.querySelector('[data-mmclear]').onclick = () => { mmSel.v = {}; mmApply(); };
     p.querySelectorAll('[data-mmgo]').forEach(b => b.onclick = () => {
       let choice;
       if (b.dataset.mmgo === '0') choice = {};

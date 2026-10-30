@@ -198,13 +198,16 @@ def plan_pc(rng, script, base_kind='oreadKQLm', fair=False):
         # そこへ動かされた人物と2人きりで殺される（脚本家の一度きりの斜めの移動はいつ来るか分からない）。人の多い隣へ動かし、戻されそうなら移動禁止
         def others(a, me):
             return [c for c, v in ch.items() if v['alive'] and v.get('present', True) and v.get('area') == a and c != me]
-        virus = 'X_VIRUS' in sv['script'].get('rules', [])  # 妄想拡大ウイルス: パーソンは不安3以上の間シリアルキラー
+        # 妄想拡大ウイルス: パーソンは不安3以上の間シリアルキラー。脚本を知らない主人公は、推理の世界のどれかにあれば見込む
+        # （人数を保つのは安い守りなので危険を広めに見る。d13: ループ1の2日目はいちばん目の世界にウイルスが無く、2人きりを防がなかった）
+        wsv = [sv['script']] if not fair else (base._worlds(s)[:4] or [sv['script']])
+        virus = any('X_VIRUS' in w.get('rules', []) for w in wsv)
 
         def sk_soon(k):
             """シリアルキラーか、今日の札でなりうる（ウイルスがあり、不安があと1でパーソンが3に届く）。d13 の Claude 戦: 幻想は朝は不安2で、
             その日の札で3になりシリアルキラーとしてご神木を殺した（朝のシリアルキラーだけ見ていて、人数で防がなかった）"""
             r = ph.role(sv, k)
-            return r == 'SK' or (virus and ph.base_role(sv, k) == 'PERSON' and ch[k]['par'] + 1 >= 3)
+            return r == 'SK' or (virus and ch[k]['par'] + 1 >= 3 and any(ph.base_role(dict(s, script=w), k) == 'PERSON' for w in wsv))
         for k, v in ch.items():
             if not (v['alive'] and v.get('present', True) and v.get('area')) or not sk_soon(k):
                 continue
@@ -224,10 +227,42 @@ def plan_pc(rng, script, base_kind='oreadKQLm', fair=False):
                             break
             elif k in T:
                 put(k, ['MVX'])
-            if len(others(v['area'], k)) == 2:  # 3人ぎりぎり: 残りの人物に伏せ札があれば追い出されないよう移動禁止（d13 の Claude 戦: 男子学生を病院へ動かされ、幻想とご神木が2人きりに）
-                for c2 in others(v['area'], k):
-                    if c2 in T:
-                        put(c2, ['MVX'])
+            # 今日追い出されうる人数を数え、残る人数が2人を下回るなら、移動禁止で止め、足りない分は隣の人物を入れて埋める
+            # （ユーザー「ほかの人を入れるのも移動禁止より確実なケースがある。ただし行方不明などもあるので確実ではない」2026-10-30）。
+            # 追い出されうる: 脚本家の伏せ札がある人物（移動の札かもしれない）と、今日の行方不明の犯人（臨界に届きうる。事件の移動は移動禁止で止まらない）
+            mem = others(v['area'], k)
+            if len(mem) >= 2:  # 1人以下のときは上で人を入れている
+                missing = [i['culprit'] for i in sv['script']['incidents'] if i['id'] == 'MISSING' and i['day'] == day
+                           and i['culprit'] in mem and ch[i['culprit']]['par'] + 1 >= CHARS[i['culprit']]['limit']]
+                risk = [c2 for c2 in mem if c2 in T and c2 not in missing]
+                need = 2 - (len(mem) - len(risk) - len(missing))
+                def bring_in(need):
+                    # 隣から人を入れる。伏せ札が無く（追い出されにくい）、負け筋の対象でなく、抜けた元のエリアを2人にしない人物
+                    rp = {c3 for r in enumerate_routes(sv) if r['total'] < INF for c3 in (r['via'],) if c3} | \
+                         {cc['detail'][0] for r in enumerate_routes(sv) if r['total'] < INF for cc in r['conds']
+                          if cc['kind'] == 'counter' and isinstance(cc['detail'][0], str) and cc['detail'][0] in ch}
+                    for c2, v2 in ch.items():
+                        if need <= 0:
+                            break
+                        if c2 in mem or c2 in (k, 'C20') or c2 in T or c2 in rp or not (v2['alive'] and v2.get('present', True) and v2.get('area')):
+                            continue
+                        if len(others(v2['area'], c2)) == 2:
+                            continue
+                        mv = _move_to(s, c2, v['area'])
+                        if mv and put(c2, [mv]):
+                            need -= 1
+                    return need
+
+                def forbid(need):
+                    for c2 in risk:
+                        if need <= 0:
+                            break
+                        if put(c2, ['MVX']):
+                            need -= 1
+                    return need
+                # 既定は移動禁止が先。bring_first（oplanB・planB_*）は人を入れるのが先（ユーザー「移動禁止より人を入れるほうがループ制限の
+                # カード消費しないので有効では」2026-10-30。d13 の決まった手順の脚本家で oplan 4試合: 移動禁止が先 3勝・人を入れるのが先 1勝。比べ中）
+                need = forbid(bring_in(need)) if getattr(base, 'bring_first', False) else bring_in(forbid(need))
         # 暗躍の条件（層②の句のうち暗躍・ボード）: 負け筋の暗躍の対象に伏せ札があり、暗躍+2 で必要量に届きうるなら暗躍禁止を最優先
         # （d14: 予約の手が札の枠を取り、学校の暗躍2（巨大時限爆弾X）を止めずにループ終了で負けた）。暗躍禁止は1日1枚だけ
         cult_areas = {v['area'] for c, v in ch.items() if v['alive'] and ph.base_role(sv, c) == 'CULTIST'}

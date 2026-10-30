@@ -78,6 +78,10 @@ def _make(kind, rng, script=None):
         if kind == 'oreadKQLb':
             p.safe_worst, p.min_worlds = True, 48
         return p
+    if kind == 'oplanB' or kind.startswith('planB_'):  # 2人きりを防ぐのに、移動禁止より先に人を入れる（比べ用）
+        p = make('oplan' if kind == 'oplanB' else 'plan_' + kind[6:], rng, script)
+        p.bring_first = True
+        return p
     if kind.startswith('plan_'):  # 脚本を知らない主人公＋予約（推理の世界ごとに作って多数決）。plan_read2 など（2026-10-30）
         from selfplay.pc_plan import plan_pc
         return plan_pc(rng, script, base_kind=kind[5:], fair=True)
