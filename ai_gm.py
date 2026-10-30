@@ -144,6 +144,19 @@ class Table:
         loop = min(s['loop'], self.script['loops']) if s.get('loop') else None  # 最後の戦いではエンジンのループ番号が1つ進んでいる
         self._append('log.jsonl', {'n': self.n, 'loop': loop, 'day': s.get('day'), 'text': text, **({'ev': ev} if ev else {})})
 
+    def _mm_routes(self):
+        """人が脚本家: いまの盤面でありえる敗北（負け筋）。シナリオエディタと同じ一覧（selfplay.editor_analysis.route_list）。盤面が変わったときだけ数え直す"""
+        s = self.s
+        key = json.dumps([s.get('loop'), s.get('day'), s.get('chars'), s.get('boards')], sort_keys=True, default=str)
+        if getattr(self, '_routes_key', None) != key:
+            from selfplay.editor_analysis import route_list
+            try:
+                self._routes = route_list(s, self.script['days'], self.script.get('set'))
+            except Exception:  # 最後の戦い・ゲーム終了などで数えられない盤面
+                self._routes = []
+            self._routes_key = key
+        return self._routes
+
     def show(self, s=None, phase_name=None, waiting=None, placed=None, bump=True):
         """bump=False: 同じ段階の中での表示の更新（phaseId を変えないので、送信済みの操作が古い扱いにならない）。"""
         if s is not None:
@@ -186,7 +199,8 @@ class Table:
                               'roles': [{'char': name(c), 'id': c, 'role': ROLE_JA.get(r, r)} for c, r in sc['roles'].items()],
                               'incidents': [{'day': i['day'], 'name': INC_JA.get(i['id'], i['id']), 'culprit': name(i['culprit']), 'cid': i['culprit']}
                                             for i in sc['incidents']],
-                              'used': list(self.s.get('used', {}).get('M', []))}
+                              'used': list(self.s.get('used', {}).get('M', [])),
+                              'ruleIds': list(sc['rules']), 'routes': self._mm_routes()}
         pub.update({'mode': 'ai', 'side': 'mm' if self.mm_side else 'pc', 'watch': self.watch, 'blind': self.record_file != 'record.json' and not self.reveal,  # 伏せた脚本の試合の途中（判断の記録は非公開） 'reply': self.reply, 'reveal': self.reveal,  # 対AIモード（盤面は手動モード用の欄＝脚本家に伝える・ハッシュ・異議を出さない）
                     'game': self.game, 'phaseId': self.phase_id, 'phaseName': self.phase_name, 'waiting': self.waiting,
                     'loops': self.script['loops'], 'days': self.script['days'],

@@ -7,17 +7,17 @@ set -euo pipefail
 WEB="$(cd "$(dirname "$0")" && pwd)"; PLAY="$(dirname "$WEB")"; ROOT="$WEB/dist"; OUT="$ROOT/play"
 mkdir -p "$OUT/data"
 python3 - "$WEB/landing.html" "$WEB/release.json" "$ROOT/index.html" <<'PY'
-# トップページに最新のリリースノートを差し込む（web/release.json は Pages の組み立てで gh release view が書く。無ければ何も載せない）
+# トップページに最近のリリースノートを差し込む（web/release.json は Pages の組み立てで GitHub の API が書く、新しい順の配列。無ければ何も載せない）
 import html, json, os, re, sys
 t = open(sys.argv[1], encoding='utf-8').read()
 sec = ''
 if os.path.exists(sys.argv[2]):
-    r = json.load(open(sys.argv[2], encoding='utf-8'))
     def line(x):  # リリースノートは「- 項目」の並び。**太字** だけ通す
         return re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', html.escape(x))
-    items = ''.join(f'<li>{line(x[2:])}</li>' for x in r['body'].splitlines() if x.startswith('- '))
-    sec = (f'<section>\n    <h2>最新の更新</h2>\n    <p><a href="{html.escape(r["url"])}">{html.escape(r["name"] or r["tagName"])}</a>'
-           f'（{r["publishedAt"][:10]}）</p>\n    <ul>{items}</ul>\n  </section>')
+    rels = ''.join(f'<div class="rel"><p><a href="{html.escape(r["html_url"])}">{html.escape(r["name"] or r["tag_name"])}</a>（{r["published_at"][:10]}）</p>'
+                   f'<ul>{"".join(f"<li>{line(x[2:])}</li>" for x in (r["body"] or "").splitlines() if x.startswith("- "))}</ul></div>'
+                   for r in json.load(open(sys.argv[2], encoding='utf-8'))[:5] if not r.get('draft'))
+    sec = f'<section>\n    <h2>最近の更新</h2>\n    <div class="rels">{rels}</div>\n  </section>' if rels else ''
 open(sys.argv[3], 'w', encoding='utf-8').write(t.replace('<!--RELEASE-->', sec, 1))
 PY
 cp -r "$WEB/shots" "$ROOT/"  # トップページのゲーム画面（惨劇コモンズ5th を含む画面写し。CC BY-SA 2.1 JP）

@@ -305,14 +305,16 @@ def play_day(s, player, loop, day, log, box, mm_override=None):
         log('decisions', {'loop': loop, 'day': day, 'phase': 'ability', 'who': s['leader'], 'kind': 'ability',
                           'options': len(cands), 'choice': {'char': cid, 'ability': idx, 'arg': arg}, 'refused': ref})
         log('events', {'loop': loop, 'day': day, 'phase': 'ability', 'events': _use(s, player, cid, idx, arg, ref)})
+    def ask_inc(st, inc):  # 選べる対象が無い（遠隔殺人で暗躍2以上がいない・殺人事件で同じエリアに誰もいない）なら聞かない（人の脚本家が空の選択肢で止まった。2026-10-31）
+        return None if incident_options(st, inc) == [] else player.incident_choice(st, inc)
     for inc in ph.incident_today(s):
-        ch = player.incident_choice(s, inc) if ph.incident_occurs(s, inc) else None
+        ch = ask_inc(s, inc) if ph.incident_occurs(s, inc) else None
         if inc['culprit'] == 'C29' and ph.incident_occurs(s, inc):
             # 教祖: 事件効果を2回解決する。2回目の選択は1回目を解決した後の盤面で決める
             after = copy.deepcopy(s)
             try:
                 ph.incident_effect(after, inc['id'], 'C29', ch, [])
-                ch = [ch, player.incident_choice(after, inc)]
+                ch = [ch, ask_inc(after, inc)]
             except ph.LoopEnd:
                 ch = [ch, None]
         log('decisions', {'loop': loop, 'day': day, 'phase': 'incident', 'who': 'M', 'kind': 'incident_target', 'id': inc['id'], 'choice': ch})

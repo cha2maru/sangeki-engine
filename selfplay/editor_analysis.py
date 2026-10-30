@@ -296,6 +296,21 @@ def loop_keys(game, budget=10.0, mm_side=True):
     return {'kind': 'mind', 'pc': pc, 'pc_note': pc_note, 'pc_any': pc_any, 'mm': mm, 'mm_note': mm_note}
 
 
+def route_list(s, days, set_id=None):
+    """盤面 s でありえる敗北（負け筋）を近い順に。シナリオエディタ（ループ1の朝）と、人が脚本家の盤面（いまの盤面）が使う。"""
+    st = sets.load(set_id)
+    routes = []
+    for r in sorted(enumerate_routes(s), key=lambda r: r['total']):
+        if r['total'] >= INF:
+            continue
+        name = ROUTE.get(r['id']) or st['rules'].get(r['id'], {}).get('name') or INCIDENTS.get(r['id'], {}).get('name') or r['id']
+        if r['via'] and r['id'] not in ('FRIEND',):
+            name += f"（{_nm(r['via'])}）"
+        routes.append({'name': name, 'goal': _names(r['goal']), 'conds': [_cond(c) for c in r['conds']],
+                       'total': round(r['total'], 1), 'note': r.get('note', ''), 'plan': plan(s, r, days)})
+    return routes
+
+
 def analyze(sc):
     """{'errors'} か {'routes': [{name, goal, conds, total}], 'holds': True|False|None, 'holds_text', 'skipped'}。
     sc['quick'] が真なら負け筋の一覧だけ（すぐ返る。守りきれるかの読み切りは最大 HOLD_BUDGET 秒かかる）。"""
@@ -306,16 +321,7 @@ def analyze(sc):
     from selfplay.script_routes import start_state
     game = to_game(normalize(sc))
     s = start_state(game)
-    st = sets.load(game.get('set'))
-    routes = []
-    for r in sorted(enumerate_routes(s), key=lambda r: r['total']):
-        if r['total'] >= INF:
-            continue
-        name = ROUTE.get(r['id']) or st['rules'].get(r['id'], {}).get('name') or INCIDENTS.get(r['id'], {}).get('name') or r['id']
-        if r['via'] and r['id'] not in ('FRIEND',):
-            name += f"（{_nm(r['via'])}）"
-        routes.append({'name': name, 'goal': _names(r['goal']), 'conds': [_cond(c) for c in r['conds']],
-                       'total': round(r['total'], 1), 'note': r.get('note', ''), 'plan': plan(s, r, game['days'])})
+    routes = route_list(s, game['days'], game.get('set'))
     if quick:
         return {'routes': routes, 'days': game['days'], 'incidents': [{'day': i['day'], 'name': INCIDENTS[i['id']]['name']}
                                                                        for i in game['incidents']]}

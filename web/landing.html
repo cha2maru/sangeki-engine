@@ -48,6 +48,8 @@ h2 { color:var(--acc); font-size:20px; margin:0 0 10px; }
 .card h3 { margin:0 0 4px; font-size:16px; }
 .card p { margin:0; color:#d6d0c4; font-size:14px; }
 .beta { font-size:11px; font-weight:normal; border:1px solid var(--line); border-radius:4px; padding:0 5px; margin-left:6px; vertical-align:middle; }
+.rels { max-height:300px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:4px 14px; }  /* 最近の更新: 5つを中でスクロール（いちばん上が最新） */
+.rels .rel + .rel { border-top:1px solid var(--line); }
 ol li, ul li { margin:4px 0; }
 .credit { font-size:12px; color:var(--mut); margin-top:4px; text-align:right; }
 .shots { display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; max-width:1100px; margin:20px auto 0; }

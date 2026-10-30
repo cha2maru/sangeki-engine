@@ -2,7 +2,7 @@
 <html lang="ja">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>惨劇RoopeR 盤面</title>
+<title>惨劇RoopeRソリティア 盤面</title>
 <meta name="description" content="惨劇RoopeR ソリティア（非公式）の対戦画面。主人公3人を操作して、自動の脚本家と対戦する（BakaFire Party様の惨劇RoopeR の非公式の二次創作）。">
 <meta property="og:title" content="惨劇RoopeR ソリティア（非公式）"><meta property="og:image" content="https://cha2maru.github.io/sangeki-engine/og.jpg"><meta name="twitter:card" content="summary_large_image">
 <style>
@@ -244,7 +244,11 @@ div.eng { display:none; } body.eng-on div.eng { display:block; }  /* 列を足�
 #placeline { display:none; }  /* 狭い画面だけ（下の @media で出す） */
 #board .area .turf { position: absolute; right: 6px; bottom: 6px; width: 44px; height: 44px; border-radius: 50%; pointer-events: none; }
 /* ---- 人が遊ぶための表示（設定パネルと URL の ?ux=off で切れる）---- */
-#band .tools { margin-left:auto; display:flex; gap:4px; flex-shrink:0; } #helpbtn, #uxbtn, #filebtn { padding:0 8px; } #band button { white-space:nowrap; flex-shrink:0; }
+#band .tools { margin-left:auto; display:flex; gap:4px; flex-shrink:0; }
+/* 画像のクレジット: PC は帯の右に小さく（盤面の下に置くと1画面からはみ出してスクロールが出た。ユーザー 2026-10-31）、狭い画面は従来どおりページの下 */
+#band .tools .credit { margin:0 6px 0 0; align-self:center; font-size:10px; color:var(--mut); white-space:nowrap; }
+@media (min-width:901px) { #credit-foot { display:none; } }
+@media (max-width:900px) { #band .tools .credit { display:none; } } #helpbtn, #uxbtn, #filebtn { padding:0 8px; } #band button { white-space:nowrap; flex-shrink:0; }
 #filepanel { position:fixed; z-index:26; top:calc(var(--bandh, 52px) + 4px); right:12px; background:#222; border:1px solid var(--acc); border-radius:4px;
   padding:8px; display:none; box-shadow:0 4px 16px #000; min-width:240px; }
 #filepanel.on { display:flex; flex-direction:column; gap:6px; } #filepanel button, #filepanel a { width:100%; text-align:left; white-space:nowrap; box-sizing:border-box; }
@@ -349,6 +353,8 @@ body.noimg .ch .rolec { position:static; order:0; width:100%; text-align:center;
 .fxf { position:fixed; z-index:40; pointer-events:none; font-weight:900; font-size:16px; color:#fff; text-shadow:0 0 3px #000, 0 0 6px #000; }
 .fxf.rew { font-size:26px; color:var(--acc); white-space:nowrap; } .fxf.ban { font-size:24px; white-space:nowrap; padding:4px 14px; background:rgba(0,0,0,.7); border-radius:6px; }
 .fxf.death { color:#ff7a6a; } .fxf.arrow { font-size:26px; color:#fff; } .fxf.arrow.combo { font-size:15px; white-space:nowrap; } .fxf.ok { color:#7be39a; } .fxf.lead { color:var(--acc); font-size:14px; white-space:nowrap; }
+.mmpanel .mmrule { text-decoration:underline dotted; cursor:help; } .mmpanel .mmroutes table { border-collapse:collapse; width:100%; } .mmpanel .mmroutes td:first-child { width:36%; } .mmpanel .mmroutes td { border-top:1px solid #5a2020; padding:3px 4px; vertical-align:top; font-size:12px; } .mmpanel .mmroutes .ok { color:#ffb070; }
+.sheetbar .mmcul, #sheetbar .mmcul { color:#ff9a9a; font-size:10px; }
 .mmpanel .mmsheet { background:#2a1414; border:1px solid #7a2626; border-radius:4px; padding:6px 8px; margin:6px 0; font-size:13px; } .mmpanel .mmsheet div { margin:2px 0; }
 .mmpanel .mmq { border:1px solid var(--acc); border-radius:4px; padding:6px 8px; margin:6px 0; } .mmpanel .row { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:4px 0; }
 .fxf.ban.box { white-space:pre-line; background:rgba(0,0,0,.9); font-size:17px; line-height:1.45; text-align:center; max-width:min(86vw, 640px); } .fxf.ban.ab { color:#b6f0c8; border:2px solid #50c878; }
@@ -445,7 +451,7 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
    </div></section>
   </div>
 </div>
-<p class="mut" style="margin:8px 12px">画像: <a href="http://bakafire.main.jp/rooper/sr_dl_04_sozai.htm" target="_blank" style="color:var(--mut)">惨劇コモンズ5th</a>（惨劇コモンズ作成: BakaFire様・NEKOG(紺ノ玲)様、CC BY-SA 2.1 JP）</p>
+<p class="mut" id="credit-foot" style="margin:8px 12px">画像: <a href="http://bakafire.main.jp/rooper/sr_dl_04_sozai.htm" target="_blank" style="color:var(--mut)">惨劇コモンズ5th</a>（惨劇コモンズ作成: BakaFire様・NEKOG(紺ノ玲)様、CC BY-SA 2.1 JP）</p>
 <div id="menu"></div>
 <div id="ask" role="dialog" aria-modal="true" aria-labelledby="ask-t"><div class="box"><h2 id="ask-t"></h2><div id="ask-b"></div><div class="btns"><button id="ask-no"></button><button class="go" id="ask-ok"></button></div></div></div>
 <div id="think" role="status" aria-live="polite"><div class="t"><span class="spin"></span><span id="thinktxt">脚本家が考えています</span><span id="thinksec" class="mut" aria-hidden="true"></span></div>
@@ -468,7 +474,7 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
   <ol>
     <li>あなたは主人公 A・B・C の3人です。自動の脚本家と対戦します。</li>
     <li>毎日、リーダーから順に、手札の札を<b>押してから置き先のキャラクターかエリアを押す</b>（ドラッグでも、右クリックのメニューでも置けます）。3枚そろったら<b>『確定して送る』</b>。何が起きたかは<b>当日の流れ</b>にまとまります。</li>
-    <li><b>札の取り消し</b>（送る前だけ）: 「送信待ち」の欄の <b>×</b> で1枚ずつ、<b>『取り消す』</b>で全部。同じ主人公でもう一度置けば置き直し。手札を選んだ状態は <b>Esc</b> かもう一度クリックで解除。『確定して送る』の後は取り消せません。</li>
+    <li><b>札の取り消し</b>（送る前だけ）: 「送信待ち」の欄の <b>×</b> か、置き先を押して『取り外す』で1枚ずつ、<b>『取り消す』</b>で全部。同じ主人公でもう一度置けば置き直し。手札を選んだ状態は <b>Esc</b> かもう一度クリックで解除。『確定して送る』の後は取り消せません。</li>
     <li>友好能力は「友好能力」の欄の『宣言』で1件ずつ。終わったら『能力の宣言を終える』。</li>
     <li>フェイズごとに<b>場面カード</b>で起きたことを確かめられます（『盤面を見る』『解決前／解決後』）。</li>
     <li>試合の記録はディスクの『リプレイを書き出す』か、終了時の『リプレイを保存』で保存できます。保存したファイルは下の『リプレイを見る…』で見返せます。</li>
@@ -797,15 +803,16 @@ function renderMain() {
   const w = S.waiting || {};
   document.body.classList.toggle('mode-ai', S.mode === 'ai' || canStart);
   document.body.classList.toggle('watching', !!S.watch);
-  document.body.classList.toggle('mmside', S.side === 'mm');  // 人が脚本家: 主人公の手札・送信待ち・友好能力の欄と、札を置くメニューは出さない
+  document.body.classList.toggle('mmside', S.side === 'mm');
+  if (S.side === 'mm' && !engMM) { engMM = true; engOn = true; applyEng(); $('engbtn').title = '主人公から見えている情報: 公開された出来事から、ルール上ありうる組み合わせを数えた割合（主人公にどこまで割れているか）'; }  // 人が脚本家: 主人公の手札・送信待ち・友好能力の欄と、札を置くメニューは出さない
   if ($('start').classList.contains('on')) $('st-cancel').textContent = S.loop && !(S.phaseName || '').startsWith('ゲーム終了') ? '続きから遊ぶ' : 'やめる';
   document.body.classList.toggle('timegap', (S.waiting || {}).kind === 'time_gap');
   if (w.kind !== lastKind) { lastKind = w.kind; $('p-ops').querySelector('.body').scrollTop = 0; }  // 選ぶものが変わったら、上に来た一覧が見えるように
   document.body.classList.toggle('phase-ability', (S.waiting || {}).kind === 'ability');  // 観戦: 操作の欄は観戦の欄に（手札・送信・友好能力は出さない）  // 開始画面のあるサーバー＝対AIモード（試合の前も）
   $('band').innerHTML = S.loop ? `<span>ループ <b>${S.loop}</b>/${S.loops}</span><span>日 <b>${S.day ?? '-'}</b>/${S.days}</span>
     <span class="ph">${esc(S.phaseName)}</span><span>リーダー <b>${esc(S.leader)}</b></span>
-    <span class="wait ${myTurn() ? 'mine' : ''}">${esc(w.text || '入力待ちなし')}</span><span class="tools"><button id="helpbtn" title="遊び方・クレジット">？</button><button id="filebtn" title="ゲーム・リプレイ・共有（新しいゲーム、シナリオを作る、書き出し・読み込み、URL）" aria-label="ゲーム・リプレイ・共有"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-2px"><path fill="currentColor" d="M4 3h13l4 4v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm2 2v5h10V5H6zm6 8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></button><button id="uxbtn" title="表示の設定">⚙</button></span>`
-    : '状態を読み込み中… <span class="tools"><button id="helpbtn" title="遊び方・クレジット">？</button><button id="filebtn" title="ゲーム・リプレイ・共有（新しいゲーム、シナリオを作る、書き出し・読み込み、URL）" aria-label="ゲーム・リプレイ・共有"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-2px"><path fill="currentColor" d="M4 3h13l4 4v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm2 2v5h10V5H6zm6 8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></button><button id="uxbtn" title="表示の設定">⚙</button></span>';
+    <span class="wait ${myTurn() ? 'mine' : ''}">${esc(w.text || '入力待ちなし')}</span><span class="tools"><a class="credit" href="http://bakafire.main.jp/rooper/sr_dl_04_sozai.htm" target="_blank" rel="noopener" title="惨劇コモンズ作成: BakaFire様・NEKOG(紺ノ玲)様、CC BY-SA 2.1 JP">画像: 惨劇コモンズ5th（CC BY-SA 2.1 JP）</a><button id="helpbtn" title="遊び方・クレジット">？</button><button id="filebtn" title="ゲーム・リプレイ・共有（新しいゲーム、シナリオを作る、書き出し・読み込み、URL）" aria-label="ゲーム・リプレイ・共有"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-2px"><path fill="currentColor" d="M4 3h13l4 4v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm2 2v5h10V5H6zm6 8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></button><button id="uxbtn" title="表示の設定">⚙</button></span>`
+    : '状態を読み込み中… <span class="tools"><a class="credit" href="http://bakafire.main.jp/rooper/sr_dl_04_sozai.htm" target="_blank" rel="noopener" title="惨劇コモンズ作成: BakaFire様・NEKOG(紺ノ玲)様、CC BY-SA 2.1 JP">画像: 惨劇コモンズ5th（CC BY-SA 2.1 JP）</a><button id="helpbtn" title="遊び方・クレジット">？</button><button id="filebtn" title="ゲーム・リプレイ・共有（新しいゲーム、シナリオを作る、書き出し・読み込み、URL）" aria-label="ゲーム・リプレイ・共有"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-2px"><path fill="currentColor" d="M4 3h13l4 4v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm2 2v5h10V5H6zm6 8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></button><button id="uxbtn" title="表示の設定">⚙</button></span>';
   if (S.reveal) bandAdd('<button onclick="openReveal()">非公開シート</button>');
   if (Date.now() < fxBusyUntil) fxBusyMark();
   if ((S.phaseName || '').startsWith('ゲーム終了') && canStart) bandAdd('<button class="go" onclick="openStart()">新しいゲーム</button>');
@@ -909,7 +916,7 @@ const dropGameNotes = () => { clearTimeout(saveT); NOTES = Object.fromEntries(Ob
 fetch('/data/rules').then(r => r.json()).then(d => { RULESDATA = d.rules || {}; renderSheet(); }).catch(() => {});
 fetch('/data/roles').then(r => r.json()).then(d => { for (const [k, v] of Object.entries(d.roles || {})) ROLENAMES[k] = v.name || v; renderSheet(); }).catch(() => {});
 fetch('/notes').then(r => r.json()).then(n => { NOTES = n || {}; renderSheet(); }).catch(() => {});
-let engOn = false; try { engOn = localStorage.getItem('eng') === '1'; } catch {}
+let engOn = false, engMM = false; try { engOn = localStorage.getItem('eng') === '1'; } catch {}
 const qEng = new URLSearchParams(location.search).get('eng'); if (qEng != null) engOn = qEng === '1';
 function applyEng() { document.body.classList.toggle('eng-on', engOn); $('engbtn').setAttribute('aria-pressed', String(engOn)); }
 $('engbtn').onclick = async () => {
@@ -1215,6 +1222,8 @@ document.addEventListener('click', e => {
   if (e.target.id === 'wb-pause') { watchPaused = !watchPaused; if (!watchPaused && !watchT && watchQ.length) watchStep(); render(); }
   else if (e.target.id === 'wb-end') { watchPaused = false; fxSkip(); render(); }
 });
+// 人が脚本家: 事件予定の横に犯人（非公開シート）
+const mmCulprit = d => { const i = S.side === 'mm' && S.mmSheet && S.mmSheet.incidents.find(x => x.day === d); return i ? ` <small class="mmcul" title="犯人（非公開シート）">犯人 ${esc(i.culprit)}</small>` : ''; };
 function renderSheetbar() {
   const ps = S.publicSheet || {}, L = S.loops || ps.loops, D = S.days || ps.days;
   if (!L || !D) { $('sheetbar').innerHTML = ''; return; }
@@ -1226,7 +1235,7 @@ function renderSheetbar() {
     const inc = (S.incidents || []).find(i => i.day === d), today = d === S.day && !ended;
     const res = inc ? Object.entries(inc.results || {}).map(([l, r]) => `<span class="r ${r === '発生' ? 'y' : 'n'}">L${l} ${esc(r)}</span>`).join('') : '';
     return `<div class="dc ${today ? 'today' : ''}"><div class="dn">${d}日${today ? ' <b>今日</b>' : ''}${today && todayCards ? ' <button class="pubc" title="今日公開された札（当日の流れの行動解決の行）">公開札 6</button>' : ''}</div>`
-      + (inc ? `<div class="in" data-incday="${d}" role="button" tabindex="0" title="${esc(inc.effect || '')}（押すと推理の事件の行へ）">${noimg() ? '' : `<img class="tk" src="${IMG}tokens/chip_08${IMGX}" alt="">`}${esc(inc.name)}</div><div>${res}</div>` : '<div class="mut">—</div><div></div>') + '</div>';
+      + (inc ? `<div class="in" data-incday="${d}" role="button" tabindex="0" title="${esc(inc.effect || '')}（押すと推理の事件の行へ）">${noimg() ? '' : `<img class="tk" src="${IMG}tokens/chip_08${IMGX}" alt="">`}${esc(inc.name)}${mmCulprit(d)}</div><div>${res}</div>` : '<div class="mut">—</div><div></div>') + '</div>';
   }).join('');
   const k = PHASES9.findIndex(p => (S.phaseName || '').includes(p + 'フェイズ'));
   const rack = ['A', 'B', 'C'].map(p => { const lim = PCARDS.filter(x => x[2]).map(x => x[0]); const used = lim.filter(n => (S.used?.[p] || []).includes(n));
@@ -1251,7 +1260,16 @@ function charTipHTML(name) {
     + row('初期エリア', esc(AREA_JA[cp.start] || cp.start || '')) + row('禁止エリア', esc((cp.forbidden || []).map(a => AREA_JA[a] || a).join('・')))
     + row('属性', esc((cp.tags || []).join('・'))) + row('特性', esc(cp.traits || ''))
     + '</table>' + ((cp.abilities || []).length ? '<div class="h2">友好能力</div><ul>' + cp.abilities.map(a =>
-      `<li><b>友好${a.need}${a.once ? '★' : ''}</b> ${esc(a.text)}</li>`).join('') + '</ul>' : '');
+      `<li><b>友好${a.need}${a.once ? '★' : ''}</b> ${esc(a.text)}</li>`).join('') + '</ul>' : '') + mmTipHTML(name);
+}
+// 人が脚本家: 説明に非公開シートの役職の能力（早見表）と、犯人になっている事件の効果を足す
+function mmTipHTML(name) {
+  const sh = S.side === 'mm' && S.mmSheet; if (!sh) return '';
+  const role = (sh.roles.find(r => r.char === name) || {}).role, ab = ROLE_ABIL.find(x => x[0] === role);
+  const incs = sh.incidents.filter(i => i.culprit === name);
+  return '<div class="h2">非公開シート（脚本家だけ）</div><ul>'
+    + `<li><b>${esc(role || 'パーソン')}</b> ${ab ? `<span class="mut">（上限 ${esc(ab[1])}）</span>${esc(ab[3])}` : role ? '' : '<span class="mut">能力なし</span>'}</li>`
+    + incs.map(i => `<li><b>犯人 ${i.day}日目 ${esc(i.name)}</b> ${esc(((S.incidents || []).find(x => x.day === i.day) || {}).effect || '')}</li>`).join('') + '</ul>';
 }
 const ctip = Object.assign(document.createElement('div'), { id: 'chartip' }); document.body.appendChild(ctip);
 let ctipFor = null;
@@ -1477,6 +1495,9 @@ function targetMenu(x, y, target) {
   const kind = S.waiting?.kind;
   const who = target.startsWith('board:') ? target.slice(6) : target;
   if (!target.startsWith('board:')) gridSelect(target);
+  // 送る前の札は、置き先を押して1枚ずつ外せる（脚本家の側の「n枚目を取り外す」と同じ。ユーザー 2026-10-31）
+  pending.filter(q => q.type === 'card' && q.target === target).forEach(q => opts.push({ label: `主人公${q.actor} の札（${q.card}）を取り外す`,
+    go: () => { pending = pending.filter(r => r !== q); render(); } }));
   // 行動カード: どの主人公が・どの札を
   ['A','B','C'].forEach(p => opts.push({ label: `主人公${p} が札を置く…`, dim: kind !== 'cards', go: () =>
     menu(x, y, `主人公${p} → ${who}`, PCARDS.map(([n, , lim]) => ({ label: n + (lim ? ' ★' : ''), dim: lim && (S.used?.[p] || []).includes(n),
@@ -1608,6 +1629,16 @@ function renderOptions() {
   o.forEach(label => { const b = document.createElement('button'); b.className = 'optbtn go'; b.title = '押すとすぐ送信される'; b.textContent = label;
     b.style.margin = '6px 6px 0 0'; b.onclick = async () => { if (await confirmEndFinal(label)) post({ type: 'option', choice: label }); }; box.appendChild(b); });
 }
+// 人が脚本家: ゲーム終了の筋（いまの盤面でありえる敗北。シナリオエディタの負け筋と同じ一覧。✓ は満たしている条件、手順は主人公に邪魔されないときの目安）
+function mmRoutesHTML(routes) {
+  if (!routes) return '';
+  const rows = routes.map(x => `<tr><td>${esc(x.name)}<div class="mut">${esc(x.goal)}</div></td><td>${x.conds.map(c => `<span class="${c.met ? 'ok' : ''}">${c.met ? '✓' : '・'}${esc(c.text)}</span>`).join('<br>')}`
+    + (x.plan && x.plan.steps ? `<div class="mut">最短: ${x.plan.steps.map(esc).join(' → ')} → ${esc(x.plan.done)}（期限 ${esc(x.plan.deadline)}）</div>` : x.plan && x.plan.none ? `<div class="mut">${esc(x.plan.none)}</div>` : '') + '</td></tr>').join('');
+  return `<details class="mmsheet mmroutes" ${mmRoutesOpen ? 'open' : ''}><summary>ゲーム終了の筋（いまの盤面・近い順 ${routes.length}本）</summary>`
+    + (rows ? `<table>${rows}</table>` : '<div class="mut">いまの盤面から届く負け筋はありません</div>') + '</details>';
+}
+let mmRoutesOpen = true;
+document.addEventListener('toggle', e => { if (e.target.classList?.contains('mmroutes')) mmRoutesOpen = e.target.open; }, true);
 // ---- 人が脚本家（ユーザー「ブラウザで脚本家として遊べるように」2026-10-28）: 進行役が出す ui（cards・form・multi）を描き、{type: 'mm', choice} を送る ----
 function renderMM(box) {
   box.querySelectorAll('.mmpanel').forEach(x => x.remove());
@@ -1615,8 +1646,8 @@ function renderMM(box) {
   const p = document.createElement('div'); p.className = 'mmpanel';
   const sh = S.mmSheet;
   if (sh) p.insertAdjacentHTML('beforeend', `<details class="mmsheet" open><summary>非公開シート（あなたの脚本）</summary>
-    <div><b>ルール</b> ${sh.rules.map(esc).join('・')}</div>
-    <div><b>配役</b> ${sh.roles.map(r => `${esc(r.char)}＝${esc(r.role)}`).join('、') || 'パーソンのみ'}</div>
+    <div><b>ルール</b> ${sh.rules.map((r, i) => `<span class="mmrule" data-rule="${esc((sh.ruleIds || [])[i] || '')}" tabindex="0">${esc(r)}</span>`).join('・')}</div>
+    <div><b>配役</b> ${sh.roles.map(r => `<span title="${esc((ROLE_ABIL.find(x => x[0] === r.role) || [])[3] || '')}">${esc(r.char)}＝${esc(r.role)}</span>`).join('、') || 'パーソンのみ'}</div>
     <div><b>事件</b> ${sh.incidents.map(i => `${i.day}日目 ${esc(i.name)}（犯人 ${esc(i.culprit)}）`).join('、') || 'なし'}</div>
     <div class="mut">使った一度きりの札: ${sh.used.length ? sh.used.map(esc).join('・') : 'なし'}</div></details>`);
   const w = S.waiting || {}, ui = w.ui;
@@ -1650,6 +1681,7 @@ function renderMM(box) {
       post({ type: 'mm', choice, label: w.mmKind });
     });
   }
+  if (sh) p.insertAdjacentHTML('beforeend', mmRoutesHTML(sh.routes));  // 問いの下（問いを画面の上に残す）
   box.appendChild(p);
 }
 // 最後の戦い: 『宣言を終える』を押したら、まだ宣言していない人を並べて確かめる（ユーザー 2026-10-17、レビュー R8）。
@@ -1911,7 +1943,7 @@ function renderThink() {
     $('thinkflav').textContent = daily ? `脚本家は${flav}` : '';
   }
   const ended = (S.phaseName || '').startsWith('ゲーム終了');
-  document.title = ended ? '終了 ― 惨劇RoopeR' : myTurn() ? '★あなたの番 ― 惨劇RoopeR' : on ? '考え中… ― 惨劇RoopeR' : '惨劇RoopeR 盤面';
+  document.title = ended ? '終了 ― 惨劇RoopeR' : myTurn() ? '★あなたの番 ― 惨劇RoopeR' : on ? '考え中… ― 惨劇RoopeR' : '惨劇RoopeRソリティア 盤面';
 }
 setInterval(renderThink, 1000);
 
