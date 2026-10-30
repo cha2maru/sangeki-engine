@@ -374,6 +374,88 @@ class ReadingBlocker(DeductiveBlocker):
         allt = self._targets(s)
         hands = {p: [c for c in CARDS['protagonist_hand'] if not (c in ONCE[p] and c in s['used'][p])] for p in order}
 
+        # 余った札（その手で止める札を決めていない主人公）は無作為に引かず、友好を積む（ユーザー 2026-10-31: 学校のボードに移動禁止を
+        # 無作為に置いていた）。積む先は友好能力の解放に近い人物から。因果の糸がありうる世界（次のループに友好の不安が返る）で最終ループでなければ、
+        # すでに友好がある人物に重ねる（新しく不安の種を増やさない）か、ボードに暗躍禁止（ボードで効く唯一の札）
+        reveal_c = None
+        if self.reveal and s['loop'] < (s['script'].get('loops') or self.loops):
+            from selfplay.players import INFO_ABILITIES
+            used = s.get('ability_used_loop', [])
+            rm_, rt_ = self.ded.marginals()
+
+            def rv_ent(c, _m=rm_, _t=rt_):
+                ps = [w / _t for w in _m.get(c, {}).values() if w > 0] if _t else []
+                return -sum(p * math.log2(p) for p in ps)
+            def rx_ent():  # ルールXの組（脚本に入っているルールXの集合）の不確かさ（ビット）
+                import numpy as np
+                _, C_ = self.ded._sync()
+                w_ = self.ded._w(C_)
+                xs_ = set(self.ded.T.xs)
+                by = {}
+                for ci, wi in zip(np.asarray(C_).tolist(), np.asarray(w_).tolist()):
+                    k = frozenset(x for x in self.ded.T.combos[ci] if x in xs_)
+                    by[k] = by.get(k, 0.0) + wi
+                t_ = sum(by.values())
+                return -sum(v / t_ * math.log2(v / t_) for v in by.values() if v > 0) if t_ else 0.0
+            best = None
+            for (cid, idx), need in INFO_ABILITIES.items():
+                ch = s['chars'].get(cid)
+                if ch is None or not ch['alive'] or not ch.get('present', True) or f'{cid}#{idx}' in used or ch['gw'] >= need:
+                    continue
+                from engine.abilities import ABILITIES as _AB
+                if _AB.get((cid, idx), (0, 0, ''))[2] == 'loop2' and s['loop'] < 2:  # イレギュラー・コピーキャットは第2ループから
+                    continue
+                kind = TARGET_ROLE.get((cid, idx))
+                here = [c for c, x in s['chars'].items() if x['alive'] and x.get('present', True) and x['area'] == ch['area'] and c != cid]
+                if kind == 'self':
+                    e = rv_ent(cid)
+                elif kind in ('any_here', 'here'):
+                    e = max((rv_ent(c) for c in here), default=0.0)
+                elif (cid, idx) == ('C07', 0):  # 情報屋: ルールXの組の不確かさ（以前は 0.5 の決め打ちで、ほかの能力に負けて友好を積まなかった。ユーザー 2026-10-31）
+                    e = rx_ent()
+                elif kind == 'student_here':
+                    from engine.resolve import CHARS as _C
+                    e = max((rv_ent(c) for c in here if '学生' in _C[c]['tags']), default=0.0)
+                else:
+                    e = 0.5
+                sc_ = e / (need - ch['gw'])  # 割れる不確かさ ÷ 足りない友好（d16 の Claude は教師[4] を選んだ）
+                if best is None or sc_ > best[0]:
+                    best = (sc_, cid)
+            if best and best[0] <= 0.05:
+                best = None
+            plan = getattr(self, '_reveal_plan', None)  # ループの中では一度決めた持ち主に集中する（日ごとに変えると友好が散った）
+            if plan and plan[0] == s['loop'] and s['chars'].get(plan[1], {}).get('alive') and not any(
+                    u.startswith(plan[1] + '#') for u in used):
+                best = (1.0, plan[1])
+            elif best:
+                self._reveal_plan = (s['loop'], best[1])
+            if best:
+                reveal_c = best[1]
+        def_c = self._defense_holder(s) if self.defplan else None
+        thread = s['loop'] < (s['script'].get('loops') or self.loops) and any('X_THREAD' in sc.get('rules', ()) for sc in scripts)
+        from engine.abilities import ABILITIES as _ABL
+
+        def gap(c):  # 友好能力の解放まであと何枚（能力が無い・すべて解放済みなら大きく）
+            ch = s['chars'][c]
+            return min((n - ch['gw'] for (cid, _), (n, *_r) in _ABL.items() if cid == c and n > ch['gw']), default=99)
+        people = [c for c in dict.fromkeys(focus + allt) if c in s['chars'] and s['chars'][c]['alive'] and s['chars'][c].get('present', True) and c != 'C20']
+        stack = sorted(people, key=lambda c: (c not in (reveal_c, def_c), gap(c), -s['chars'][c]['gw']))  # 情報・守りの計画の相手を先に。同点は focus の順
+
+        def leftover(p, taken, no_intx):
+            gw = [c for c in ('GW1', 'GW2') if c in hands[p]]
+            if thread:
+                old = [c for c in stack if c not in taken and s['chars'][c]['gw'] > 0]
+                if old and gw:
+                    return old[0], gw[0]
+                b = next((t for t in allt if t.startswith('B:') and t not in taken), None)
+                if b and 'INTX' in hands[p] and not no_intx:
+                    return b, 'INTX'
+            t = next((c for c in stack if c not in taken), None)
+            if t and gw:
+                return t, gw[0]
+            t = next(t for t in allt if t not in taken)
+            return t, next((c for c in hands[p] if not (no_intx and c == 'INTX') and not _moves_into_forbidden(s, t, c)), hands[p][0])
+
         def fill(*firsts):
             fixed = {f[0]: f for f in firsts if f}
             taken, out = {f[1] for f in fixed.values()}, []
@@ -381,15 +463,11 @@ class ReadingBlocker(DeductiveBlocker):
                 if p in fixed:
                     out.append({'by': p, 'target': fixed[p][1], 'card': fixed[p][2]})
                     continue
-                pool = [t for t in focus if t not in taken] or [t for t in allt if t not in taken]
-                t = self.rng.choice(pool)
-                taken.add(t)
-                # 暗躍禁止は2枚以上で全部無効になり候補ごと捨てられるので、決めた札に暗躍禁止があれば残りの者には引かせない
-                # （d27 の readdefplan 戦 L5D3: 「委員長に暗躍禁止＋学者に不安−1」の組が、残りの1枚に暗躍禁止を引いて捨てられ候補に残らなかった）
+                # 暗躍禁止は2枚以上で全部無効になり候補ごと捨てられるので、決めた札に暗躍禁止があれば残りの者には置かせない
                 no_intx = any(x['card'] == 'INTX' for x in out) or any(f[2] == 'INTX' for f in fixed.values())
-                stops = [c for c in STOP if c in hands[p] and not (no_intx and c == 'INTX') and not _moves_into_forbidden(s, t, c)]
-                rest = [c for c in hands[p] if not (no_intx and c == 'INTX') and not _moves_into_forbidden(s, t, c)]
-                out.append({'by': p, 'target': t, 'card': self.rng.choice(stops or rest or hands[p])})
+                t, c = leftover(p, taken, no_intx)
+                taken.add(t)
+                out.append({'by': p, 'target': t, 'card': c})
             return out
 
         # タイムトラベラーの候補への友好: 推理でのタイムトラベラーの確率 × 友好3に足りない分（Claude が主人公を担当した点検の学び）
@@ -398,7 +476,7 @@ class ReadingBlocker(DeductiveBlocker):
         cands, singles = [], []
         for t in mm_targets:  # 伏せ札の対象×止める札（リーダーから順に、持っている者が置く）
             for card in STOP:
-                if _moves_into_forbidden(s, t, card):
+                if _moves_into_forbidden(s, t, card) or (t.startswith('B:') and card != 'INTX'):  # ボードで効くのは暗躍禁止だけ
                     continue
                 p = next((p for p in order if card in hands[p]), None)
                 if p:
@@ -433,54 +511,13 @@ class ReadingBlocker(DeductiveBlocker):
                     p = next((p for p in order if card in hands[p]), None)
                     if p:
                         cands.append(fill((p, c, card)))
-        reveal_c = None
-        if self.reveal and s['loop'] < (s['script'].get('loops') or self.loops):
-            from selfplay.players import INFO_ABILITIES
-            used = s.get('ability_used_loop', [])
-            rm_, rt_ = self.ded.marginals()
-
-            def rv_ent(c, _m=rm_, _t=rt_):
-                ps = [w / _t for w in _m.get(c, {}).values() if w > 0] if _t else []
-                return -sum(p * math.log2(p) for p in ps)
-            best = None
-            for (cid, idx), need in INFO_ABILITIES.items():
-                ch = s['chars'].get(cid)
-                if ch is None or not ch['alive'] or not ch.get('present', True) or f'{cid}#{idx}' in used or ch['gw'] >= need:
-                    continue
-                from engine.abilities import ABILITIES as _AB
-                if _AB.get((cid, idx), (0, 0, ''))[2] == 'loop2' and s['loop'] < 2:  # イレギュラー・コピーキャットは第2ループから
-                    continue
-                kind = TARGET_ROLE.get((cid, idx))
-                here = [c for c, x in s['chars'].items() if x['alive'] and x.get('present', True) and x['area'] == ch['area'] and c != cid]
-                if kind == 'self':
-                    e = rv_ent(cid)
-                elif kind in ('any_here', 'here'):
-                    e = max((rv_ent(c) for c in here), default=0.0)
-                elif kind == 'student_here':
-                    from engine.resolve import CHARS as _C
-                    e = max((rv_ent(c) for c in here if '学生' in _C[c]['tags']), default=0.0)
-                else:
-                    e = 0.5
-                sc_ = e / (need - ch['gw'])  # 割れる不確かさ ÷ 足りない友好（d16 の Claude は教師[4] を選んだ）
-                if best is None or sc_ > best[0]:
-                    best = (sc_, cid)
-            if best and best[0] <= 0.05:
-                best = None
-            plan = getattr(self, '_reveal_plan', None)  # ループの中では一度決めた持ち主に集中する（日ごとに変えると友好が散った）
-            if plan and plan[0] == s['loop'] and s['chars'].get(plan[1], {}).get('alive') and not any(
-                    u.startswith(plan[1] + '#') for u in used):
-                best = (1.0, plan[1])
-            elif best:
-                self._reveal_plan = (s['loop'], best[1])
-            if best:
-                reveal_c = best[1]
-                p1 = next((p for p in order if 'GW2' in hands[p]), None)
-                p2 = next((p for p in order if p != p1 and 'GW1' in hands[p]), None)
-                if p1:
-                    cands.append(fill((p1, reveal_c, 'GW2')))
-                if p2:
-                    cands.append(fill((p2, reveal_c, 'GW1')))
-        def_c = self._defense_holder(s) if self.defplan else None
+        if reveal_c:
+            p1 = next((p for p in order if 'GW2' in hands[p]), None)
+            p2 = next((p for p in order if p != p1 and 'GW1' in hands[p]), None)
+            if p1:
+                cands.append(fill((p1, reveal_c, 'GW2')))
+            if p2:
+                cands.append(fill((p2, reveal_c, 'GW1')))
         if def_c:
             p1 = next((p for p in order if 'GW2' in hands[p]), None)
             p2 = next((p for p in order if p != p1 and 'GW1' in hands[p]), None)
@@ -488,15 +525,7 @@ class ReadingBlocker(DeductiveBlocker):
                 cands.append(fill((p1, def_c, 'GW2')))
             if p2:
                 cands.append(fill((p2, def_c, 'GW1')))
-        for k in range(self.samples + 40):
-            if k < 40:
-                cands.append(fill(None))
-                continue
-            rnd = []
-            for p in order:
-                t = self.rng.choice(allt)
-                rnd.append({'by': p, 'target': t, 'card': self.rng.choice([c for c in hands[p] if not _moves_into_forbidden(s, t, c)] or hands[p])})
-            cands.append(rnd)
+        cands.append(fill(None))  # 止める札を決めない手（3人とも友好を積む）。以前は無作為の札の組を80通り足していた（ユーザー 2026-10-31: 無作為に札を選ぶのをやめる）
         iw = self.info_weight
         loops = s['script'].get('loops') or self.loops  # ループ数は公開情報
         if self.info_sched and loops > 1:  # 序盤のループは情報を重く、最終ループは守りだけ（ユーザーの観点: 情報と守りの釣り合い）
