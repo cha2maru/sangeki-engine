@@ -4,9 +4,7 @@ name: Pages
 on:
   push:
     branches: [main]
-  release:
-    types: [published]  # トップページに最新のリリースノートを載せるため、リリースを作ったら組み直す
-  workflow_dispatch:
+  workflow_dispatch:  # リリースを作ったら gh workflow run Pages --ref main で組み直す（トップページの最近の更新）。release のきっかけはタグで動き、github-pages の環境の保護（main だけ）で弾かれる
 permissions:
   contents: read
   pages: write
