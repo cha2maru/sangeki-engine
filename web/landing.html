@@ -47,6 +47,7 @@ h2 { color:var(--acc); font-size:20px; margin:0 0 10px; }
 .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px 14px; }
 .card h3 { margin:0 0 4px; font-size:16px; }
 .card p { margin:0; color:#d6d0c4; font-size:14px; }
+.beta { font-size:11px; font-weight:normal; border:1px solid var(--line); border-radius:4px; padding:0 5px; margin-left:6px; vertical-align:middle; }
 ol li, ul li { margin:4px 0; }
 .credit { font-size:12px; color:var(--mut); margin-top:4px; text-align:right; }
 .shots { display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; max-width:1100px; margin:20px auto 0; }
@@ -75,6 +76,7 @@ footer { border-top:1px solid var(--line); color:var(--mut); font-size:13px; pad
     <h2>できること</h2>
     <div class="grid">
       <div class="card"><h3>自動の脚本家と対戦</h3><p>主人公3人の札を置き、友好能力を宣言して、脚本家の惨劇を防ぎます。脚本家は探索と計算で手を選ぶ、LLM を使わない自動のプレイヤーです。</p></div>
+      <div class="card"><h3>脚本家になって遊ぶ<span class="beta">ベータ</span></h3><p>開始画面で脚本家に「あなた」を選ぶと、立場を入れ替えて自動の主人公と対戦できます。キャラクターやエリアを押して伏せ札を置き、脚本家の能力や事件の犯人の選択も自分で決めます。役職と犯人は盤面に常に表示されます。試験中の機能のため、操作や表示が変わることがあります。</p></div>
       <div class="card"><h3>おすすめの脚本を伏せて</h3><p>選び抜いた脚本を、中身を伏せたまま遊べます。<a href="play/editor.html">シナリオを作る</a>画面で自分の脚本を作り、その場で試すこともできます。</p></div>
       <div class="card"><h3>盤面の演出</h3><p>行動解決はルールの順（めくる → 移動 → カウンター → 札が手札へ）に見せます。演出なしにもできます。</p></div>
       <div class="card"><h3>推理の欄</h3><p>人物×役職の格子、ルールの印、ループの記録、当日の流れ。公開された事実だけを並べ、推理は自分で。行き詰まったら『エンジンの候補』で、公開された出来事からルール上ありうる組み合わせの割合（役職・ルール・犯人の見込み）をヒントとして重ねられます。</p></div>
