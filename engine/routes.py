@@ -53,17 +53,26 @@ def colocate(state, a, b):
 
 def alone_with(state, a, b):
     """a と b が同じエリアにいて、ほかの生存者がいない状態までの距離（移動＋追い出す人数）。
-    どちらのエリアで2人きりにするかは、移動と追い出しの合計が小さい方（colocate の移動だけの比較では、
-    同じ日数のとき混んだ方のエリアを選ぶことがあった）。"""
+    どのエリアで2人きりにするかは、2人の移動と追い出しの合計が最も小さいエリア（2人とも別のエリアへ動かす道も数える）。
+    追い出せない人物（ご神木など、どの移動先も禁止エリア）がいるエリアでは2人きりにできない（目隠し対戦 gen_s11_024: 神社のご神木を1手で数えた）。"""
+    from .phases import AREAS
     diag = 'MV_D' not in state['used']['M']
     best = INF
-    for mover, stay in ((a, b), (b, a)):
-        frm, area = state['chars'][mover]['area'], state['chars'][stay]['area']
-        if not _can_enter(state, mover, area):
+    for area in AREAS:
+        if not (_can_enter(state, a, area) and _can_enter(state, b, area)):
             continue
         others = [c for c, v in state['chars'].items() if v['alive'] and v.get('present', True) and v['area'] == area and c not in (a, b)]
-        best = min(best, move_steps(frm, area, diag) + len(others))
+        if any(not _can_leave(state, c, diag) for c in others):
+            continue
+        best = min(best, move_steps(state['chars'][a]['area'], area, diag) + move_steps(state['chars'][b]['area'], area, diag) + len(others))
     return best
+
+
+def _can_leave(state, cid, diag):
+    """cid を移動札1枚で今のエリアから出せるか（上下・左右、移動斜めが残っていれば斜めも）。"""
+    from .resolve import destination
+    area = state['chars'][cid]['area']
+    return any(_can_enter(state, cid, destination(area, d)) for d in ('VH' + ('D' if diag else '')))
 
 
 def _cond(kind, detail, deficit):

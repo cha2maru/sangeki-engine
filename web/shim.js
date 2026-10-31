@@ -3,7 +3,9 @@
 (() => {
   const store = { state: '{}', log: [], snaps: [], deduce: '{}' };
   const checks = {};  // シナリオエディタの検証の返事を待つもの（id → resolve）
-  let worker = null, ready = false, list = null, waitList = [], step = '準備しています', since = Date.now() / 1000, started = false, pendingNew = null, seq = 0;
+  let worker = null, ready = false, list = null, waitList = [], step = '準備しています', since = Date.now() / 1000, started = false, pendingNew = null, seq = 0, gaPlaying = false;
+  // Google アナリティクスのカスタムイベント（gtag は build.sh が公開ページにだけ入れる＝手元では送らない）
+  const ga = (name, params) => { try { if (typeof gtag === 'function') gtag('event', name, params); } catch {} };
   function boot() {
     ready = false; since = Date.now() / 1000; step = '準備しています';
     const sp = new URLSearchParams(location.search), wq = new URLSearchParams();  // Worker へ渡す: pyodide（置き場所）・helpers（並列の補助の数）・mmhint（試験用）
@@ -16,12 +18,18 @@
       else if (m.type === 'ready') {
         ready = true; list = JSON.parse(m.list); waitList.splice(0).forEach(f => f(list));
         if (pendingNew) { worker.postMessage(pendingNew); pendingNew = null; }
-      } else if (m.type === 'write') { if (m.f === 'state.json') store.state = m.s; else if (m.f === 'deduce.json') store.deduce = m.s; else if (m.f === 'record.json') store.record = m.s; else if (m.f === 'private/record.json') store.recordBlind = m.s; else if (m.f === 'rejected.json') store.rejected = m.s; }
+      } else if (m.type === 'write') { if (m.f === 'state.json') { store.state = m.s; if (gaPlaying) gaEnd(m.s); } else if (m.f === 'deduce.json') store.deduce = m.s; else if (m.f === 'record.json') store.record = m.s; else if (m.f === 'private/record.json') store.recordBlind = m.s; else if (m.f === 'rejected.json') store.rejected = m.s; }
       else if (m.type === 'append') { (m.f === 'log.jsonl' ? store.log : m.f === 'snapshots.jsonl' ? store.snaps : []).push(m.s); }
       else if (m.type === 'reset') { store.log = []; store.snaps = []; store.deduce = '{}'; store.record = '{}'; store.recordBlind = '{}'; store.rejected = '[]'; }
       else if (m.type === 'called') { const f = checks[m.id]; delete checks[m.id]; if (f) f(m.s); }
       else if (m.type === 'error') fail(m.msg);
     };
+  }
+  function gaEnd(s) {  // 勝敗が決まった（state に非公開シート reveal が載った）ときに一度だけ送る
+    let st; try { st = JSON.parse(s); } catch { return; }
+    if (!st.reveal) return;
+    gaPlaying = false;
+    ga('game_end', { winner: st.reveal.winner, how: st.reveal.how, side: st.side, script_id: st.reveal.id });
   }
   function fail(msg) {  // 起動や試合中のエラーを盤面の帯に出す（出さないと「準備しています」のまま止まって見えた）
     console.error(msg);
@@ -54,6 +62,8 @@
         if (started) { worker.terminate(); boot(); }  // 試合の途中は Python が操作を待って止まっているので、Worker ごと作り直す
         started = true; store.state = '{}'; store.log = []; store.snaps = []; store.deduce = '{}';
         try { localStorage.removeItem(NOTES); } catch {}  // 前の試合の推理の書き込みを残さない（サーバー版と同じ。B12）
+        gaPlaying = !a.replay;  // リプレイ・続きからの再生は数えない
+        if (gaPlaying) ga('game_start', { side: a.mm === 'human' ? 'mm' : 'pc', script_id: a.blind ? 'blind' : (a.code ? 'code' : a.script), mm: a.mm, pc: a.pc, blind: !!a.blind });
         const msg = { type: 'new', ...a };
         if (ready) worker.postMessage(msg); else pendingNew = msg;
         return reply('{}');

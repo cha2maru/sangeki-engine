@@ -118,4 +118,18 @@ PY
     fi
   done
 fi
+# Google アナリティクス（GA4）: 公開する各ページの <meta charset> の直後に差し込む（board.html などはサーバー版と共通なので元は書き換えない）。
+# localhost・127.0.0.1・file://（ホスト名なし）では読み込まない＝開発やテストプレイを数えない
+python3 - "$ROOT/index.html" "$OUT/index.html" "$OUT/editor.html" "$OUT/open.html" <<'PY'
+import sys
+GA = ('<script>(function () { var id = "G-9EJ5QSS1SQ"; var h = location.hostname;'
+      ' if (!h || h === "localhost" || h === "127.0.0.1") return;'
+      ' var s = document.createElement("script"); s.async = true; s.src = "https://www.googletagmanager.com/gtag/js?id=" + id; document.head.appendChild(s);'
+      ' window.dataLayer = window.dataLayer || []; window.gtag = function () { dataLayer.push(arguments); };'
+      ' gtag("js", new Date()); gtag("config", id); })();</script>')
+for path in sys.argv[1:]:
+    t = open(path, encoding='utf-8').read()
+    assert '<meta charset="utf-8">' in t, f'差し込む場所が見つからない（{path}）'
+    open(path, 'w', encoding='utf-8').write(t.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n' + GA, 1))
+PY
 echo "→ $ROOT（トップページ）・$OUT（対戦画面）"

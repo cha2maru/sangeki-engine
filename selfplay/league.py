@@ -391,6 +391,17 @@ def _make(kind, rng, script=None):
             return mm
         p.mm_cards = mm_cards
         return p
+    if kind == 'calcGBxhdKNi':  # calcGBxhdKN＋意図のある札（候補の置き先・札を無作為に引かず、筋・事件・不安臨界の順と、押す・不安を積む・妨害の札で作る。2026-10-31）
+        p = make('calcGBxhdKN', rng, script)
+        p.intent_cards = True
+        p.holder_move = 1.2  # クロマク・カルティストを封印されしモノ・巨大時限爆弾Xのエリアへ動かす手（目隠し対戦 gen_s11_006）
+        p.keep_forced = True  # 逆算の必ず取れる手の札を _fill_idle で替えない（目隠し対戦 gen_s11_023）
+        p.immortal_check = True  # 軍人[5] があと1歩なら主人公死亡の筋に頼る逆算の手に従わない（目隠し対戦 gen_b31_022）
+        p.setup_area = True  # 手先（カルティスト等）を近い負け筋の対象のあるエリアへ（目隠し対戦 gen_b31_019）
+        p.inc_reach = 1.0  # 効果の後あと1手でそろう2段の筋も決め手に数える（目隠し対戦 gen_s11_007 L4 の行方不明＝フレンド）
+        p.inc_push = 0.5  # 決め手になる事件の犯人を間に合う日から積む（目隠し対戦 gen_s11_008 L3 の行方不明＝シリアルキラー）
+        p.advance_ab = 1.0  # 一番近い負け筋を近づける能力は漏れと比べずに使う（目隠し対戦 gen_s11_022 L2 のクロマク）
+        return p
     if kind == 'calcGBxhdKN':  # calcGBxhdK＋逆算と確定の判定に主人公の友好能力（calc_pcab）。d30 L1D6 でナース[2] を数えず確定と誤って隠した（2026-10-29）
         p = make('calcGBxhdK', rng, script)
         p.calc_pcab = True

@@ -14,6 +14,7 @@
 """
 import copy
 import itertools
+import json
 import os
 import sys
 import random
@@ -289,8 +290,129 @@ class SearchMastermind(RouteMastermind):
         alive = {c for c, v in s['chars'].items() if v['alive'] and v.get('present', True)}
         return [t for t in dict.fromkeys(out) if (t in alive and t != 'C20') or t.startswith('B:')]  # 幻想には札を置けない
 
+    # ---- 意図のある札（ユーザー 2026-10-31「全ての行動に意図がないとプレイヤーの模倣とは言えない」。intent_cards のとき無作為に引かない）----
+    def _intent_order(self, s):
+        """意図の順の置き先: 近い負け筋の対象（_focus）→ これからの事件の犯人（日の早い順）→ 不安臨界に近い人物 → 暗躍の多いボード。"""
+        allt = self._targets(s)
+        cul = [i['culprit'] for i in sorted(s['script']['incidents'], key=lambda i: i['day']) if i['day'] >= s['day']]
+        chars = sorted((t for t in allt if t in s['chars']), key=lambda t: CHARS[t]['limit'] - s['chars'][t]['par'])
+        boards = sorted((t for t in allt if t.startswith('B:')), key=lambda t: -s['boards'][t[2:]])
+        return [t for t in dict.fromkeys(self._focus(s) + cul + chars + boards) if t in allt]
+
+    @staticmethod
+    def _want(t, rel):
+        """置き先 t に置く意味のある札の順: 筋が要るなら押す札（不安・暗躍・位置）、それ以外は不安を積む・妨害（友好禁止・不安禁止）。
+        ボードで効くのは暗躍だけ。暗躍+2・移動斜めはループに1回なので、押す筋がある所だけに出す。"""
+        if t.startswith('B:'):
+            return ['INT1', 'INT2'] if (t, 'int') in rel else ['INT1']
+        ks = {k for x, k in rel if x == t}
+        return (['PAR+'] if 'par' in ks else []) + (['INT2', 'INT1'] if 'int' in ks else []) + (['MV_V', 'MV_H', 'MV_D'] if 'mv' in ks else []) \
+            + ['PAR+', 'GWX', 'PARX']
+
+    def _decisive_incidents(self, s):
+        """決め手になる事件 {犯人: (要る不安, 残りの日数, 事件の日)}: 犯人が臨界ならその効果で負け筋がそろう（距離0）事件のうち、
+        事件の日までに犯人へ毎日不安+1 を1枚ずつ積めば間に合うもの。事件の効果（行方不明の移動・邪気の汚染の暗躍など）は札で止められないので、
+        主人公は犯人の不安を下げるしかない（不安−1 は各主人公ループに1回）。目隠し対戦 gen_s11_008 L3: 行方不明の犯人＝シリアルキラーを臨界にすれば
+        移動禁止の効かない移動でフレンドと2人きりにできたのに、移動↑↓ を置き続けて止められた（2026-10-31）。"""
+        from selfplay.run import incident_options
+        key = (s['loop'], s['day'], json.dumps([s['chars'], s['boards']], sort_keys=True, default=str))
+        if getattr(self, '_dec_key', None) == key:
+            return self._dec
+        out = {}
+        key_ = lambda r: (r['id'], r['via'], r['goal'])  # noqa: E731
+        before = {}
+        for r in enumerate_routes(s):
+            before[key_(r)] = min(before.get(key_(r), 99), r['total'])
+        reach = getattr(self, 'inc_reach', 0)
+        for inc in s['script']['incidents']:
+            cul, ch = inc['culprit'], s['chars'].get(inc['culprit'])
+            if inc['day'] < s['day'] or not ch or not ch['alive'] or not ch.get('present', True):
+                continue
+            need, left = CHARS[cul]['limit'] - ch['par'], inc['day'] - s['day'] + 1
+            if need <= 0 or need > left:
+                continue
+            ok, aux = False, None
+            opts = [(c, None) for c in (incident_options(s, inc) or [None])]
+            if inc['id'] == 'REMOTE' and getattr(self, 'inc_reach', 0):
+                # 遠隔殺人の2段の筋: 事件の日までに暗躍2に届く人物を対象として試す（目隠し対戦 gen_b31_019 L1: フレンドの教祖に暗躍+2、刑事の不安を1日遅れて積んだ）
+                up = (2 if 'INT2' not in s['used']['M'] else 1) + (left - 1)
+                opts += [({'target': t}, t) for t, v in s['chars'].items()
+                         if v['alive'] and v.get('present', True) and t != 'C20' and v['int'] < 2 <= v['int'] + up]
+            for c, t_int in opts:
+                trial = copy.deepcopy(s)
+                trial['chars'][cul]['par'] = CHARS[cul]['limit']
+                if t_int:
+                    trial['chars'][t_int]['int'] = 2
+                try:
+                    ph.incident_effect(trial, inc['id'], cul, c, [])
+                except Exception:
+                    continue
+                # 効果で、ある負け筋が reach 以下（0＝そろう）まで近づく（もとからその近さの筋は数えない）
+                hit = any(r['total'] <= reach and r['total'] < before.get(key_(r), 99) for r in enumerate_routes(trial))
+                if hit and not ok:
+                    aux = t_int
+                ok = ok or hit
+            if ok:  # inc_reach 1: 効果の後あと1手でそろう筋も（2段の筋。目隠し対戦 gen_s11_007 L4: 行方不明でフレンドを不安2のマスコミのいる都市へ送り、同じ日に不安+1 でウイルスのシリアルキラーにする）
+                out[cul] = (need, left, inc['day'], aux)
+        self._dec_key, self._dec = key, out
+        return out
+
+    def _holder_moves(self, s, hand):
+        """能力の持ち主を負け筋のエリアへ: クロマク・カルティストが、ボードの暗躍が負けの条件の筋（封印されしモノ・巨大時限爆弾X）のエリアにいないとき、
+        1回の移動で届く移動札 {(人物, 札)}。目隠し対戦 gen_s11_006: 学校のクロマク（教師）を神社へ入れれば毎日どこからともなく神社に暗躍を置けた（2026-10-31）"""
+        from engine.resolve import destination
+        areas = {c['detail'][0] for r in enumerate_routes(s) if r['id'] in ('Y_SEAL', 'Y_BOMB') for c in r['conds'] if c['kind'] == 'board'}
+        out = set()
+        for c, v in s['chars'].items():
+            if not (v['alive'] and v.get('present', True) and v.get('area')) or ph.base_role(s, c) not in ('KUROMAKU', 'CULTIST') or v['area'] in areas:
+                continue
+            fb = [] if c in s.get('unbound', []) else CHARS[c].get('forbidden', [])
+            for card, d in (('MV_V', 'V'), ('MV_H', 'H'), ('MV_D', 'D')):
+                to = destination(v['area'], d)
+                if card in hand and to in areas and to not in fb:
+                    out.add((c, card))
+        return out
+
+    def _rest2(self, s, targets, cards, n, r):
+        """残りの n 枚の置き先と札（targets・cards の中から）。intent_cards なら意図の順、無ければ従来どおり r で無作為に引く。"""
+        if not getattr(self, 'intent_cards', False):
+            return r.sample(targets, n), r.sample(cards, n)
+        rel, left, ts, cs = self._relevant(s), list(cards), [], []
+        for t in [t for t in self._intent_order(s) if t in targets] + [t for t in targets if t not in self._intent_order(s)]:
+            c = next((c for c in self._want(t, rel) if c in left), None)
+            if c:
+                left.remove(c)
+                ts.append(t)
+                cs.append(c)
+            if len(ts) == n:
+                return ts, cs
+        return r.sample(targets, n), r.sample(cards, n)  # 意図のある札が足りない（手札がほぼ尽きた）ときだけ
+
+    def _deals(self, s, hand, ts, n):
+        """置き先 ts への札の割り当てを最大 n 通り（各置き先の意図のある札の上位3つの組み合わせ）。"""
+        rel, out = self._relevant(s), []
+        lists = [[c for c in dict.fromkeys(self._want(t, rel)) if c in hand][:3] for t in ts]
+        for combo in itertools.product(*lists):
+            h = list(hand)
+            if all(c in h and not h.remove(c) for c in combo):
+                out.append(list(combo))
+                if len(out) >= n:
+                    break
+        return out
+
     def _triples(self, s):
         focus, allt = self._focus(s), self._targets(s)
+        if getattr(self, 'intent_cards', False):  # 指針の置き先＋意図の順の上位8か所からの組（無作為に引かない）
+            order = self._intent_order(s)
+            gt = list(dict.fromkeys(t for t, _ in self._guide_today(s) if t in allt))
+            out, seen = [], set()
+            cand = [gt[k:k + 3] + [x for x in order if x not in gt[k:k + 3]][:3 - len(gt[k:k + 3])] for k in range(min(len(gt), 6))]
+            cand += [list(c) for c in itertools.combinations(order[:8], 3)]
+            for ts in cand:
+                if len(ts) == 3 and frozenset(ts) not in seen:
+                    seen.add(frozenset(ts))
+                    out.append(ts)
+            return out[:max(self.nt * 3, 6)]
         seen, out = set(), []
         # 指針の札の置き先を必ず候補に入れる（無作為の組だけでは指針の (対象, 札) がほとんど引かれず、加点が効かなかった。d27 の目隠し戦）
         gt = [t for t, _ in self._guide_today(s) if t in allt]
@@ -748,6 +870,9 @@ class SearchMastermind(RouteMastermind):
         gw2 = any('GW2' not in s['used'][p] for p in 'ABC')
         out = {}
         abil = {**INFO_ABILITIES, **DEFENSE_ABILITIES}
+        if getattr(self, 'immortal_check', False) and any(r['goal'] == '主人公死亡' for r in enumerate_routes(s)):
+            # 軍人[5]（このループ中、主人公は死亡しない）: 主人公死亡の筋をまとめて消す守り（目隠し対戦 gen_b31_022 L4: 友好4の軍人に友好禁止を置かず、3日目に使われて病院の事件を外した）
+            abil[('C25', 1)] = 5
         # 手先[3]（このループ中、自身が犯人の事件を発生させない）: 手先がこれから起きる事件の犯人なら、主人公の止め手になる（脚本家は犯人を知っている）。
         # 例: 封印されしモノで、邪気の汚染（神社に暗躍2）の犯人が手先（ユーザー指摘 2026-10-10）
         if any(i['culprit'] == 'C18' and i['day'] >= s['day'] for i in s['script']['incidents']):
@@ -775,11 +900,14 @@ class SearchMastermind(RouteMastermind):
         rest_cards = [c for c in hand if c not in ('INT2', 'INT1')]
         for i, a in enumerate(ints):
             for b in ints[i + 1:]:
-                third = self.rng.choice([u for u in allt if u not in (a, b)])  # 両方の向きで同じ3枚目（置き場所の集合が同じになり、応手を1回で読める）
+                if getattr(self, 'intent_cards', False):
+                    (third,), (c3,) = self._rest2(s, [u for u in allt if u not in (a, b)], rest_cards, 1, self.rng)
+                else:
+                    third, c3 = self.rng.choice([u for u in allt if u not in (a, b)]), None  # 両方の向きで同じ3枚目（置き場所の集合が同じになり、応手を1回で読める）
                 for x, y in ((a, b), (b, a)):
                     ts = (x, y, third)
                     out.setdefault(ts, []).append([{'by': 'M', 'target': x, 'card': 'INT2'}, {'by': 'M', 'target': y, 'card': 'INT1'},
-                                                   {'by': 'M', 'target': third, 'card': self.rng.choice(rest_cards)}])
+                                                   {'by': 'M', 'target': third, 'card': c3 or self.rng.choice(rest_cards)}])
         return out
 
     def _guide_today(self, s):
@@ -804,7 +932,15 @@ class SearchMastermind(RouteMastermind):
             else:
                 return None
         rest = [t for t in ts if t not in want]
-        fill = self.rng.sample(left, len(rest)) if len(left) >= len(rest) else None
+        if getattr(self, 'intent_cards', False):
+            rel = self._relevant(s)
+            fill = []
+            for t in rest:
+                c = next((c for c in self._want(t, rel) if c in left and c not in fill), None)
+                fill.append(c)
+            fill = fill if None not in fill else None
+        else:
+            fill = self.rng.sample(left, len(rest)) if len(left) >= len(rest) else None
         if fill is None:
             return None
         fm = dict(zip(rest, fill))
@@ -820,6 +956,26 @@ class SearchMastermind(RouteMastermind):
 
     def loop_setup(self, s, script):
         ch = super().loop_setup(s, script)
+        if getattr(self, 'setup_area', False) and 'C18' in script['init']:
+            # 手先の初期エリア: 評価が同じなら、カルティストの手先は暗躍が負けの条件のボードのエリアへ（主人公の暗躍禁止を無視できる）。
+            # 目隠し対戦 gen_b31_019 L1: カルティストの手先を病院に置き（4か所とも同点で先頭）、神社の暗躍禁止を無視できず封印されしモノを落とした（2026-10-31）
+            best, best_v = ch, None
+            for a in ph.AREAS:
+                if a in CHARS['C18'].get('forbidden', []):
+                    continue
+                trial = {**ch, 'init': {**ch.get('init', {}), 'C18': a}}
+                try:
+                    after, _ = ph.loop_start(s, script['init'], trial)
+                except IllegalPlacement:
+                    continue
+                v = score(after)
+                if ph.base_role(after, 'C18') == 'CULTIST':  # ボードの暗躍がそのまま負けの条件の筋（封印されしモノ・巨大時限爆弾X）のエリアだけ。
+                    # 不定因子χの学校などへ寄せると、暗躍禁止の無視で正体を見せるだけだった（d13 の plan_read2 戦 6試合: 寄せると主人公5勝、寄せないと1勝）
+                    v += 0.01 * sum(1 for r in enumerate_routes(after) if r['id'] in ('Y_SEAL', 'Y_BOMB')
+                                    for c in r['conds'] if c['kind'] == 'board' and c['detail'][0] == a)
+                if best_v is None or v > best_v + 1e-9:
+                    best, best_v = trial, v
+            ch = best
         setup = self.guide.get('setup') if self.guide else None
         if setup:  # 指針で決めたループの準備（学者の特性など）
             ch = {**ch, **{k: v for k, v in setup.items() if k != 'init'}, 'init': {**ch.get('init', {}), **setup.get('init', {})}}
@@ -949,6 +1105,13 @@ class SearchMastermind(RouteMastermind):
                                  pcab=getattr(self, 'calc_pcab', False), only=g)
                 if fg['forced'] and fg['move']:
                     fp = fg
+            if fp['forced'] and getattr(self, 'immortal_check', False) and 'C25' in self._gw_eve(s):
+                # 軍人[5]（主人公は死亡しない）があと1歩: 逆算は数えないので、主人公死亡の筋を除いても必ず取れるときだけ逆算の手に従う
+                # （目隠し対戦 gen_b31_022 L4D3: 探索は軍人に友好禁止を選んだが、逆算の手（軍人に不安+1）が上書きし、不死で病院の事件を外した）
+                rest = {(r['id'], r['via']) for r in enumerate_routes(s) if r['goal'] != '主人公死亡'}
+                if not rest or not forced_plan(s, self.days, pos=getattr(self, 'calc_pos', False), abil=self._abil(s),
+                                               pcab=getattr(self, 'calc_pcab', False), only=rest)['forced']:
+                    fp = {**fp, 'forced': False, 'locked': False, 'p': 0, 'mix': None}
             if fp['locked'] or self._locked(s):
                 # 確定したループは押さずに隠す（メモリ mastermind-hide-after-locked-loop）: 閾値に一番近い情報・守りの能力の持ち主に友好禁止。
                 # 残りの枠も押す札（不安+1・暗躍）は置かない: 犯人・負け筋を教えるだけ（問題 mm16c-l1d2-hide）
@@ -1352,8 +1515,12 @@ class SearchMastermind(RouteMastermind):
                 hand.remove(x['card'])
         par_need = {d[0] for r_ in enumerate_routes(s) for c in r_['conds'] if c['kind'] == 'counter' and (d := c['detail'])[1] == 'par'}
         out = []
+        keep = getattr(self, '_fp_keep', set()) if getattr(self, 'keep_forced', False) else set()
         for x, u in zip(mm, uses):
             t = x['target']
+            if (t, x['card']) in keep:  # 逆算の必ず取れる手の札は替えない（目隠し対戦 gen_s11_023 L2D5: 女の子への暗躍+1 を不安禁止に替えて必勝を崩した）
+                out.append(x)
+                continue
             if u in ('idle', 'surplus') and not t.startswith('B:') and t in s['chars']:
                 for c in (('PARX', 'GWX') if t in par_need else ('GWX', 'PARX')):
                     if c in hand:
@@ -1414,6 +1581,9 @@ class SearchMastermind(RouteMastermind):
                     h.remove(c)
                     mm.append({'by': 'M', 'target': t, 'card': c})
             rest = [u for u in self._targets(s) if u not in {x['target'] for x in mm}]
+            if len(mm) < 3 and getattr(self, 'intent_cards', False) and rest and h:
+                us, cs = self._rest2(s, rest, h, 3 - len(mm), xr)
+                mm += [{'by': 'M', 'target': u, 'card': c} for u, c in zip(us, cs)]
             while len(mm) < 3 and rest and h:
                 u = xr.choice(rest)
                 rest.remove(u)
@@ -1450,11 +1620,15 @@ class SearchMastermind(RouteMastermind):
                     rest = [t for t in self._targets(s) if t not in (a[0], b[0])]
                     if not rest or not h:
                         continue
-                    third = next((t[0] for t in rel if t[0] not in (a[0], b[0])), None) or xr.choice(rest)
-                    c3 = next((c for c in h if (c in ('INT1', 'INT2')) == (third.startswith('B:'))), None) or xr.choice(h)
+                    if getattr(self, 'intent_cards', False):
+                        (third,), (c3,) = self._rest2(s, rest, h, 1, xr)
+                    else:
+                        third = next((t[0] for t in rel if t[0] not in (a[0], b[0])), None) or xr.choice(rest)
+                        c3 = next((c for c in h if (c in ('INT1', 'INT2')) == (third.startswith('B:'))), None) or xr.choice(h)
                     mm = [{'by': 'M', 'target': a[0], 'card': ca}, {'by': 'M', 'target': b[0], 'card': cb}, {'by': 'M', 'target': third, 'card': c3}]
                     out.append(((a[0], b[0], third), mm))
-        xr.shuffle(out)
+        if not getattr(self, 'intent_cards', False):
+            xr.shuffle(out)
         return out[:k]
 
     def _decoy_moves(self, s, hand, xr, k=12, ratio=0.7):
@@ -1488,14 +1662,17 @@ class SearchMastermind(RouteMastermind):
             ds = sorted((u for u in look if u != a and look[u] >= ratio * look[a]), key=lambda u: -look[u])[:2]
             if not ds:
                 continue
-            third = ds[1] if len(ds) > 1 else xr.choice([u for u in self._targets(s) if u not in (a, ds[0])])
+            third = ds[1] if len(ds) > 1 else (self._rest2(s, [u for u in self._targets(s) if u not in (a, ds[0])], weak or hand, 1, xr)[0][0]
+                                               if getattr(self, 'intent_cards', False) else xr.choice([u for u in self._targets(s) if u not in (a, ds[0])]))
             for w1 in weak:
                 rest = [c for c in hand if c not in (ca, w1)]
-                w2 = next((c for c in weak if c in rest), None) or xr.choice(rest)
+                w2 = next((c for c in weak if c in rest), None) or (next((c for c in self._want(third, set()) if c in rest), None)
+                                                                    if getattr(self, 'intent_cards', False) else None) or xr.choice(rest)
                 mm = [{'by': 'M', 'target': a, 'card': ca}, {'by': 'M', 'target': ds[0], 'card': w1}, {'by': 'M', 'target': third, 'card': w2}]
                 if _after(s, [(x['target'], x['card']) for x in mm]):
                     out.append(((a, ds[0], third), mm))
-        xr.shuffle(out)
+        if not getattr(self, 'intent_cards', False):
+            xr.shuffle(out)
         return out[:k]
 
     def _abil(self, s):
@@ -1543,11 +1720,11 @@ class SearchMastermind(RouteMastermind):
                             continue
                         if any(mm[0]['target'] == mover and mm[0]['card'] == c for _, mm in out):
                             continue  # 人物と札の組ごとに1件（変種で枠が埋まり、教師を運ぶ手がこぼれた）
-                        others = xr.sample([u for u in allt if u != mover], 2)
-                        cards = xr.sample([x for x in hand if x != c], 2)
+                        others, cards = self._rest2(s, [u for u in allt if u != mover], [x for x in hand if x != c], 2, xr)
                         out.append(((mover, *others), [{'by': 'M', 'target': mover, 'card': c}] +
                                     [{'by': 'M', 'target': u, 'card': x} for u, x in zip(others, cards)]))
-        xr.shuffle(out)
+        if not getattr(self, 'intent_cards', False):
+            xr.shuffle(out)
         return out[:k]
 
     def _lock_moves(self, s, hand, xr, k=12):
@@ -1568,11 +1745,11 @@ class SearchMastermind(RouteMastermind):
                     continue
                 self._locks.add((t, c))
                 for _ in range(2):
-                    others = xr.sample(rest, 2)
-                    cards = xr.sample([x for x in hand if x != c], 2)
+                    others, cards = self._rest2(s, rest, [x for x in hand if x != c], 2, xr)
                     out.append(((t, *others), [{'by': 'M', 'target': t, 'card': c}] +
                                 [{'by': 'M', 'target': u, 'card': x} for u, x in zip(others, cards)]))
-        xr.shuffle(out)
+        if not getattr(self, 'intent_cards', False):
+            xr.shuffle(out)
         return out[:k]
 
     def _once_waste(self, s, mm, reply):
@@ -1637,12 +1814,12 @@ class SearchMastermind(RouteMastermind):
             baitable = {t for t in reachable_targets(s, self.days) if t[1] == 'par'}
         forced = self._joseki_moves(s, hand) if self.joseki else {}
         eve = self._gw_eve(s) if self.gwx_eve else {}
+        eve_w = {'C25': max(1, sum(1 for r in enumerate_routes(s) if r['goal'] == '主人公死亡'))} if 'C25' in eve else {}
         if eve and 'GWX' in hand:  # 閾値の前日に友好禁止を置く手を候補に必ず入れる（残り2枚は無作為）
             allt = self._targets(s)
             for c in sorted(eve):
                 for _ in range(3):
-                    others = self.rng.sample([u for u in allt if u != c], 2)
-                    cards = self.rng.sample([x for x in hand if x != 'GWX'], 2)
+                    others, cards = self._rest2(s, [u for u in allt if u != c], [x for x in hand if x != 'GWX'], 2, self.rng)
                     ts = (c, *others)
                     forced.setdefault(ts, []).append([{'by': 'M', 'target': c, 'card': 'GWX'}] +
                                                       [{'by': 'M', 'target': u, 'card': k} for u, k in zip(others, cards)])
@@ -1654,8 +1831,7 @@ class SearchMastermind(RouteMastermind):
             allt = self._targets(s)
             for c in sorted({t for t, k in self._relevant(s) if k == 'par' and self.intx_seen.get(t, 0) > 0}):
                 for _ in range(3):
-                    others = xr.sample([u for u in allt if u != c], 2)
-                    cards = xr.sample([x for x in hand if x != 'PAR+'], 2)
+                    others, cards = self._rest2(s, [u for u in allt if u != c], [x for x in hand if x != 'PAR+'], 2, xr)
                     forced.setdefault((c, *others), []).append([{'by': 'M', 'target': c, 'card': 'PAR+'}] +
                                                                [{'by': 'M', 'target': u, 'card': k} for u, k in zip(others, cards)])
         if getattr(self, 'sk_leak', 0) and self._sk_leak(s, s) > 0:
@@ -1666,8 +1842,7 @@ class SearchMastermind(RouteMastermind):
             for c, o in pairs:
                 for t in (c, o):
                     for mv in [x for x in ('MV_V', 'MV_H') if x in hand]:
-                        others = xr.sample([u for u in allt if u not in (c, o)], 2)
-                        cards = xr.sample([x for x in hand if x != mv], 2)
+                        others, cards = self._rest2(s, [u for u in allt if u not in (c, o)], [x for x in hand if x != mv], 2, xr)
                         forced.setdefault((t, *others), []).append([{'by': 'M', 'target': t, 'card': mv}] +
                                                                    [{'by': 'M', 'target': u, 'card': k} for u, k in zip(others, cards)])
         if getattr(self, 'inc_guard', False):
@@ -1678,10 +1853,35 @@ class SearchMastermind(RouteMastermind):
                 if c not in hand:
                     continue
                 for _ in range(3):
-                    others = xr.sample([u for u in allt if u != cul], 2)
-                    cards = xr.sample([x for x in hand if x != c], 2)
+                    others, cards = self._rest2(s, [u for u in allt if u != cul], [x for x in hand if x != c], 2, xr)
                     forced.setdefault((cul, *others), []).append([{'by': 'M', 'target': cul, 'card': c}] +
                                                                  [{'by': 'M', 'target': u, 'card': k} for u, k in zip(others, cards)])
+        dec = self._decisive_incidents(s) if getattr(self, 'inc_push', 0) else {}
+        if dec and 'PAR+' in hand:  # 決め手になる事件の犯人に不安+1（2人なら両方）。残りは意図の順
+            allt = self._targets(s)
+            culs = [c for c in sorted(dec, key=lambda c: dec[c][1] - dec[c][0]) if c in allt]
+            for k in range(1, min(2, len(culs), hand.count('PAR+')) + 1):
+                for first in itertools.combinations(culs, k):
+                    rest_t = [u for u in allt if u not in first]
+                    h = list(hand)
+                    for _ in first:
+                        h.remove('PAR+')
+                    auxs = [dec[c][3] for c in first if dec[c][3] and dec[c][3] in rest_t and s['chars'][dec[c][3]]['int'] < 2][:3 - k]
+                    for a_ in auxs:  # 遠隔殺人の対象に暗躍（暗躍+2 が残っていればそれ）
+                        ic = 'INT2' if 'INT2' in h else 'INT1' if 'INT1' in h else None
+                        if ic:
+                            h.remove(ic)
+                            rest_t.remove(a_)
+                    auxm = [{'by': 'M', 'target': a_, 'card': ic} for a_ in auxs[:1] if ic]
+                    others, cards = self._rest2(s, rest_t, h, 3 - k - len(auxm), xr) if 3 - k - len(auxm) > 0 else ([], [])
+                    mm = [{'by': 'M', 'target': c, 'card': 'PAR+'} for c in first] + auxm + [{'by': 'M', 'target': u, 'card': c} for u, c in zip(others, cards)]
+                    forced.setdefault(tuple(x['target'] for x in mm), []).append(mm)
+        hold_mv = self._holder_moves(s, hand) if getattr(self, 'holder_move', 0) else set()
+        for c, card in sorted(hold_mv):  # 能力の持ち主を負け筋のエリアへ動かす手（残りは意図の順）
+            h = [x for x in hand if x != card]
+            others, cards = self._rest2(s, [u for u in self._targets(s) if u != c], h, 2, xr)
+            mm = [{'by': 'M', 'target': c, 'card': card}] + [{'by': 'M', 'target': u, 'card': k} for u, k in zip(others, cards)]
+            forced.setdefault(tuple(x['target'] for x in mm), []).append(mm)
         self._doubles = set()
         if self.double:
             for ts, mm in self._double_moves(s, hand, xr):
@@ -1716,8 +1916,7 @@ class SearchMastermind(RouteMastermind):
                 continue
             cands = list(forced.get(tuple(ts), []))
             seen_ts[key] = (ts, cands)
-            for _ in range(self.nc):
-                cards = self._deal(hand, ts)
+            for cards in (self._deals(s, hand, ts, self.nc) if getattr(self, 'intent_cards', False) else (self._deal(hand, ts) for _ in range(self.nc))):
                 cands.append([{'by': 'M', 'target': t, 'card': c} for t, c in zip(ts, cards)])
             gd = self._guide_deal(s, hand, ts) if self.guide else None
             if gd:
@@ -1765,8 +1964,8 @@ class SearchMastermind(RouteMastermind):
                     v += self.plan_w * sum(1 for x in mm if x['target'] in plan_targets)
                 if self.guide:
                     v += self._guide_cards(s, mm)
-                if self.gwx_eve:
-                    v += self.gwx_eve * sum(1 for x in mm if x['card'] == 'GWX' and x['target'] in eve)
+                if self.gwx_eve:  # 軍人[5] は主人公死亡の筋をまとめて消すので、その筋の数だけ重く
+                    v += self.gwx_eve * sum((eve_w.get(x['target'], 1)) for x in mm if x['card'] == 'GWX' and x['target'] in eve)
                 if self.hide_culprit and locked:
                     v -= self.hide_culprit * sum(1 for x in mm if x['card'] in ('PAR-', 'PARX') and x['target'] in culprits_today)
                 if self._gp:
@@ -1785,6 +1984,13 @@ class SearchMastermind(RouteMastermind):
                     v -= self.consp * sum(pnp.get(x['target'], 0) for x in mm)
                 if self.bait and baitable:
                     v += self.bait * sum(1 for x in mm if (x['target'], 'par') in baitable and x['card'] in ('PARX', 'GWX', 'PAR-'))
+                if dec:  # 決め手になる事件の犯人を積む（間に合う最後の日は強く）
+                    v += self.inc_push * sum((1.0 if dec[x['target']][0] >= dec[x['target']][1] else 0.5)
+                                             for x in mm if x['card'] == 'PAR+' and x['target'] in dec)
+                    aux_t = {d_[3] for d_ in dec.values() if d_[3]}
+                    v += 0.5 * self.inc_push * sum(1 for x in mm if x['card'] in ('INT1', 'INT2') and x['target'] in aux_t)
+                if hold_mv:
+                    v += self.holder_move * sum(1 for x in mm if (x['target'], x['card']) in hold_mv)
                 if self.bluff:
                     v += self.bluff * self._bluffs(s, rel if self.force else self._relevant(s), mm, self.int_boards.get(s['loop'], set()))
                 scored.append((v, mm, row[jstar], sum(xs) / len(xs)))
@@ -2119,6 +2325,11 @@ class SearchMastermind(RouteMastermind):
         from engine.route_calc import forced_plan
         need_forced = self.calc and not forced_plan(s, self.days)['forced']
         forced_opts = []
+        # advance_ab: 一番近い負け筋を近づける選び方があれば、漏れと比べずに使う（ループを取るのが最優先、隠すのはオプション。
+        # 目隠し対戦 gen_s11_022 L2: クロマクがキーパーソンと同じ都市に5日いたのに、漏れ 0.1×2.0 が評価の伸び 0.13〜0.17 を上回り一度も使わなかった）
+        adv = float(getattr(self, 'advance_ab', 0) or 0)
+        d0 = min((r['total'] for r in enumerate_routes(s)), default=99) if adv else None
+        adv_opts = []
         for t in opts:
             trial = copy.deepcopy(s)
             try:
@@ -2127,6 +2338,10 @@ class SearchMastermind(RouteMastermind):
                 continue
             if need_forced and forced_plan(trial, self.days)['forced']:
                 forced_opts.append((score(trial), t))
+            if adv:
+                d = min((r['total'] for r in enumerate_routes(trial)), default=99)
+                if d < d0 and d <= adv:  # 残りが adv 以下（あと1手で成立するところ）まで近づくときだけ。止められる筋を毎日押して手の内を見せない（d13 の read2 戦）
+                    adv_opts.append((-d, score(trial), t))
             if _wins_today(trial, self.days):
                 # 今日のうちにループが取れるなら、漏れと比べずに使う（ループを取るのが最優先。メモリ mastermind-loop-win-first）。
                 # 目隠し7戦目 gen_s11_027 L1D5: クロマクで手先（メインラバーズ、不安3）に暗躍1を置けば主人公死亡だったのに、漏れの λ で使わなかった
@@ -2143,6 +2358,8 @@ class SearchMastermind(RouteMastermind):
                 best, best_v = t, v
         if forced_opts:
             return max(forced_opts)[1]
+        if adv_opts:
+            return max(adv_opts)[2]
         return best
 
     def choose_rule_x(self, s, options):
