@@ -351,13 +351,14 @@ body.arming #board .ch:not(.noplace):not(.dead), body.arming #board .area:not(.n
 .ch .rolec { position:absolute; top:2px; left:2px; z-index:1; background:#f4ead2; color:#3a2a10; border:1px solid #3a2a10; border-radius:3px; padding:0 3px; font-size:11px; font-weight:800; white-space:nowrap; }
 body.noimg .ch .rolec { position:static; order:0; width:100%; text-align:center; }
 .fxf { position:fixed; z-index:40; pointer-events:none; font-weight:900; font-size:16px; color:#fff; text-shadow:0 0 3px #000, 0 0 6px #000; }
-.fxf.rew { font-size:26px; color:var(--acc); white-space:nowrap; } .fxf.ban { font-size:24px; white-space:nowrap; padding:4px 14px; background:rgba(0,0,0,.7); border-radius:6px; }
+.fxf.rew { font-size:26px; color:var(--acc); white-space:nowrap; } .fxf.ban { font-size:24px; white-space:nowrap; width:max-content; padding:4px 14px; background:rgba(0,0,0,.7); border-radius:6px; }
 .fxf.death { color:#ff7a6a; } .fxf.arrow { font-size:26px; color:#fff; } .fxf.arrow.combo { font-size:15px; white-space:nowrap; } .fxf.ok { color:#7be39a; } .fxf.lead { color:var(--acc); font-size:14px; white-space:nowrap; }
 .mmpanel .mmrule { text-decoration:underline dotted; cursor:help; } .mmpanel .mmroutes table { border-collapse:collapse; width:100%; } .mmpanel .mmroutes td:first-child { width:36%; } .mmpanel .mmroutes td { border-top:1px solid #5a2020; padding:3px 4px; vertical-align:top; font-size:12px; } .mmpanel .mmroutes .ok { color:#ffb070; }
 .sheetbar .mmcul, #sheetbar .mmcul { color:#ff9a9a; font-size:10px; }
 .mmpanel .mmsheet { background:#2a1414; border:1px solid #7a2626; border-radius:4px; padding:6px 8px; margin:6px 0; font-size:13px; } .mmpanel .mmsheet div { margin:2px 0; }
 .mmpanel .mmq { border:1px solid var(--acc); border-radius:4px; padding:6px 8px; margin:6px 0; } .mmpanel .row { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:4px 0; }
 .fxf.ban.box { white-space:pre-line; background:rgba(0,0,0,.9); font-size:17px; line-height:1.45; text-align:center; max-width:min(86vw, 640px); } .fxf.ban.ab { color:#b6f0c8; border:2px solid #50c878; }
+@media (max-width:900px) { .fxf.ban { white-space:normal; box-sizing:border-box; max-width:92vw; text-align:center; font-size:20px; } .fxf.ban.box { white-space:pre-line; font-size:15px; } }  /* 長い見出しが画面の左右にはみ出した */
 .fxf.ban.inc { color:#ff8a7a; border:2px solid #ff5a4a; } .fxf.ban.mm { color:#ff6b5e; border:2px solid #b00; background:rgba(40,0,0,.85); letter-spacing:.05em; } .fxf.mmf { font-size:22px; color:#ff8a7a; } .fxf.ban.incno { color:#ddd; border:1px solid #777; } .fxf.nul { color:#ffcf70; font-size:13px; } .fxghost { position:fixed; z-index:39; pointer-events:none; } .fxghost > * { width:100%; height:100%; } .fxf.p { color:#e2b6ff; } .fxf.g { color:#ffb3cc; } .fxf.i { color:#ddd; } .fxf.gd { color:#9fd4ff; } span.card .ow { font-size:.75em; opacity:.8; margin-right:2px; }
 .ccards span.card { font-size:clamp(8px,2.4cqi,12px); } .hand span.card { font-size:10px; }
 span.turf { position:absolute; right:6px; bottom:6px; background:#6b5a1a; color:#fff; font-weight:700; font-size:12px; padding:2px 8px; border-radius:10px; }
@@ -400,10 +401,21 @@ body.mode-ai .manual-only { display:none; }
 #log div.rej { color:var(--warn); font-size:12px; opacity:.9; }
 #rpbuild { position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.8); }
 #rpbuild.on { display:flex; } #rpbuild .box { background:var(--panel); border:2px solid var(--acc); border-radius:8px; padding:18px 24px; font-size:16px; text-align:center; }
-#rpbar { position:fixed; z-index:24; left:50%; bottom:10px; transform:translateX(-50%); display:none; align-items:center; gap:6px; flex-wrap:wrap;
+#rpbar { position:fixed; z-index:24; left:50%; bottom:10px; transform:translateX(-50%); width:max-content; display:none; align-items:center; gap:6px; flex-wrap:wrap;
   background:rgba(0,0,0,.92); border:2px solid #6fc3ff; border-radius:8px; padding:6px 10px; max-width:96vw; box-shadow:0 4px 18px #000; }
 body.replay #rpbar { display:flex; } #rpbar .t { color:#6fc3ff; font-weight:700; margin-right:4px; } #rpbar input[type=range] { width:min(320px, 40vw); }
-#rpbar .pos { color:var(--mut); font-size:12px; min-width:5em; text-align:center; }
+#rpbar .pos { color:var(--mut); font-size:12px; min-width:5em; text-align:center; } #rpbar .more { display:contents; }
+@media (max-width:900px) {  /* 狭い画面: 下の「推理」の見出しの真上に全幅で置く。1行目は再生の操作、2行目はシーク、3行目はその他（横に送る）。盤面を隠さない */
+  #rpbar { left:0; right:0; bottom:40px; transform:none; width:auto; max-width:none; gap:4px; padding:4px 8px; border-width:2px 0; border-radius:0; box-shadow:0 -4px 12px #000; }
+  #rpbar .t, #rp-title { display:none; } #rpbar .pos { min-width:0; margin-left:auto; }
+  #rpbar input[type=range] { order:5; flex:1 0 100%; width:auto; margin:0; }
+  #rpbar .more { order:6; display:flex; flex:1 0 100%; gap:4px; overflow-x:auto; } #rpbar .more button { flex:none; }
+  body.replay { padding-bottom:170px; } body.replay #p-sheet > .body { padding-bottom:120px; }  /* バーの裏に隠れる分。最後まで読める */
+}
+@media (max-width:900px) and (max-height:500px) {  /* 横向きのスマホ: 高さが足りないので1行にまとめる */
+  #rpbar { flex-wrap:nowrap; } #rpbar input[type=range] { order:0; flex:1 1 0; min-width:60px; } #rpbar .pos { margin-left:0; white-space:nowrap; }
+  #rpbar .more { order:0; flex:0 1 34vw; min-width:0; } body.replay { padding-bottom:90px; }
+}
 body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#1d3346; }
 </style>
 
@@ -508,7 +520,7 @@ body.replay #band { border-bottom-color:#6fc3ff; } #log div.rpnow { background:#
 <div id="rpbar"><span class="t">リプレイ</span><span id="rp-title" class="mut"></span>
   <button id="rp-first" title="最初へ">⏮</button><button id="rp-prev" title="1つ戻る">◀</button><button id="rp-play" class="go" title="再生／停止">▶ 再生</button>
   <button id="rp-next" title="1つ進む">▶|</button><button id="rp-last" title="最後へ">⏭</button>
-  <input type="range" id="rp-seek" min="0" value="0"><span class="pos" id="rp-pos"></span><button id="rp-reveal" style="display:none">非公開シート</button><button id="rp-share" onclick="RP.shareURL()">URL をコピー</button><button id="rp-here" onclick="RP.resumeHere()" title="この場面から、普通の対戦として続きを遊ぶ">ここから遊ぶ</button><button onclick="RP.resumeURL(true)" title="この場面から続きを遊べる URL">再開の URL</button><button id="rp-exit">リプレイを終える</button></div>
+  <input type="range" id="rp-seek" min="0" value="0"><span class="pos" id="rp-pos"></span><span class="more"><button id="rp-reveal" style="display:none">非公開シート</button><button id="rp-share" onclick="RP.shareURL()">URL をコピー</button><button id="rp-here" onclick="RP.resumeHere()" title="この場面から、普通の対戦として続きを遊ぶ">ここから遊ぶ</button><button onclick="RP.resumeURL(true)" title="この場面から続きを遊べる URL">再開の URL</button><button id="rp-exit">リプレイを終える</button></span></div>
 <input type="file" id="rp-file" accept=".json,application/json" style="display:none">
 <div id="uxpanel"><b style="color:var(--acc)">表示の設定</b> <span class="mut" id="ux-q"></span>
   <label>場面カード <input type="checkbox" data-ux="scene"></label>
@@ -759,7 +771,7 @@ function handGuide() {
 }
 // 演出はいつでも飛ばせる（Space・盤面のクリック。設計資料 1章）: 動いている演出を終わらせ、たまった場面は最新まで送る
 function fxBusyMark() {  // 帯の小さな表示「演出中 ― Esc で飛ばす」
-  let m = document.getElementById('fxbusy'); if (!m) { m = document.createElement('span'); m.id = 'fxbusy'; m.className = 'mut'; m.textContent = '演出中 ― Esc で飛ばす'; }
+  let m = document.getElementById('fxbusy'); if (!m) { m = document.createElement('span'); m.id = 'fxbusy'; m.className = 'mut'; m.textContent = matchMedia('(hover: none)').matches ? '演出中 ― 盤面をタップで飛ばす' : '演出中 ― Esc で飛ばす'; }
   const tools = $('band').querySelector('.tools');  // ボタンの左に置く（右に足すとボタンが動いた。ユーザー指摘）
   if (tools && m.parentNode !== tools) tools.prepend(m); else if (!tools && !m.isConnected) $('band').appendChild(m);
   clearTimeout(fxBusyMark.t); m.style.display = ''; fxBusyMark.t = setTimeout(() => { m.style.display = 'none'; }, Math.max(0, fxBusyUntil - Date.now()));

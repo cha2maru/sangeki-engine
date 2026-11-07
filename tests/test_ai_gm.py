@@ -484,3 +484,12 @@ def test_human_mastermind_chooses_informant_rule_x():
     assert sorted(x['value'] for x in t.asked[0]['ui']['fields'][0]['options']) == ['X_THREAD', 'X_VIRUS']
     assert len(t.rejected) == 1  # 選択肢に無いルールは聞き直し
     assert any(e.get('reveal_rule_x') == 'X_VIRUS' for e in ev)
+
+
+def test_state_carries_reveal_and_reply(tmp_path):
+    """盤面が読む reply・reveal が state に載る（行末のコメントに飲まれて、終了時の非公開シートが出なくなったことがある）"""
+    import json
+    from types import SimpleNamespace
+    ai_gm.run(SimpleNamespace(script='designed/d05_contract', mm='route', pc='read2', seed=3, blind=False, dir=str(tmp_path), code='', replay=None, resume=False))
+    st = json.load(open(tmp_path / 'state.json', encoding='utf-8'))
+    assert 'reply' in st and st['reveal']['winner'] in ('主人公', '脚本家')

@@ -201,7 +201,8 @@ class Table:
                                             for i in sc['incidents']],
                               'used': list(self.s.get('used', {}).get('M', [])),
                               'ruleIds': list(sc['rules']), 'routes': self._mm_routes()}
-        pub.update({'mode': 'ai', 'side': 'mm' if self.mm_side else 'pc', 'watch': self.watch, 'blind': self.record_file != 'record.json' and not self.reveal,  # 伏せた脚本の試合の途中（判断の記録は非公開） 'reply': self.reply, 'reveal': self.reveal,  # 対AIモード（盤面は手動モード用の欄＝脚本家に伝える・ハッシュ・異議を出さない）
+        pub.update({'mode': 'ai', 'side': 'mm' if self.mm_side else 'pc', 'watch': self.watch, 'blind': self.record_file != 'record.json' and not self.reveal,  # 伏せた脚本の試合の途中（判断の記録は非公開）
+                    'reply': self.reply, 'reveal': self.reveal,  # 対AIモード（盤面は手動モード用の欄＝脚本家に伝える・ハッシュ・異議を出さない）
                     'game': self.game, 'phaseId': self.phase_id, 'phaseName': self.phase_name, 'waiting': self.waiting,
                     'loops': self.script['loops'], 'days': self.script['days'],
                     # 盤面は「キャラクター名#番号」で使用済みを判定する（エンジンは「C07#0」）
