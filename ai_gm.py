@@ -315,6 +315,16 @@ def _lab_send(a):
     return send, lab
 
 
+def _parts(a):
+    """合法な宣言1件を、盤面の段のメニューで選ぶ順の名前に分ける（鑑識官は 元 → 先 → カウンター、妹は 大人 → 能力 → その能力の選択）。"""
+    if 'idx' in a:
+        return [name(a['target']), ability_label(a['target'], a['idx'])] + _parts(a.get('arg') or {})
+    if 'from' in a:  # 2人ともカウンターが無ければ何も動かないが、★は使用済みになる（印刷p40「可能であれば」）
+        k = COUNTER_JA.get(a.get('counter'))
+        return [f"{name(a['from'])} から", f"{name(a['to'])} へ", f'{k}を1つ' if k else '動かせるカウンターなし（★は使用済みになる）']
+    return _lab_send(a)[1]
+
+
 class RecordingMM:
     """自動の脚本家の判断の結果を記録する（リプレイの URL 用。思考は記録しない）。"""
     def __init__(self, mm, record, table, queue=None):
@@ -747,7 +757,7 @@ class HumanProtagonist:
             if m and m not in o['modes']:
                 o['modes'].append(m)
             send, lab = _lab_send(a)
-            o.setdefault('choices', []).append({'label': '・'.join(lab) or '（対象なし）', 'send': send})
+            o.setdefault('choices', []).append({'label': '・'.join(lab) or '（対象なし）', 'send': send, 'parts': _parts(a)})
         return out
 
     @staticmethod

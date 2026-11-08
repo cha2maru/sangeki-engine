@@ -1536,11 +1536,24 @@ function ability(x, y, char, idx, label, arg) {
   const send = async extra => { if (/★/.test(label) && ux('confirm') && !await ask({ title: '1ループ1回の能力', html: `<p><b>${esc(char)}</b> の <b>${esc(label)}</b> は、このループで1回だけ使えます。</p><p class="mut">拒否されても使用済みになります（主人公の書 印刷p23）。</p>`, ok: '宣言する', cancel: 'やめる' })) return; post({ type: 'ability', char, ability: idx, label, ...extra }); };
   // 対AIモードでは、エンジンが「いま合法」とした対象だけを出す（同じエリア・本人以外などの条件。手動モードでは全員）
   const legal = S.abilityOptions ? S.abilityOptions[char + '#' + idx] : undefined;
+  if (awaiting) return menu(x, y, `${label}`, [{ label: '前の操作を処理しています。少し待ってから選んでください', dim: true, go: () => {} }]);  // 解決前の古い一覧で「使えない」と出さない
   if (S.abilityOptions && !legal) return menu(x, y, `${label}`, [{ label: 'いまは使えない（友好・場所・対象・回数を確認）', dim: true, go: () => {} }]);
   // 対AIモード: エンジンが出した合法な宣言（表示名と送る中身）を並べるだけ。種類ごとのメニューの作り方は手動モード用に残す
   if (legal && legal.choices) {
-    if (legal.choices.length === 1 && !Object.keys(legal.choices[0].send).length) return send({});
-    return menu(x, y, `${label}`, legal.choices.map(c => ({ label: c.label, go: () => send(c.send) })));
+    const cs = legal.choices;
+    if (cs.length === 1 && !Object.keys(cs[0].send).length) return send({});
+    // 選ぶものが2つ以上ある能力（鑑識官・妹・幻想・ご神木・医者・A.I. など）は、多ければ1段ずつ選ぶ（平らな一覧が50行を超えた）
+    if (cs.length <= 8 || !cs.every(c => (c.parts || []).length > 1)) return menu(x, y, `${label}`, cs.map(c => ({ label: c.label, go: () => send(c.send) })));
+    const stage = (list, d, path, back) => {
+      const groups = [...new Set(list.map(c => c.parts[d]))];
+      if (groups.length === 1 && list.every(c => c.parts.length > d + 1)) return stage(list, d + 1, [...path, groups[0]], back);  // 1つしか無い段は飛ばす
+      const again = () => stage(list, d, path, back);
+      menu(x, y, path.length ? `${label}：${path.join(' ')} …` : label, groups.map(g => {
+        const sub = list.filter(c => c.parts[d] === g);
+        return sub.length === 1 ? { label: sub[0].parts.slice(d).join(' '), go: () => send(sub[0].send) } : { label: g + ' …', go: () => stage(sub, d + 1, [...path, g], again) };
+      }).concat(back ? [{ label: '← 戻る', dim: true, go: back }] : []));
+    };
+    return stage(cs, 0, [], null);
   }
   // ボードも対象になる能力（神格[5] など）は、エンジンの形（B:SHR）で送る
   const BOARD = { '病院': 'B:HOS', '神社': 'B:SHR', '都市': 'B:CIT', '学校': 'B:SCH' };
@@ -1728,12 +1741,23 @@ function renderSent() {
 }
 async function post(a) {
   if (RP.on) return alert('リプレイの表示中は操作できません（『リプレイを終える』で戻る）');
+  // 盤面の S は数秒古いことがあり、古い phaseId の操作は進行役が黙って捨てる（鑑識官→教祖→ナースと続けて選ぶと、ナースが消えた）。
+  // 送る直前に今の問いを確かめる。能力・札・最後の宣言は同じ待ちならそのまま今の番号で送り（合法かは進行役が見直す）、別の問いに進んでいたら送らない
+  let phaseId = S.phaseId;
+  if (S.mode === 'ai') try {
+    const cur = await (await fetch('/state')).json();
+    if (cur.phaseId !== phaseId) {
+      const k = (S.waiting || {}).kind;
+      if (a.type !== 'mm' && ['ability', 'cards', 'final'].includes(k) && cur.waiting?.kind === k) phaseId = cur.phaseId;
+      else { await poll(); return alert('進行が先に進んでいたので、送りませんでした。いまの問いを確かめて、もう一度選んでください'); }
+    }
+  } catch {}
   // 返事を待つ前に送信済みとして描く（待つ間に置いた札が盤面から消えていた。ユーザー指摘）
-  const rec = { game: S.game, phaseId: S.phaseId, seq: '…', text: describeAction(a), placements: a.type === 'cards' ? a.placements : null };
+  const rec = { game: S.game, phaseId, seq: '…', text: describeAction(a), placements: a.type === 'cards' ? a.placements : null };
   noAnimChg.clear(); lastPlaced = null;
   sent.push(rec); awaiting = Date.now(); dfSeen = LOG.length ? Math.max(...LOG.map(l => l.n || 0)) : 0; render(); renderToday();
   try {
-    const r = await fetch('/action', { method: 'POST', body: JSON.stringify({ phaseId: S.phaseId, ...a }) });
+    const r = await fetch('/action', { method: 'POST', body: JSON.stringify({ phaseId, ...a }) });
     const { seq } = await r.json();
     rec.seq = seq;
     try { sessionStorage.setItem('sent', JSON.stringify(sent.slice(-50))); } catch {}
@@ -1857,9 +1881,16 @@ function watchStep() {
   watchT = setTimeout(watchStep, Math.max(250, (mine ? 500 : 1200 * catchup) * k, fxBusyUntil - Date.now()));
 }
 async function poll() {
+  if (poll.busy) return;
+  poll.busy = true;
+  try { await pollOnce(); } finally { poll.busy = false; }
+}
+let pollFast = 0;  // 状態が変わった時刻。続けて届く分も待たせない
+setInterval(() => { if (awaiting || Date.now() - pollFast < 1500) poll(); }, 250);  // 操作の返事を待つ間は細かく読む（能力を解決した後の2秒ほど、次の能力が「いまは使えない」と出た）
+async function pollOnce() {
   try {
     const s = await (await fetch('/state')).text();
-    if (s !== lastState) { const v = JSON.parse(s); lastState = s; awaiting = 0;
+    if (s !== lastState) { const v = JSON.parse(s); lastState = s; awaiting = 0; pollFast = Date.now();
       if (viewing) liveS = v; else if (await watchQueue(v)) {} else { S = v; render(); renderOptions(); } sceneOnState(v); }
   } catch {}
   try {
