@@ -23,8 +23,8 @@ from engine import phases as ph
 from engine import sets
 from engine.resolve import CARDS, CHARS, ONCE, IllegalPlacement, card_targets, copy_state, resolve_actions
 from engine.features import state_features
-from engine.route_calc import forced_plan
-from engine.routes import enumerate_routes
+from engine.route_calc import forced_plan, illusion_dodge
+from engine.routes import alone_extras, enumerate_routes
 from selfplay.players import DUMMY_PC, PublicObserver, RouteMastermind, cultist_options, score
 
 STOP = ('MVX', 'PAR-', 'INTX', 'MV_V', 'MV_H')
@@ -287,6 +287,10 @@ class SearchMastermind(RouteMastermind):
                 out.append(r['via'])
             out += [c['detail'][0] for c in r['conds'] if isinstance(c['detail'][0], str) and c['detail'][0].startswith('C')]
             out += ['B:' + c['detail'][0] for c in r['conds'] if c['kind'] == 'board' and c['detail'][0]]
+            if getattr(self, 'alone_extras', False):  # 2人きりの筋: 同じエリアから追い出す人物も置き先に（目隠し対戦 gen_s11_002 L3D6）
+                for c in r['conds']:
+                    if c['kind'] == 'alone_with' and c['deficit'] > 0 and self._extras_ok(s, c['detail']):
+                        out += alone_extras(s, *c['detail'])
         alive = {c for c, v in s['chars'].items() if v['alive'] and v.get('present', True)}
         return [t for t in dict.fromkeys(out) if (t in alive and t != 'C20') or t.startswith('B:')]  # 幻想には札を置けない
 
@@ -470,6 +474,25 @@ class SearchMastermind(RouteMastermind):
                 self.blocked_day[('any', t, k)] = self.blocked_day.get(('any', t, k), 0) + 1
         self._last_mm = []
 
+    @staticmethod
+    def _no_mvx(s):
+        """主人公が移動禁止をこのループで使い切った（追い出しの移動を止める札が無い）。alone_extras はこのときだけ効かせる:
+        いつでも候補に入れると、移動禁止で止められる追い出しに札を使い、ほかの筋を押さなくなった（gen_s11_031 でループを落とす数が 12 試合で 4 → 9）"""
+        return all('MVX' in s['used'][p] for p in 'ABC')
+
+    def _extras_ok(self, s, d):
+        """追い出しの移動を候補に入れるか: 主人公が移動禁止を使い切ったとき。alone_hidden なら、2人きりで死ぬ側（d[1]）の役職を
+        公開の推理でまだ読めていない（真の役職の見込み 0.5 未満）ときも入れる。主人公は狙われていると知らない人物の周りの移動に応じにくい
+        （目隠し対戦 gen_s11_016 L2D5: 神社のシリアルキラーとフレンドの異世界人から教祖を出す手が、移動禁止が1枚残っていて候補に無かった）"""
+        if self._no_mvx(s):
+            return True
+        if not getattr(self, 'alone_hidden', False):
+            return False
+        v = d[1]
+        self.pub._ensure(s)
+        m, tot = self.pub.ded.marginals()
+        return bool(tot) and m.get(v, {}).get(ph.base_role(s, v), 0) / tot < 0.5
+
     def _relevant(self, s, top=6):
         """近い勝ち筋が必要とする (対象, 種類)。脅威として数える札の判定に使う。"""
         out = set()
@@ -482,6 +505,10 @@ class SearchMastermind(RouteMastermind):
                     out.add(('B:' + d[0], 'int'))
                 elif c['kind'] in ('same_area', 'alone_with', 'in_area') and c['deficit'] > 0:
                     out.update((x, 'mv') for x in d if isinstance(x, str) and x.startswith('C'))
+                    if c['kind'] == 'alone_with' and getattr(self, 'alone_extras', False) and self._extras_ok(s, d):
+                        # 2人きりの筋は、同じエリアのほかの人物を移動で追い出しても近づく（目隠し対戦 gen_s11_002 L3D6: シリアルキラーとキーパーソンのいる
+                        # 病院から医者とナースを出せば勝ちだったが、移動の候補は2人だけで、追い出す手が候補に無かった）
+                        out.update((x, 'mv') for x in alone_extras(s, *d))
         return out
 
     def _standing(self, s):
@@ -863,6 +890,132 @@ class SearchMastermind(RouteMastermind):
                 v += 1 / (1 + rest)
         return v
 
+    POS_KINDS = ('same_area', 'alone_with', 'in_area')
+
+    def _move_dt(self, s):
+        """移動の二重の脅威: 位置の条件で成り立つ筋が近い日に、脚本家の移動札の組（1〜3人）ごとに主人公の応手（移動禁止・移動札の重ね・何もしない）を
+        全部当てて行動を解決し、どの応手でも位置の筋が成り立つ組を探す（計画書 付録H の追記、目隠し対戦 gen_s11_009 L3D6）。見つかれば (手, 置き先) を返す。
+        能力（クロマクの暗躍など）と事件は数えない＝行動の解決の直後に筋が成り立つものだけ。"""
+        import itertools
+        from engine.resolve import CHARS as RCHARS
+        near = [r for r in enumerate_routes(s) if r['total'] <= 2 and any(c['kind'] in self.POS_KINDS for c in r['conds'])]
+        if not near:
+            return None
+        live = lambda c: c in s['chars'] and s['chars'][c]['alive'] and s['chars'][c].get('present', True) and s['chars'][c].get('area') and c != 'C20'  # noqa: E731
+        rel = []
+        for r_ in near:
+            for c in r_['conds']:
+                if c['kind'] in self.POS_KINDS:
+                    for x in c['detail'][:2]:
+                        if live(x) and x not in rel:
+                            rel.append(x)
+        rel = rel[:4]
+        mvs = ['MV_V', 'MV_H'] + (['MV_D'] if 'MV_D' not in s['used']['M'] else [])
+
+        def holds(after):
+            return any(r_['total'] == 0 for r_ in enumerate_routes(after) if any(c['kind'] in self.POS_KINDS for c in r_['conds']))
+
+        def res(mm, pc):
+            try:
+                return resolve_actions(s, mm + pc)[0]
+            except IllegalPlacement:
+                return None
+        order = list('ABC'[('ABC'.index(s['leader'])):] + 'ABC'[:'ABC'.index(s['leader'])])
+        mvx = [p for p in order if 'MVX' not in s['used'][p]]
+        best = None
+        for n in (1, 2, 3):
+            for who in itertools.combinations(rel, n):
+                for cards in itertools.product(mvs, repeat=n):
+                    if cards.count('MV_D') > 1:
+                        continue
+                    mm = [{'by': 'M', 'target': t, 'card': c} for t, c in zip(who, cards)]
+                    a0 = res(mm, [])
+                    if a0 is None or not holds(a0):
+                        continue
+                    ok = True
+                    for k in range(1, min(3, len(rel)) + 1):  # 主人公の応手: rel の k 人に 移動禁止・↑↓・←→
+                        for ts in itertools.combinations(rel, k):
+                            for pcs in itertools.product(('MVX', 'MV_V', 'MV_H'), repeat=k):
+                                if pcs.count('MVX') > len(mvx):
+                                    continue
+                                ps, free = [], list(order)
+                                for t, c in sorted(zip(ts, pcs), key=lambda z: z[1] != 'MVX'):  # 移動禁止を持つ人から先に割り当てる
+                                    p = next((q for q in free if c != 'MVX' or q in mvx), None)
+                                    if p is None:
+                                        break
+                                    free.remove(p)
+                                    ps.append({'by': p, 'target': t, 'card': c})
+                                if len(ps) < k:
+                                    continue
+                                a = res(mm, ps)
+                                if a is not None and not holds(a):
+                                    ok = False
+                                    break
+                            if not ok:
+                                break
+                        if not ok:
+                            break
+                    if ok:
+                        best = mm
+                        break
+                if best:
+                    break
+            if best:
+                break
+        return best
+
+    def _gwx_hide(self, s, mm):
+        """友好禁止の置き先が、今日閾値に届く持ち主（_gw_eve）のうち能力が負け筋に効かない人物なら、閾値に届く絶対友好無視の役職
+        （カルティスト・ウィッチ）の持ち主へ置き替える。能力は拒否されて効かないが、拒否で役職が公開されるのを防ぐ
+        （目隠し対戦 gen_s11_003 L3D5: 男子学生に友好禁止、鑑識官＝カルティストに友好+2 が通って拒否され、最後の戦いで当てられた）"""
+        from engine.route_calc import _pc_abilities
+        eve = self._gw_eve(s)
+        hide = [c for c in sorted(eve, key=eve.get) if ph.base_role(s, c) in ('CULTIST', 'WITCH') and c not in {x['target'] for x in mm}]
+        if not hide:
+            return mm
+        tg = set()
+        for r_ in enumerate_routes(s):
+            for c in r_['conds']:
+                d = c['detail']
+                if c['kind'] == 'counter' and d[1] in ('par', 'int'):
+                    tg.add((d[0], d[1]))
+                elif c['kind'] == 'board':
+                    tg.add(('B:' + d[0], 'int'))
+        live = _pc_abilities(s, sorted(tg), holders=True, reach=2) if tg else {}  # 友好+2 までで負け筋の対象を減らせる持ち主
+        out = []
+        for x in mm:
+            if x['card'] == 'GWX' and x['target'] in eve and x['target'] not in live and hide:
+                x = dict(x, target=hide.pop(0))
+            out.append(x)
+        return out
+
+    def _gwx_live(self, s, mm):
+        """友好禁止の置き先が、今日閾値に届く持ち主のうちループに1回の能力の人物で、負け筋に効く毎日使える能力（医者[2] など）の持ち主が
+        閾値に届くのに空いていれば、そちらへ置き替える（目隠し対戦 gen_s11_014 L1D1: 鑑識官に友好禁止、医者が友好2になり学者＝メインラバーズの不安を毎日取り除いた）"""
+        from engine import abilities as ab
+        from engine.route_calc import _pc_abilities
+        eve = self._gw_eve(s)
+        if not any(x['card'] == 'GWX' and x['target'] in eve for x in mm):
+            return mm
+        tg = set()
+        for r_ in enumerate_routes(s):
+            for c in r_['conds']:
+                d = c['detail']
+                if c['kind'] == 'counter' and d[1] in ('par', 'int'):
+                    tg.add((d[0], d[1]))
+                elif c['kind'] == 'board':
+                    tg.add(('B:' + d[0], 'int'))
+        live = _pc_abilities(s, sorted(tg), holders=True, reach=2) if tg else {}
+        rep = lambda h: any(not once for (c, _), (_n, once, _k) in ab.ABILITIES.items() if c == h)  # noqa: E731
+        used = {x['target'] for x in mm}
+        cand = [h for h in sorted(eve, key=eve.get) if h in live and rep(h) and h not in used]
+        out = []
+        for x in mm:
+            if cand and x['card'] == 'GWX' and x['target'] in eve and not (x['target'] in live and rep(x['target'])):
+                x = dict(x, target=cand.pop(0))
+            out.append(x)
+        return out
+
     def _gw_eve(self, s):
         """主人公が今日の友好+1（＋友好+2 が残っていれば+2）で閾値に届く、情報・守りの能力の持ち主 {人物: 閾値までの不足}。"""
         from selfplay.players import INFO_ABILITIES
@@ -1076,6 +1229,8 @@ class SearchMastermind(RouteMastermind):
             fp = forced_plan(s, self.days, hidden=True, watch=self._watch(s),
                              pos=getattr(self, 'calc_pos', False), abil=self._abil(s),
                              pcab=getattr(self, 'calc_pcab', False))
+            if getattr(self, 'illusion_dodge', False):
+                fp = illusion_dodge(s, fp)
             if not fp['forced'] and fp.get('mix') and fp.get('p', 0) > 0:
                 for pr, mv in fp['mix']:
                     mm_ = [{'by': 'M', 'target': tg, 'card': c} for tg, c in self._bluff_cards(s, mv)]
@@ -1083,6 +1238,17 @@ class SearchMastermind(RouteMastermind):
                         k_ = tuple((x['target'], x['card']) for x in mm_)
                         self._gbonus[k_] = mm_
                         self._gp[k_] = fp['p']
+        if getattr(self, 'move_dt', False):
+            dt = self._move_dt(s)
+            if dt:
+                hand = [c for c in CARDS['mastermind_hand'] if not (c in ONCE['M'] and c in s['used']['M'])]
+                for x in dt:
+                    hand.remove(x['card']) if x['card'] in hand else None
+                xr = random.Random(f"{s['loop']}:{s['day']}:dt")
+                others, cards = self._rest2(s, [u for u in self._targets(s) if u not in {x['target'] for x in dt}], hand, 3 - len(dt), xr) if len(dt) < 3 else ([], [])
+                mm = dt + [{'by': 'M', 'target': u, 'card': c} for u, c in zip(others, cards)]
+                self._last_mm = list(mm)
+                return mm
         scored = self.rank_moves(s)
         if not scored:
             return super().mm_cards(s)
@@ -1097,6 +1263,8 @@ class SearchMastermind(RouteMastermind):
             fp = fp or forced_plan(s, self.days, hidden=bool(self.gamble), watch=self._watch(s) if self.gamble else None,
                                    pos=getattr(self, 'calc_pos', False), abil=self._abil(s),
                              pcab=getattr(self, 'calc_pcab', False))
+            if getattr(self, 'illusion_dodge', False):
+                fp = illusion_dodge(s, fp)
             g = self._guide_loop_routes(s)
             if g and fp['forced'] and not (fp['locked'] or self._locked(s)):
                 # 指針がこのループに選んだ筋だけでも必ず取れるなら、そちらの手にする（ほかの筋を押して漏らさない。取る保証は変わらない）
@@ -1149,6 +1317,17 @@ class SearchMastermind(RouteMastermind):
             mm = self._diag_gate(s, mm)
         if getattr(self, 'key_guard', False):
             mm = self._key_preempt(s, mm)
+        if getattr(self, 'gwx_hide', False):
+            mm = self._gwx_hide(s, mm)
+        if getattr(self, 'gwx_live', False):
+            mm = self._gwx_live(s, mm)
+        if getattr(self, 'tt_gwx_guard', False):
+            # タイムトラベラーへの友好禁止は、主人公の友好と重なると「無視された」と公開され、タイムトラベラーが割れる。
+            # 重なりやすい日（ループの最終日・主人公が友好を積み始めた後）は、同じ置き先の不安禁止に替える（置き場所は変えない）。
+            # 目隠し対戦 gen_s11_000 L1D5: 最終日に情報屋（タイムトラベラー）へ友好禁止 → 主人公の友好+1 と重なって割れ、L2 を守られた
+            mm = [dict(x, card='PARX') if x['card'] == 'GWX' and ph.base_role(s, x['target']) == 'TT'
+                  and (s['day'] >= self.days or s['chars'][x['target']]['gw'] > 0) and 'PARX' not in {y['card'] for y in mm} else x
+                  for x in mm]
         self._fp_keep = set()
         self._last_mm = list(mm)  # 止められたかを行動解決の後に数える（stuck）
         for x in mm:
@@ -1516,10 +1695,18 @@ class SearchMastermind(RouteMastermind):
         par_need = {d[0] for r_ in enumerate_routes(s) for c in r_['conds'] if c['kind'] == 'counter' and (d := c['detail'])[1] == 'par'}
         out = []
         keep = getattr(self, '_fp_keep', set()) if getattr(self, 'keep_forced', False) else set()
+        # 守りの能力が今日閾値に届く持ち主（_gw_eve）がいて、ボードに何も起こさない札があれば、置き先ごと持ち主への友好禁止に替える
+        # （目隠し対戦 gen_b31_035 L3D4: 暗躍2の病院に暗躍+1 を置き、巫女が友好3になって神社の暗躍を取り除けるようになった）
+        eve = sorted((c for c in self._gw_eve(s) if c not in {y['target'] for y in mm}), key=self._gw_eve(s).get) \
+            if getattr(self, 'fill_eve', False) else []
         for x, u in zip(mm, uses):
             t = x['target']
             if (t, x['card']) in keep:  # 逆算の必ず取れる手の札は替えない（目隠し対戦 gen_s11_023 L2D5: 女の子への暗躍+1 を不安禁止に替えて必勝を崩した）
                 out.append(x)
+                continue
+            if u in ('idle', 'surplus') and t.startswith('B:') and eve and 'GWX' in hand:
+                hand.remove('GWX')
+                out.append(dict(x, target=eve.pop(0), card='GWX'))
                 continue
             if u in ('idle', 'surplus') and not t.startswith('B:') and t in s['chars']:
                 for c in (('PARX', 'GWX') if t in par_need else ('GWX', 'PARX')):

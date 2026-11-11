@@ -391,6 +391,23 @@ def _make(kind, rng, script=None):
             return mm
         p.mm_cards = mm_cards
         return p
+    if kind == 'calcGBxhdKNim':  # 比べ: KNi から move_dt だけを外したもの（kni19）
+        p = make('calcGBxhdKNi', rng, script)
+        p.move_dt = False
+        return p
+    if kind == 'calcGBxhdKNih':  # 比べ: KNi から alone_hidden だけを外したもの（kni20）
+        p = make('calcGBxhdKNi', rng, script)
+        p.alone_hidden = False
+        return p
+    if kind == 'calcGBxhdKNiv':  # 比べ: KNi から illusion_dodge だけを外したもの（runs/intent_mm_2026-10-31 の kni17）
+        p = make('calcGBxhdKNi', rng, script)
+        p.illusion_dodge = False
+        return p
+    if kind in ('calcGBxhdKNi0', 'calcGBxhdKNia', 'calcGBxhdKNir'):  # 比べ: 0＝alone_extras・reach なし、a＝alone_extras だけ、r＝reach だけ（d04_bomb の調べ）
+        p = make('calcGBxhdKNi', rng, script)
+        p.alone_extras = kind[-1] == 'a'
+        p.calc_pcab = 'reach' if kind[-1] == 'r' else True
+        return p
     if kind == 'calcGBxhdKNi':  # calcGBxhdKN＋意図のある札（候補の置き先・札を無作為に引かず、筋・事件・不安臨界の順と、押す・不安を積む・妨害の札で作る。2026-10-31）
         p = make('calcGBxhdKN', rng, script)
         p.intent_cards = True
@@ -401,6 +418,17 @@ def _make(kind, rng, script=None):
         p.inc_reach = 1.0  # 効果の後あと1手でそろう2段の筋も決め手に数える（目隠し対戦 gen_s11_007 L4 の行方不明＝フレンド）
         p.inc_push = 0.5  # 決め手になる事件の犯人を間に合う日から積む（目隠し対戦 gen_s11_008 L3 の行方不明＝シリアルキラー）
         p.advance_ab = 1.0  # 一番近い負け筋を近づける能力は漏れと比べずに使う（目隠し対戦 gen_s11_022 L2 のクロマク）
+        p.alone_extras = True  # 2人きりの筋で、同じエリアのほかの人物を移動で追い出す手も候補に（目隠し対戦 gen_s11_002 L3D6）
+        p.fill_eve = True  # ボードの効かない札を、守りの能力が今日閾値に届く持ち主への友好禁止に（目隠し対戦 gen_b31_035 L3D4）
+        p.gwx_hide = True  # 友好禁止を、負け筋に効かない持ち主から閾値に届くカルティスト・ウィッチへ（目隠し対戦 gen_s11_003 L3D5）
+        p.gwx_live = True  # 友好禁止を、ループに1回の能力の持ち主から、負け筋に効く毎日使える能力の持ち主へ（目隠し対戦 gen_s11_014 L1D1）
+        # alone_hidden（狙われる人物の役職が読まれていなければ移動禁止が残っていても追い出しを候補に）は外した: kni20 で主人公に守られたループが
+        # 3本で 6 → 9 に増えた（gen_s11_031・gen_s11_016・gen_s11_002。runs/intent_mm_2026-10-31 の README）
+        p.move_dt = True  # 移動の二重の脅威（主人公の応手を全部当てて、どれにも位置の筋が通る移動札の組。目隠し対戦 gen_s11_009 L3D6）
+        p.illusion_dodge = True  # 幻想のボードに押す札が要る逆算を「必ず取れる」にしない（主人公は移動札でかわせる。目隠し対戦 gen_s11_005 L3）
+        p.tt_gwx_guard = True  # 最終日・友好を積まれた後のタイムトラベラーへの友好禁止は不安禁止に（目隠し対戦 gen_s11_000 L1D5）
+        # calc_pcab='reach'（友好を積めば届く能力も逆算に数える）は外した: d04_bomb で「必ず取れる」を取り下げたのに能力の持ち主を友好禁止で
+        # 封じず、ループを落とした（runs/intent_mm_2026-10-31 の README）。持ち主を封じる手とつなげてから入れる
         return p
     if kind == 'calcGBxhdKN':  # calcGBxhdK＋逆算と確定の判定に主人公の友好能力（calc_pcab）。d30 L1D6 でナース[2] を数えず確定と誤って隠した（2026-10-29）
         p = make('calcGBxhdK', rng, script)

@@ -68,6 +68,14 @@ def alone_with(state, a, b):
     return best
 
 
+def alone_extras(state, a, b):
+    """a と b が同じエリアにいるとき、2人きりにするために追い出す同じエリアの生存者（移動札の置き先）。別のエリアなら空。"""
+    ca, cb = state['chars'].get(a), state['chars'].get(b)
+    if not ca or not cb or ca['area'] != cb['area']:
+        return []
+    return [c for c, v in state['chars'].items() if v['alive'] and v.get('present', True) and v['area'] == ca['area'] and c not in (a, b)]
+
+
 def _can_leave(state, cid, diag):
     """cid を移動札1枚で今のエリアから出せるか（上下・左右、移動斜めが残っていれば斜めも）。"""
     from .resolve import destination

@@ -167,6 +167,19 @@ def forced_plan(state, days, hidden=False, watch=None, pos=False, abil=False, pc
     return _copy.deepcopy(hit)
 
 
+def illusion_dodge(state, fp):
+    """幻想のいるボードに押す札（不安+1・暗躍）が要る「必ず取れる」は、必ずではない。主人公は同じボードに移動の札を置けば幻想を先に動かし、
+    移動以外の札は移動後のボードのものが効く（engine/resolve.py）。逆算の主人公の止め手は不安−1 と暗躍禁止だけなので、この逃げ方を数えない。
+    その場合は forced を外し、賭けの確率を 0.5 までにする（目隠し対戦 gen_s11_005 L3: 毎日「必ず取れる」で幻想のボードに不安+1、毎日かわされた）"""
+    il = state['chars'].get('C20')
+    if not fp.get('forced') or fp.get('locked') or not (il and il['alive'] and il.get('present', True) and il.get('area')):
+        return fp
+    b = 'B:' + il['area']
+    if not any(t == b and c in ('PAR+', 'INT1', 'INT2') for t, c in fp.get('move') or []):
+        return fp
+    return {**fp, 'forced': False, **({'p': min(fp['p'], 0.5)} if 'p' in fp else {})}
+
+
 def forced_plan_raw(state, days, hidden=False, watch=None, pos=False, abil=False, pcab=False, only=None):
     """このループを脚本家が必ず取れるか（下限）と、取れるなら今日の手（[(対象, 札)]）。
     hidden: 伏せ札の中身が主人公に見えない場合の、ループを取る確率 p と今日の混ぜ方 mix [(確率, [(対象, 札)])] も返す。
@@ -197,7 +210,7 @@ def _forced_plan(state, days, hidden, watch, pos, positional=True, abil=False, p
     args = (targets, [_current(state, t, k) for t, k in targets], route_need, state['day'], days,
             tuple('PAR-' not in state['used'][p] for p in 'ABC'), 'INT2' not in state['used']['M'])
     sup = _supply(state, targets, holders=None if abil is True else abil) if abil else ()  # abil: True か、数える持ち主の組（割れた役職だけ）
-    pa = _pc_abilities(state, targets, unlock=pcab == 'unlock') if pcab else ()
+    pa = _pc_abilities(state, targets, unlock=pcab == 'unlock', reach=days - state['day'] + 1 if pcab == 'reach' else None) if pcab else ()
     cu = _cult(state, targets)
     ok, move = solve(*args, supply=sup, pcab=pa, cult=cu)
     if move and pos:  # 位置の対象への「移動」を実際の札に直す（揃えられなければ外す）
@@ -225,7 +238,7 @@ def _forced_plan(state, days, hidden, watch, pos, positional=True, abil=False, p
         extra['p'], extra['mix'] = (1.0, [(1.0, move)]) if ok else (0.0, None) if h is None else solve_hidden(
             h[0], [_current(state, t, k) for t, k in h[0]], h[1], *args[3:],
             watch={nm: (watch or {}).get(place(nm), 0) for nm, _ in h[0]}, supply=_supply(state, h[0]) if abil else (),
-            pcab=_pc_abilities(state, h[0], unlock=pcab == 'unlock') if pcab else ())
+            pcab=_pc_abilities(state, h[0], unlock=pcab == 'unlock', reach=days - state['day'] + 1 if pcab == 'reach' else None) if pcab else ())
         if pos and extra.get('mix'):  # 位置の対象への札を実際の置き先・札に直す（移動札は手札の別の向き、揃えられなければ効果の無い札）
             def real_mv(mv):
                 out = []
@@ -303,7 +316,7 @@ def solve(targets, current, route_need, day0, days, par_left, int2, idle=False, 
     return ok, ([(targets[i][0], c) for i, c in mm.items()] if ok else None)
 
 
-def _pc_abilities(state, targets, unlock=False, holders=False):
+def _pc_abilities(state, targets, unlock=False, holders=False, reach=None):
     """主人公の友好能力で、負け筋の対象のカウンターを減らせるもの（v2.3、2026-10-10。Claude が主人公の点検 d07: ナース[2] を読んでいなかった）。
     いま合法な宣言（abilities.declaration_options）を写しの盤面で解決し、減った対象を数える。脚本家が拒否できる能力（友好無視の役職）は数えない。
     返り値: ((★か, 減らせる対象の番号の組), ...)。能力ごとに1日1回（★はループに1回）。
@@ -319,6 +332,9 @@ def _pc_abilities(state, targets, unlock=False, holders=False):
     if unlock:
         for ch in hi['chars'].values():
             ch['gw'] = max(ch['gw'], 9)
+    elif reach is not None:  # reach: ループの残り reach 日で友好を積めば届く能力も数える（毎日1枚＋友好+2 の1回。友好禁止は考えない＝主人公に有利）
+        for ch in hi['chars'].values():
+            ch['gw'] = ch['gw'] + reach + 1
     for tg, k in targets:
         if tg in hi['chars'] and k in ('par', 'int'):
             ch = hi['chars'][tg]
@@ -349,6 +365,14 @@ def _pc_abilities(state, targets, unlock=False, holders=False):
         if idx:
             once = ab.ABILITIES[(c, i)][1]
             out.setdefault((c, i, bool(once)), set()).update(idx)
+    # 委員長[2]★（リーダーの使用済みの★の札を手札に戻す）は不安−1 をもう1枚にできる。カウンターを直接は減らさないので上の解決では拾えない
+    # （目隠し対戦 gen_s11_031 L2: 逆算は A.I. の不安が届くと読んだが、委員長で戻した不安−1 で止められた）。reach・unlock のときだけ数える
+    cc = hi['chars'].get('C10')
+    if (unlock or reach is not None) and cc and cc['alive'] and cc.get('present', True) and cc['gw'] >= 2 \
+            and 'C10#0' not in state.get('ability_used_loop', []) and not ab.REFUSAL.get(role(state, 'C10')):
+        pidx = [j for j, (tg, k) in enumerate(targets) if k == 'par']
+        if pidx:
+            out.setdefault(('C10', 0, True), set()).update(pidx)
     if holders:
         need = {}
         for (c, i, _) in out:

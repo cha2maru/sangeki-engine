@@ -63,6 +63,10 @@ def generate(rng, n_chars=None, rules=None):
     inc_days = sorted(rng.sample(range(2, days + 1), k))
     culprits = rng.sample(chars, k)
     incidents = [{'day': d, 'id': rng.choice(INCIDENTS), 'culprit': c} for d, c in zip(inc_days, culprits)]
+    if 'Y_FUTURE' in rules and all(i['id'] != 'BUTTERFLY' for i in incidents):
+        # 未来改変プランの敗北条件は蝶の羽ばたきの発生。無いと Y の負け筋が成り立たず、タイムトラベラーの友好だけの脚本になり
+        # 主人公が L1 から守れた（gen_s11_029 など生成 54 本中 9 本。runs/blind_calcGBxhdKN_2026-11-08）
+        rng.choice(incidents)['id'] = 'BUTTERFLY'
     sc = {'id': None, 'title': '自動生成', 'set': 'BTX', 'loops': 4, 'days': days, 'rules': rules, 'roles': roles,
           'characters': chars, 'incidents': incidents, 'use': 'generated'}
     if 'C13' in chars:

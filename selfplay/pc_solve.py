@@ -32,6 +32,27 @@ PCS = 'ABC'
 FILLER = ('GWX', 'PAR-', 'PARX', 'GW1')  # 筋に関わらない対象に置く札（効果の小さい順）
 
 
+
+def _optional_loss(s, done=frozenset(), depth=3):
+    """ターン終了の【任意】を脚本家が好きな順に続けて使って（ユーザー裁定）、ループが主人公の負けで終わる道があるか。
+    1つずつしか試さないと、キラーの能力でメインラバーズが使えるようになる連鎖を見落とした（gen_s11_026 L2D5）"""
+    for o in ph.killer_options(s):
+        key = (o['char'], o['ability'])
+        if key in done:
+            continue
+        t = copy_state(s)
+        try:
+            ph.turn_end_optional(t, [o])
+        except ph.LoopEnd as e:
+            if e.loss:
+                return True
+            continue
+        except IllegalPlacement:
+            continue
+        if depth > 1 and _optional_loss(t, done | {key}, depth - 1):
+            return True
+    return False
+
 def end_of_day(after, days, pcab=False):
     """行動解決の後の盤面から今日の残り（脚本家能力・事件・ターン終了・最終日ならループ終了）を進める（selfplay/pc_game.py と同じ）。
     pcab: 主人公能力フェイズも入れる（pc_v2._pc_abilities_greedy。盤面に効く友好能力を評価のよい順に。主人公の手の部分集合なので「守れる」は崩れない）。
@@ -43,15 +64,8 @@ def end_of_day(after, days, pcab=False):
         ph.turn_end_mandatory(s)
     except ph.LoopEnd as e:
         return None, bool(e.loss)
-    for o in ph.killer_options(s):  # 【任意】のどれか1つでループが主人公の負けで終わるなら負け
-        t = copy_state(s)
-        try:
-            ph.turn_end_optional(t, [o])
-        except ph.LoopEnd as e:
-            if e.loss:
-                return None, True
-        except IllegalPlacement:
-            continue
+    if _optional_loss(s):  # 【任意】を続けて使って（キラー→身代わり→メインラバーズなど）ループが主人公の負けで終わるなら負け
+        return None, True
     if s['day'] >= days:
         return None, bool(ph.loop_end_loss(copy_state(s)))
     s['day'] += 1

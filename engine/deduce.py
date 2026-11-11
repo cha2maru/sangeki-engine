@@ -690,7 +690,7 @@ class Deduction:
             [int(i) for i in np.searchsorted(np.cumsum(w), [rng.random() * w.sum() for _ in range(k)])]
         return [(self.T.combos[C[i]], {self.chars[j]: ROLES[x] for j, x in enumerate(R[i].tolist()) if x}) for i in idx]
 
-    def final_guesses(self):
+    def final_guesses(self, rng=None):
         """最後の戦いの宣言。キャラクターごとに別々に最多の役職を選ぶと、役職の上限（ミスリーダー1など）や
         ルールの組み合わせに反する宣言になりうる。そこで、残った仮説のうち最も多く現れる配役の組（ルールの組を問わず
         同じ配役なら合算）を採る。宣言の順は、その役職の周辺確率が高い（確信のある）キャラクターから。当てるのは配役（FAQ XY02）。"""
@@ -699,7 +699,10 @@ class Deduction:
             return [{'char': c, 'role': 'PERSON'} for c in self.chars]
         uniq, inv = np.unique(R, axis=0, return_inverse=True)
         score = np.bincount(inv.ravel(), weights=self._w(C))
-        best = uniq[int(np.argmax(score))]
+        # 同じ重みの組が並ぶことが多い（9通りが同じ重みなど）。先頭を採ると役職の番号が小さい組に偏り、期待値の半分も当たらなかった
+        # （runs/final_gap_2026-11-08: 48回で期待 7.8 勝に対し 3 勝）。同点は主人公の乱数で選ぶ
+        top = np.flatnonzero(score >= score.max() * (1 - 1e-9))
+        best = uniq[int(top[rng.randrange(len(top))]) if rng is not None and len(top) > 1 else int(top[0])]
         M, n = self._marg(R, C)
         guess = [(M[j, best[j]] / n, {'char': c, 'role': ROLES[best[j]]}) for j, c in enumerate(self.chars)]
         if 'C32' in self.ix and 'C33' in self.ix:  # アルバイトとアルバイト？は1回の宣言で、正解はアルバイトの配役＝C33 の列（裁定）

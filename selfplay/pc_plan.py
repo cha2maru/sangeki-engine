@@ -30,6 +30,8 @@ def par_reducers(s, x):
     """x の不安を下げられる主人公の友好能力 [(持ち主, 番号, 要る友好)]。持ち主と x を同じエリアに置き、友好を足りる量にし、x を臨界にした試しの盤面で、
     合法な宣言を本物のエンジンで解決して x の不安が減るものを拾う（ナース[2]・医者[2]・学者[3] など。拒否できる役職の持ち主は除く）。"""
     out = []
+    if not s['chars'].get(x, {}).get('area'):  # まだ登場していない（転校生の登場前など）。目隠し対戦の脚本 gen_b31_035 の対戦表で止まった
+        return out
     lim = CHARS[x]['limit']
     for (h, i), (need, _once, _k) in ab.ABILITIES.items():
         hv = s['chars'].get(h)

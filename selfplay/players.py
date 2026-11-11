@@ -503,7 +503,7 @@ class DeductiveProtagonist(OracleBlocker, PublicObserver):
 
     def final_guesses(self, s):
         self._ensure(s)
-        return self.ded.final_guesses()
+        return self.ded.final_guesses(getattr(self, 'rng', None))
 
 
 # 情報を得る友好能力（キャラクター, 番号）: 必要な友好。主人公が友好を積む価値の目安に使う

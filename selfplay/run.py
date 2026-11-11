@@ -144,6 +144,38 @@ def _ask_refuse(player, s, cid, idx):
     return player.refuse(s, cid)
 
 
+def turn_end_phase(s, player, log, loop, day, box):
+    """ターン終了フェイズ: 【強制】を解いてから、脚本家に【任意】を選ばせて解く。返り値 (盤面, 出来事)。"""
+    ev = ph.turn_end_mandatory(s)
+    # 【任意】を解決すると、別の【任意】が使えるようになることがある（キラーがキーパーソンを狙い、従者が身代わりで死に、ラバーズの死で
+    # メインラバーズに不安6）。処理順は脚本家の自由（ユーザー裁定）なので、新しく使えるものがあれば続けて選ばせる。同じ能力は1回だけ
+    # （目隠し対戦 gen_s11_026 L2D5: 最初の候補しか聞かず、メインラバーズで主人公を死なせられなかった）
+    done = set()
+    for _ in range(4):
+        opts = [o for o in ph.killer_options(s) if (o['char'], o['ability']) not in done]
+        if done and not opts:
+            break
+        pick = player.killer_pick(s) if hasattr(player, 'killer_pick') else [o for o in opts if player.rng.random() < 0.5]
+        pick = [o for o in pick if (o['char'], o['ability']) not in done]
+        if done and not pick:
+            break
+        log('decisions', {'loop': loop, 'day': day, 'phase': 'turn_end', 'who': 'M', 'kind': 'killer', 'options': opts, 'choice': pick})
+        snap = copy.deepcopy(s)
+        try:
+            ev += ph.turn_end_optional(s, pick)
+        except ph.LoopEnd as e:  # 【任意】でループが終わっても、先に解決した【強制】の出来事（死亡・ラバーズの不安6）は公開する
+            e.events = ev + list(e.events or [])
+            raise
+        except ph.IllegalPlacement:
+            s = snap
+            box['s'] = s
+            break
+        done |= {(o['char'], o['ability']) for o in pick}
+        if not pick:
+            break
+    return s, ev
+
+
 def play_game(script, player, log0, observers=(), on_day=None):
     """observers: 公開の出来事を player と同じく受け取る観測者（評価用の理想の観測者など）。
     loop_done(s, loop) があれば各ループの終わりと最後の戦いの直前（loop='final'）に呼ぶ。
@@ -323,19 +355,7 @@ def play_day(s, player, loop, day, log, box, mm_override=None):
     # 【強制】（シリアルキラー・アルバイト）を先に解き、その後の盤面で【任意】の候補を決める
     # （ユーザー裁定 2026-09-27: 処理順は脚本家の自由。シリアルキラーの殺害でメインラバーズに不安6→同じフェイズに主人公死亡、ができる）
     box['phase'] = 'turn_end'  # 【強制】の殺害でループが終わると、下の記録より先に LoopEnd が来る（どのフェイズで終わったかは公開情報）
-    ev = ph.turn_end_mandatory(s)
-    opts = ph.killer_options(s)
-    pick = player.killer_pick(s) if hasattr(player, 'killer_pick') else [o for o in opts if player.rng.random() < 0.5]
-    log('decisions', {'loop': loop, 'day': day, 'phase': 'turn_end', 'who': 'M', 'kind': 'killer', 'options': opts, 'choice': pick})
-    snap = copy.deepcopy(s)
-    try:
-        ev += ph.turn_end_optional(s, pick)
-    except ph.LoopEnd as e:  # 【任意】でループが終わっても、先に解決した【強制】の出来事（死亡・ラバーズの不安6）は公開する
-        e.events = ev + list(e.events or [])
-        raise
-    except ph.IllegalPlacement:
-        s = snap
-        box['s'] = s
+    s, ev = turn_end_phase(s, player, log, loop, day, box)
     log('events', {'loop': loop, 'day': day, 'phase': 'turn_end', 'events': ev})
     _check(s)
     ded = getattr(getattr(player, 'pc', player), 'ded', None)

@@ -154,3 +154,24 @@ def test_main_lovers_can_kill_in_the_same_turn_end_after_a_serial_killer_kill():
     assert {'char': 'C03', 'ability': 'MAIN_LOVERS'} in ph.killer_options(s)
     with pytest.raises(ph.LoopEnd):
         ph.turn_end_optional(s, [{'char': 'C03', 'ability': 'MAIN_LOVERS'}])
+
+
+def test_turn_end_optionals_chain():
+    """キラーがキーパーソンを狙い、従者が身代わりで死に、ラバーズの死でメインラバーズに不安6 → 同じターン終了にメインラバーズで主人公死亡。
+    進行（selfplay.run.turn_end_phase）は、【任意】を解いた後に新しく使える【任意】を続けて選ばせる
+    （目隠し対戦 gen_s11_026 L2D5 では最初の候補しか聞かず、メインラバーズを使えなかった）"""
+    import pytest
+    from engine import phases as ph
+    from selfplay import run as R
+    ch = lambda a, i=0: {'area': a, 'alive': True, 'par': 0, 'gw': 0, 'int': i, 'guard': 0}  # noqa: E731
+    s = {'loop': 1, 'day': 2, 'leader': 'A', 'boards': {a: 0 for a in ('HOS', 'SHR', 'CIT', 'SCH')}, 'used': {p: [] for p in 'MABC'},
+         'script': {'rules': ['Y_MURDER', 'X_LOVE'], 'roles': {'C16': 'KEY', 'C26': 'KILLER', 'C34': 'LOVERS', 'C27': 'MAIN_LOVERS'},
+                    'incidents': [], 'days': 5},
+         'chars': {'C16': ch('HOS', 2), 'C26': ch('HOS'), 'C34': ch('HOS'), 'C27': ch('SCH', 1), 'C05': ch('CIT')}}
+
+    class P:
+        def killer_pick(self, st):
+            return ph.killer_options(st)
+    with pytest.raises(ph.LoopEnd):
+        R.turn_end_phase(s, P(), lambda *a: None, 1, 2, {})
+    assert not s['chars']['C34']['alive'] and s['chars']['C16']['alive'] and s['chars']['C27']['par'] >= 6
