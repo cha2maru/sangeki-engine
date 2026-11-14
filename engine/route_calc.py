@@ -584,7 +584,7 @@ def _dp(targets, route_need, days, idle, supply=(), pcab=(), cult=()):
         for mm in mm_moves(i2):
             ok = True
             for reply in pc_replies(mm, vals, pl, act):
-                if sum(1 for i in reply[0] if i not in pos_idx) > sum(pl):
+                if sum(1 for i in reply[0] if i not in pos_idx and i not in gwd_idx) > sum(pl):  # 不安−1 の残りで数えるのは不安−1 だけ（崩す札・友好の札は数えない。不安−1 を使い切ると友好の札も置けないことになり、タイムトラベラーの筋を「確定」と誤った。目隠し対戦 gen_b31_036 L1D4）
                     continue
                 act2 = tuple(a and h not in reply[2] for h, a in enumerate(act))  # 移動は暗躍禁止より先に解決する
                 v2, pl2 = apply(vals, mm, reply, pl, act2)

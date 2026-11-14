@@ -1011,7 +1011,10 @@ class SearchMastermind(RouteMastermind):
         cand = [h for h in sorted(eve, key=eve.get) if h in live and rep(h) and h not in used]
         out = []
         for x in mm:
-            if cand and x['card'] == 'GWX' and x['target'] in eve and not (x['target'] in live and rep(x['target'])):
+            # 負け筋を丸ごと消す能力の持ち主（軍人[5] の不死・刑事[5] の護衛など KEY_HOLDERS）からは移さない。ループ1回でも1枚で筋をまとめて消す
+            # （問題集 blind-b31_022-l4d3-mm: 軍人に置くべき友好禁止をナースへ移していた。immortal_check の局面を後から入れた gwx_live が壊した）
+            keyh = {c for d in self.KEY_HOLDERS.values() for c in d}
+            if cand and x['card'] == 'GWX' and x['target'] in eve and x['target'] not in keyh and not (x['target'] in live and rep(x['target'])):
                 x = dict(x, target=cand.pop(0))
             out.append(x)
         return out

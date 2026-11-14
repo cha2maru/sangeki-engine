@@ -334,3 +334,11 @@ def test_time_traveller_goodwill_is_counted():
     s['chars']['C26']['gw'] = 0
     assert forced_plan(s, 6)['forced']
     assert pc_holds(s, 6)['holds'] is False
+
+
+def test_tt_goodwill_not_limited_by_paranoia_minus():
+    """不安−1 を使い切っても、主人公はタイムトラベラーに友好の札を置ける（目隠し対戦 gen_b31_036 L1D4: 「確定」と誤って隠しに回った）。"""
+    from engine.route_calc import solve
+    # タイムトラベラーは友好2（あと1つ）、今日は4日目、最終日は6日目。主人公の不安−1 は残っていない
+    assert solve([('C24', 'gwd2')], [1], [(6, ((0, 1),))], 4, 6, (False, False, False), False, idle=True)[0] is False
+    assert solve([('C24', 'gwd2')], [1], [(6, ((0, 1),))], 4, 6, (False, False, False), False)[0] is False

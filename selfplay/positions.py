@@ -38,10 +38,10 @@ class Reached(Exception):
 def _tolerant(cls):
     """記録の後でエンジンが聞かなくなった問い（拒否を選べない役職への拒否の確認）の答えを読み飛ばす。"""
     class T(cls):
-        def _next(self, kind, s, title, options):
+        def _next(self, kind, s, title, options, *a, **kw):  # 後から足された引数（答えの確かめ check など）はそのまま渡す
             while self.d and self.d[0]['kind'] != kind and self.d[0]['kind'] == 'refuse':
                 self.d.pop(0)
-            return super()._next(kind, s, title, options)
+            return super()._next(kind, s, title, options, *a, **kw)
     return T
 
 
