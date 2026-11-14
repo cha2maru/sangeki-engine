@@ -46,6 +46,10 @@ assert 'shim.js' in t, '差し込む場所が見つからない（editor.html �
 open(sys.argv[2], 'w', encoding='utf-8').write(t)
 PY
 cp "$PLAY/open.html" "$OUT/open.html"  # 公開シート（URL の ?o= だけから描く。サーバーも Python も使わない）
+# 次の一手問題（problems.html と web/problems の問題）。盤面は対戦画面（index.html）のリプレイ表示を埋め込む
+sed "s/const BOARD = 'board.html'/const BOARD = 'index.html'/" "$PLAY/problems.html" > "$OUT/problems.html"
+grep -q "BOARD = 'index.html'" "$OUT/problems.html" || { echo 'problems.html の BOARD を差し替えられない'; exit 1; }
+rm -rf "$OUT/problems" && cp -r "$WEB/problems" "$OUT/problems"
 # Python のコード（エンジン・自動のプレイヤー・進行役）と脚本・重みを1つの zip に
 python3 - "$PLAY" "$WEB" "$OUT/engine.zip" <<'PY'
 import os, sys, zipfile
@@ -120,7 +124,7 @@ PY
 fi
 # Google アナリティクス（GA4）: 公開する各ページの <meta charset> の直後に差し込む（board.html などはサーバー版と共通なので元は書き換えない）。
 # localhost・127.0.0.1・file://（ホスト名なし）では読み込まない＝開発やテストプレイを数えない
-python3 - "$ROOT/index.html" "$OUT/index.html" "$OUT/editor.html" "$OUT/open.html" <<'PY'
+python3 - "$ROOT/index.html" "$OUT/index.html" "$OUT/editor.html" "$OUT/open.html" "$OUT/problems.html" <<'PY'
 import sys
 GA = ('<script>(function () { var id = "G-9EJ5QSS1SQ"; var h = location.hostname;'
       ' if (!h || h === "localhost" || h === "127.0.0.1") return;'

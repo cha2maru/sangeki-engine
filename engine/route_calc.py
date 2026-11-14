@@ -210,7 +210,7 @@ def _forced_plan(state, days, hidden, watch, pos, positional=True, abil=False, p
     args = (targets, [_current(state, t, k) for t, k in targets], route_need, state['day'], days,
             tuple('PAR-' not in state['used'][p] for p in 'ABC'), 'INT2' not in state['used']['M'])
     sup = _supply(state, targets, holders=None if abil is True else abil) if abil else ()  # abil: True か、数える持ち主の組（割れた役職だけ）
-    pa = _pc_abilities(state, targets, unlock=pcab == 'unlock', reach=days - state['day'] + 1 if pcab == 'reach' else None) if pcab else ()
+    pa = _pc_abilities(state, targets, unlock=pcab == 'unlock', reach=days - state['day'] + 1 if pcab == 'reach' else None, c10=pcab == 'c10') if pcab else ()
     cu = _cult(state, targets)
     ok, move = solve(*args, supply=sup, pcab=pa, cult=cu)
     if move and pos:  # 位置の対象への「移動」を実際の札に直す（揃えられなければ外す）
@@ -316,7 +316,7 @@ def solve(targets, current, route_need, day0, days, par_left, int2, idle=False, 
     return ok, ([(targets[i][0], c) for i, c in mm.items()] if ok else None)
 
 
-def _pc_abilities(state, targets, unlock=False, holders=False, reach=None):
+def _pc_abilities(state, targets, unlock=False, holders=False, reach=None, c10=False):
     """主人公の友好能力で、負け筋の対象のカウンターを減らせるもの（v2.3、2026-10-10。Claude が主人公の点検 d07: ナース[2] を読んでいなかった）。
     いま合法な宣言（abilities.declaration_options）を写しの盤面で解決し、減った対象を数える。脚本家が拒否できる能力（友好無視の役職）は数えない。
     返り値: ((★か, 減らせる対象の番号の組), ...)。能力ごとに1日1回（★はループに1回）。
@@ -368,7 +368,8 @@ def _pc_abilities(state, targets, unlock=False, holders=False, reach=None):
     # 委員長[2]★（リーダーの使用済みの★の札を手札に戻す）は不安−1 をもう1枚にできる。カウンターを直接は減らさないので上の解決では拾えない
     # （目隠し対戦 gen_s11_031 L2: 逆算は A.I. の不安が届くと読んだが、委員長で戻した不安−1 で止められた）。reach・unlock のときだけ数える
     cc = hi['chars'].get('C10')
-    if (unlock or reach is not None) and cc and cc['alive'] and cc.get('present', True) and cc['gw'] >= 2 \
+    # c10: いまの友好のままでも数える（forced_plan の pcab='c10'。目隠し対戦 gen_s61_000 L2D3〜D5: 友好2の委員長で不安−1 を戻され、「必ず取れる」が外れた）
+    if (unlock or reach is not None or c10) and cc and cc['alive'] and cc.get('present', True) and cc['gw'] >= 2 \
             and 'C10#0' not in state.get('ability_used_loop', []) and not ab.REFUSAL.get(role(state, 'C10')):
         pidx = [j for j, (tg, k) in enumerate(targets) if k == 'par']
         if pidx:
@@ -754,7 +755,7 @@ def block_rates(state, days, mm_targets, pos=False, abil=False, max_targets=MAX_
     return solve_hidden(targets, [_current(state, t, k) for t, k in targets], route_need, state['day'], days,
                         tuple('PAR-' not in state['used'][p] for p in 'ABC'), 'INT2' not in state['used']['M'],
                         fixed_T=[t for t in mm_targets if t != 'C20'], supply=_supply(state, targets) if abil else (), movers=movers,
-                        pcab=_pc_abilities(state, targets) if pcab else ())  # pcab: 主人公の友好能力（今の友好と位置のまま）も応手に数える
+                        pcab=_pc_abilities(state, targets, c10=pcab == 'c10') if pcab else ())  # pcab: 主人公の友好能力（今の友好と位置のまま）も応手に数える
 
 
 
@@ -1048,3 +1049,115 @@ def pc_holds(state, days, max_names=9, max_targets=8, max_routes=40, budget=120.
     except _Budget:
         ok = None  # 読み切れず
     return {'holds': ok, 'routes': [f"{r['id']}:{r['via']}" for r, _ in specs], 'skipped': skipped}
+
+
+# ---- 位置の 1 日の読み合い（作業計画 A-3、plan/fable_plan_2026-11-11.md）----
+POS_KINDS = ('same_area', 'alone_with', 'in_area')
+_MM_MV = (None, 'MV_V', 'MV_H', 'MV_D')  # None＝移動でない札（伏せ札の中身は主人公に見えない）
+_PC_MV = ('MVX', 'MV_V', 'MV_H')
+
+
+def _dest(state, cid, mm, pc):
+    """1 人の行き先（engine.resolve.resolve_actions の 1) 移動と同じ。移動禁止・重ね・禁止エリア）。"""
+    from .resolve import combine_moves
+    area = state['chars'][cid]['area']
+    moves = [c for c in (mm, pc) if c in ('MV_V', 'MV_H', 'MV_D')]
+    if not moves or pc == 'MVX':
+        return area
+    to = destination(area, combine_moves(moves))
+    if to in CHARS.get(cid, {}).get('forbidden', []) and cid not in state.get('unbound', []):
+        return area
+    return to
+
+
+def _pos_holds(state, areas, routes):
+    """移動の後の位置（areas）で、位置の条件をすべて満たす筋があるか。位置以外の条件は今の盤面で満たしているものだけ数える。"""
+    for r in routes:
+        ok = True
+        for c in r['conds']:
+            k, d = c['kind'], c['detail']
+            if k == 'same_area':
+                ok = areas.get(d[0]) is not None and areas.get(d[0]) == areas.get(d[1])  # 盤面にいない人物は成り立たない
+            elif k == 'in_area':
+                ok = areas.get(d[0]) == d[1]
+            elif k == 'alone_with':
+                ok = areas.get(d[0]) is not None and areas.get(d[0]) == areas.get(d[1]) and not any(
+                    a == areas[d[0]] for x, a in areas.items() if x not in d[:2])
+            else:
+                ok = c['deficit'] == 0
+            if not ok:
+                break
+        if ok:
+            return True
+    return False
+
+
+def _minimax(table, iters=200):
+    """行（脚本家）が最大化する零和の行列ゲームを、重みの掛け直し（multiplicative weights）で近似して解く。(値, 行の混ぜ方)。"""
+    import math
+    n, m = len(table), len(table[0])
+    w, avg = [1.0] * n, [0.0] * n
+    eta = math.sqrt(math.log(max(n, 2)) / iters)
+    for _ in range(iters):
+        z = sum(w)
+        x = [v / z for v in w]
+        j = min(range(m), key=lambda j: sum(x[i] * table[i][j] for i in range(n)))  # 主人公の最善の応手
+        for i in range(n):
+            avg[i] += x[i] / iters
+            w[i] *= math.exp(eta * table[i][j])
+        mx = max(w)
+        w = [v / mx for v in w]
+    return min(sum(avg[i] * table[i][j] for i in range(n)) for j in range(m)), avg
+
+
+def move_game(state, routes=None, max_t=3, max_rel=5):
+    """位置の筋（POS_KINDS を含み残り 2 以下）について、脚本家の置き先の組 T ごとに 1 日の読み合いを解く。
+    行: T の各置き先へ ↑↓・←→・斜め（残っていれば、1 枚まで）・移動でない札。列: 主人公が対象の人物 3 人までに 移動禁止（残っている人だけ）・↑↓・←→、何もしないも 1 列。
+    返り値 {T: (p, [(行の確率, 手)], k)}。p＝筋が成り立つ確率（主人公が最善に混ぜる前提）、k＝どの行でも筋を崩す応手の最少枚数（無ければ 4）。
+    ponytail: 幻想のボードの移動札・従者の付き添い・主人公の札の持ち主の割り当ての細部は数えない。必要になったら _dest に足す"""
+    from itertools import product
+    if routes is None:
+        routes = [r for r in enumerate_routes(state) if r['total'] <= 2 and any(c['kind'] in POS_KINDS for c in r['conds'])]
+    if not routes:
+        return {}
+    chars = state['chars']
+    live = [c for c, v in chars.items() if v['alive'] and v.get('present', True) and v.get('area')]
+    rel = []
+    for r in routes:
+        for c in r['conds']:
+            if c['kind'] in POS_KINDS:
+                for x in c['detail'][:2]:
+                    if x in live and x not in rel:
+                        rel.append(x)
+    for a in list(rel):  # 同じエリアの生存者（2 人きりの邪魔・追い出し）
+        rel += [x for x in live if chars[x]['area'] == chars[a]['area'] and x not in rel]
+    rel = rel[:max_rel]
+    base = {c: chars[c]['area'] for c in live}
+    diag = 'MV_D' not in state['used']['M']
+    nmvx = sum(1 for p in 'ABC' if 'MVX' not in state['used'][p])
+    cols = [()]
+    for k in (1, 2, 3):
+        for ts in combinations(rel, k):
+            for cs in product(_PC_MV, repeat=k):
+                if cs.count('MVX') <= nmvx:
+                    cols.append(tuple(zip(ts, cs)))
+    dest = {c: {(m, q): _dest(state, c, m, q) for m in _MM_MV for q in (None,) + _PC_MV} for c in rel}
+
+    def holds(mm, pc):
+        areas = dict(base)
+        for c in set(mm) | set(pc):
+            areas[c] = dest[c][(mm.get(c), pc.get(c))]
+        return _pos_holds(state, areas, routes)
+    out = {}
+    for n in range(1, max_t + 1):
+        for T in combinations(rel, n):
+            rows = [r for r in product(_MM_MV if diag else _MM_MV[:3], repeat=n) if r.count('MV_D') <= 1 and any(r)]
+            mms = [dict(zip(T, r)) for r in rows]
+            if not any(holds(mm, {}) for mm in mms):  # 主人公が何もしなくても成り立たない組は p=0（札は要らない）
+                out[T] = (0.0, [], 0)
+                continue
+            table = [[1.0 if holds(mm, dict(col)) else 0.0 for col in cols] for mm in mms]
+            p, mix = _minimax(table)
+            stop = [len(col) for j, col in enumerate(cols) if all(line[j] == 0 for line in table)]
+            out[T] = (p, [(x, list(zip(T, r))) for x, r in zip(mix, rows) if x > 1e-3], min(stop) if stop else 4)
+    return out

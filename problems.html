@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>次の一手問題 ― 惨劇RoopeR</title>
+<style>
+:root { --bg:#14161c; --panel:#1d2029; --line:#2e3340; --text:#e8e8ee; --mut:#9aa0ad; --acc:#e0a83a; --ok:#57c27a; --diff:#6fa8ff; }
+* { box-sizing:border-box; } [hidden] { display:none !important; }
+body { margin:0; background:var(--bg); color:var(--text); font:15px/1.6 system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+header { padding:10px 16px; border-bottom:1px solid var(--line); display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; }
+header h1 { font-size:17px; margin:0; } header a { color:var(--mut); font-size:13px; }
+main { padding:12px 16px 40px; }
+.list a { display:block; padding:12px 14px; margin:8px 0; background:var(--panel); border:1px solid var(--line); border-radius:8px; color:var(--text); text-decoration:none; }
+.list a:hover { border-color:var(--acc); } .list .side { color:var(--acc); font-size:12px; margin-right:8px; }
+.prob { display:grid; grid-template-columns:minmax(0, 1fr) 380px; gap:14px; }
+@media (max-width: 900px) { .prob { grid-template-columns:1fr; } }
+iframe { width:100%; height:78vh; min-height:480px; border:1px solid var(--line); border-radius:8px; background:#000; }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; align-self:start; }
+.panel h2 { font-size:16px; margin:0 0 6px; } .q { margin:6px 0 10px; } .notes { color:var(--mut); font-size:13px; padding-left:18px; margin:6px 0 12px; }
+.tabs { display:flex; gap:6px; margin:8px 0; } .tabs button { flex:1; }
+button { background:#2a2f3b; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:7px 10px; font:inherit; cursor:pointer; }
+button[aria-pressed="true"] { border-color:var(--acc); color:var(--acc); } button.go { background:var(--acc); color:#1a1a1a; border-color:var(--acc); font-weight:700; width:100%; margin-top:10px; }
+button:disabled { opacity:.5; cursor:default; }
+label.ch { display:flex; gap:8px; padding:8px; margin:6px 0; border:1px solid var(--line); border-radius:6px; cursor:pointer; } label.ch:has(input:checked) { border-color:var(--acc); }
+.row { display:flex; gap:6px; margin:6px 0; } .row .who { align-self:center; font-size:12px; color:var(--mut); white-space:nowrap; } .row select { flex:1; min-width:0; background:#2a2f3b; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px; font:inherit; }
+.err { color:#ff8a8a; font-size:13px; min-height:1.2em; }
+.res { margin-top:14px; border-top:1px solid var(--line); padding-top:12px; } .res h3 { font-size:15px; margin:0 0 6px; }
+.tag { display:inline-block; font-size:12px; padding:1px 8px; border-radius:10px; margin-left:6px; } .same { background:var(--ok); color:#111; } .other { background:var(--diff); color:#111; }
+.mut { color:var(--mut); font-size:12px; }
+details.info { border:1px solid var(--line); border-radius:6px; margin:8px 0; padding:6px 10px; } details.info summary { cursor:pointer; font-weight:700; font-size:14px; }
+.info table { width:100%; border-collapse:collapse; font-size:13px; margin-top:6px; } .info td, .info th { padding:3px 4px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+.info th { color:var(--mut); font-weight:400; font-size:12px; } .info .num { font-variant-numeric:tabular-nums; white-space:nowrap; }
+.info td:first-child { white-space:nowrap; } .info td .mut { font-size:11px; } .info td:nth-child(2) { white-space:nowrap; }
+.chip { display:inline-block; font-size:11px; padding:0 6px; border-radius:8px; white-space:nowrap; } .c-open { background:#c0504d; color:#fff; } .c-near { background:#d39a32; color:#111; } .c-hid { background:#3b6e4f; color:#e8e8ee; }
+.bar { display:inline-block; height:6px; background:var(--acc); border-radius:3px; vertical-align:middle; margin-right:4px; }
+.evt { width:100%; border-collapse:collapse; font-size:13px; margin:6px 0; } .evt th { text-align:left; color:var(--mut); font-weight:400; width:9.5em; vertical-align:top; padding:3px 6px 3px 0; } .evt td { padding:3px 0; border-bottom:1px solid var(--line); }
+.stat { margin:6px 0; } .stat .sl { font-size:13px; } .stat .sb { display:flex; align-items:center; gap:6px; } .stat .sb .bar { height:8px; min-width:2px; } .stat .num { font-size:12px; color:var(--mut); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.info ul { margin:4px 0; padding-left:18px; } .info .t { color:var(--acc); }
+</style>
+</head>
+<body>
+<header><h1>次の一手問題</h1><a href="./">← 対戦画面へ</a><a href="problems.html">問題の一覧</a></header>
+<main id="main">読み込み中…</main>
+<script>
+// 問題ページ（plan/problem_site_plan.md P4）。正解は出さない。回答の後に「AI の手と考え」を参考として出し、AI と同じ手を選んだかを記録する。
+// 盤面は board.html のリプレイ表示（?replay=）をそのまま使う。公開版では build.sh が BOARD を index.html に替える
+const BOARD = 'board.html', DIR = 'problems/';
+const ga = (name, params) => { try { if (typeof gtag === 'function') gtag('event', name, params); } catch {} };  // gtag は公開ページにだけ入る
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const key = cards => [...cards].sort().join(',');
+const CARD_JA = { 'PAR+': '不安+1', 'PAR-': '不安-1', PARX: '不安禁止', GWX: '友好禁止', INT1: '暗躍+1', INT2: '暗躍+2', MV_V: '移動↑↓', MV_H: '移動←→', MV_D: '移動斜め',
+  GW1: '友好+1', GW2: '友好+2', INTX: '暗躍禁止', MVX: '移動禁止' };
+const params = new URLSearchParams(location.search);
+// 自分の回答の記録（このブラウザの中だけ。送らない）。読み書きできない環境（プライベートウィンドウなど）では記録しないだけで動く
+const MINE = 'sangeki_problem_answers_v1';
+const mineAll = () => { try { return JSON.parse(localStorage.getItem(MINE) || '{}') || {}; } catch { return {}; } };
+const mineSave = (id, rec) => { try { const all = mineAll(); (all[id] = all[id] || []).push(rec); localStorage.setItem(MINE, JSON.stringify(all)); } catch {} };
+const mineClear = () => { try { localStorage.removeItem(MINE); } catch {} };
+
+async function list() {
+  const idx = await (await fetch(DIR + 'index.json')).json();
+  $('main').innerHTML = `<p class="mut">AI が迷った局面を集めた問題です。正解は決まっていません。あなたの手と、AI の手と考えを見比べてください。</p>
+    <div class="list">${idx.map(p => { const m = (mineAll()[p.id] || []).slice(-1)[0];
+      return `<a href="?id=${encodeURIComponent(p.id)}"><span class="side">${p.side === 'mm' ? '脚本家' : '主人公'}</span>${esc(p.title)}${m ? `<span class="tag ${m.same ? 'same' : 'other'}">回答済み・${m.same ? 'AI と同じ' : 'AI と違う'}</span>` : ''}</a>`; }).join('')}</div>
+    ${Object.keys(mineAll()).length ? '<p class="mut">回答の記録はこのブラウザの中だけに保存しています。<button id="clear-mine">記録を消す</button></p>' : ''}` + privacy();
+  const cb = document.getElementById('clear-mine'); if (cb) cb.onclick = () => { mineClear(); list(); };
+}
+
+function privacy() {
+  return `<p class="mut">回答は Google アナリティクスで集計します（問題の番号・回答の形・選んだ札の組・かかった秒数）。名前などの個人の情報は送りません。</p>`;
+}
+
+async function show(id) {
+  const p = await (await fetch(DIR + encodeURIComponent(id) + '.json')).json();
+  const t0 = Date.now(), aiFirst = params.get('ai') === 'first';
+  const opt = (arr, f) => arr.map(x => `<option value="${esc(f(x)[0])}">${esc(f(x)[1])}</option>`).join('');
+  $('main').innerHTML = `<div class="prob">
+    <iframe src="${BOARD}?replay=${encodeURIComponent(DIR + p.replay)}&at=last&embed=1" title="局面の盤面"></iframe>
+    <div class="panel">
+      <h2>${esc(p.title)}</h2><div class="q">${esc(p.question)}</div>
+      ${p.notes.length ? `<ul class="notes">${p.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
+      ${infoBlocks(p)}
+      ${aiFirst ? aiBlock(p) : ''}
+      ${(() => { const m = (mineAll()[p.id] || []).slice(-1)[0]; return m ? `<div class="mut">前回のあなたの回答（${esc(m.at)}）: ${esc(m.label)}<span class="tag ${m.same ? 'same' : 'other'}">${m.same ? 'AI と同じ手' : 'AI と違う手'}</span></div>` : ''; })()}
+      <div class="tabs" ${p.side === 'pc' ? 'hidden' : ''}><button id="t-ch" aria-pressed="true">候補から選ぶ</button><button id="t-free" aria-pressed="false">札を指定する</button></div>
+      <div id="m-ch">${p.choices.map((c, i) => `<label class="ch"><input type="radio" name="ch" value="${i}"><span>${esc(c.label)}</span></label>`).join('')}</div>
+      <div id="m-free" hidden>
+        ${[0, 1, 2].map(i => `<div class="row">${p.side === 'pc' ? `<span class="who">主人公${p.order[i]}</span>` : ''}<select id="ft${i}"><option value="">置き先</option>${opt(p.targets, x => [x.id, x.name])}</select>
+          <select id="fc${i}"><option value="">札</option>${opt(p.side === 'pc' ? p.hands[p.order[i]] : p.hand.filter((c, j, a) => a.indexOf(c) === j), c => [c, CARD_JA[c] || c])}</select></div>`).join('')}
+        <div class="mut">${p.side === 'pc' ? '主人公1人につき1枚（リーダーから順）。同じ置き先に2枚は置けません。暗躍禁止は2人以上が置くと全部無効です。' : '脚本家の手札から3枚。同じ置き先に2枚は置けません。'}</div>
+      </div>
+      <div class="err" id="err"></div>
+      <button class="go" id="send">この手で答える</button>
+      <div id="res"></div>
+      ${privacy()}
+    </div></div>`;
+  let mode = 'choice';
+  if (p.side === 'pc') { $('m-ch').hidden = true; $('m-free').hidden = false; mode = 'free'; }
+  const tab = m => { mode = m; $('t-ch').setAttribute('aria-pressed', m === 'choice'); $('t-free').setAttribute('aria-pressed', m === 'free'); $('m-ch').hidden = m !== 'choice'; $('m-free').hidden = m !== 'free'; };
+  $('t-ch').onclick = () => tab('choice'); $('t-free').onclick = () => tab('free');
+  $('send').onclick = () => {
+    let cards;
+    if (mode === 'choice') {
+      const r = document.querySelector('input[name=ch]:checked');
+      if (!r) return $('err').textContent = '候補を1つ選んでください';
+      cards = p.choices[+r.value].cards;
+    } else {
+      const xs = [0, 1, 2].map(i => [$('ft' + i).value, $('fc' + i).value]);
+      if (xs.some(([t, c]) => !t || !c)) return $('err').textContent = '3枚とも置き先と札を選んでください';
+      if (new Set(xs.map(x => x[0])).size < 3) return $('err').textContent = '同じ置き先に2枚は置けません';
+      if (p.side !== 'pc') {
+        const left = [...p.hand];
+        for (const [, c] of xs) { const j = left.indexOf(c); if (j < 0) return $('err').textContent = `${CARD_JA[c] || c} はもう手札にありません`; left.splice(j, 1); }
+      }
+      cards = xs.map(([t, c]) => t + ':' + c);
+      if (p.side === 'pc') p._mine = xs.map(([t, c], i) => p.order[i] + ':' + t + ':' + c).join(',');
+    }
+    $('err').textContent = '';
+    const same = key(cards) === key(p.ai.cards);
+    ga('problem_answer', { problem_id: p.id, side: p.side, mode, same_as_ai: same, move: same ? 'ai' : key(cards), sec: Math.round((Date.now() - t0) / 1000) });
+    $('send').disabled = true;
+    const at = new Date().toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const lab = mode === 'choice' ? p.choices.find(c => key(c.cards) === key(cards)).label : cards.map(x => { const [t, c] = [x.slice(0, x.lastIndexOf(':')), x.slice(x.lastIndexOf(':') + 1)]; return (p.targets.find(y => y.id === t) || {}).name + 'に' + (CARD_JA[c] || c); }).join('・');
+    mineSave(p.id, { cards, label: lab, same, mode, at });
+    setTimeout(() => { if (p.side === 'pc' && !same && p.engine !== false) liveEval(p, p._mine, document.getElementById('pc-live')); });
+    setTimeout(() => { const b = document.getElementById('live-go'); if (b) b.onclick = () => { b.disabled = true; const box = document.createElement('div'); b.after(box); liveEval(p, key(cards), box); }; });
+    $('res').innerHTML = `<div class="res"><h3>あなたの手<span class="tag ${same ? 'same' : 'other'}">${same ? 'AI と同じ手' : 'AI と違う手'}</span></h3><div>${esc(lab)}</div></div>` + (p.side === 'pc' ? pcResult(p, same) : (same ? '' : evalBlock(p, key(cards)))) + (aiFirst ? '' : aiBlock(p)) + statsBlock(p, key(cards));
+  };
+}
+
+const PHASE_JA = { turn_end: 'ターン終了フェイズ', incident: '事件フェイズ', loop_end_check: 'ループ終了時', loop_end: 'ループ終了時', actions: '行動解決', ability: '能力' };
+function infoBlocks(p) {
+  // 脚本家の問題: 真相（非公開シート）と、主人公から割れていること（公開の推理の見込み）を並べる。主人公の問題では出さない
+  if (p.side === 'pc') return pcInfo(p);
+  if (p.side !== 'mm' || !p.secret) return '';
+  const sec = p.secret;
+  const secret = `<details class="info" open><summary>非公開シート（脚本家だけが知っている）</summary>
+    <div>ルール: ${sec.rules.map(esc).join('・')}</div>
+    <table><tr><th>人物</th><th>役職</th></tr>${sec.roles.map(r => `<tr><td>${esc(r.name)}</td><td>${esc(r.role)}</td></tr>`).join('')}<tr><td colspan="2" class="mut">ほかの人物はパーソン</td></tr></table>
+    <table><tr><th>日</th><th>事件</th><th>犯人</th></tr>${sec.incidents.map(i => `<tr><td class="num">${i.day}日</td><td>${esc(i.name)}</td><td>${esc(i.culprit)}</td></tr>`).join('')}</table></details>`;
+  const k = p.known;
+  const state = x => x >= 0.9 ? '<span class="chip c-open">割れている</span>' : x >= 0.5 ? '<span class="chip c-near">絞られている</span>' : '<span class="chip c-hid">割れていない</span>';
+  const losses = (p.losses || []).length ? `<div>これまでのループ:</div><ul>${p.losses.map(l => `<li>ループ${l.loop}・${l.day}日目: ${esc(l.text || ((PHASE_JA[l.phase] || l.phase || '') + 'に ' + (l.reason || '')))}</li>`).join('')}</ul>` : '<div class="mut">これまでのループはない（ループ1）</div>';
+  const known = !k ? '' : `<details class="info" open><summary>主人公から割れていること</summary>
+    <div class="mut">公開された出来事から、ルール上ありうる組み合わせを数えた見込み（自動の主人公と同じ推理。残っている組み合わせ ${k.n_hyp ?? '?'} 通り）</div>
+    ${losses}
+    <table><tr><th>人物</th><th>本当の役職</th><th>主人公の見込み</th></tr>${k.chars.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.true)} ${state(c.p_true)}</td>
+      <td class="num"><span class="bar" style="width:${Math.round(c.p_true * 40)}px"></span>${Math.round(c.p_true * 100)}%<div class="mut">${c.guess.map(g => `${esc(g.role)} ${Math.round(g.p * 100)}%`).join('・')}</div></td></tr>`).join('')}</table>
+    <div style="margin-top:6px">ルールの組の見込み:</div><ul>${k.rules.map(r => `<li class="${r.true ? 't' : ''}">${r.rules.map(esc).join('・')} <span class="num">${Math.round(r.p * 100)}%</span>${r.true ? '（本当の組）' : ''}</li>`).join('')}</ul></details>`;
+  return secret + known;
+}
+
+const fx = list => !list ? '<span class="mut">（計算できない置き方）</span>' : !list.length ? '近づく負け筋はない'
+  : list.map(x => `${esc(x.route)} <span class="num">${x.left === 0 ? '→ その日に成り立つ' : '→ 残り' + x.left}</span>`).join('<br>');
+function evalBlock(p, mine) {
+  // AI と違う手を選んだ回答者に、その手を AI が評価した結果と、AI が選ばなかった理由を出す（ユーザー 2026-11-14）
+  const evs = p.evals || [];
+  const e = evs.find(x => x.key === mine);
+  const ai = evs.find(x => x.key === key(p.ai.cards));
+  if (!e) return `<div class="res" id="live"><h3>あなたの手を AI が評価すると</h3><div>この手は、AI が候補として比べなかった手です。AI は負け筋に関わる置き先と札の組（${evs.length} 通り）だけを比べるので、あなたの手は AI の見落としかもしれません。</div>
+    ${p.engine === false ? '' : `<button id="live-go">この手をその場で AI に評価させる</button><div class="mut">ブラウザの中で AI を動かします。初回は読み込みに 30 秒〜1 分ほどかかります。</div>`}</div>`;
+  const aiv = ai ? ai.value : p.ai_value;
+  const d = aiv != null ? Math.round((aiv - e.value) * 100) / 100 : null;
+  const why = [];
+  const today = xs => (xs || []).some(x => x.left === 0);
+  if (today(e.none) && !today(e.after_reply)) why.push('主人公が何もしなければその日のうちに成り立ちますが、AI は主人公が下の応手で止めると読みました。');
+  if (!today(e.none) && ai && today(ai.none)) why.push('AI の手は、主人公が何もしなければその日のうちに成り立つ筋を作ります。');
+  if (d != null && d <= 0.05) why.push('値の差はごくわずかで、AI にとってもほぼ同じ手です。');
+  return `<div class="res"><h3>あなたの手を AI が評価すると</h3>
+    <div>AI の候補 ${evs.length} 通りのうち <b>${e.rank} 位</b>${d != null ? `（AI の手との値の差 ${d}）` : ''}</div>
+    ${why.length ? `<p>${why.map(esc).join('')}</p>` : ''}
+    <table class="evt"><tr><th>主人公が何もしないとき</th><td>${fx(e.none)}</td></tr>
+      <tr><th>AI が読んだ主人公の応手</th><td>${esc(e.reply || '—')}</td></tr>
+      <tr><th>その応手の後</th><td>${fx(e.after_reply)}</td></tr></table>
+    <div class="mut">「残り」は、その負け筋が成り立つまでに脚本家に要る手数の見込みです。AI の読みは自動の主人公の考え方に基づくもので、実際の主人公とは違うことがあります。</div></div>`;
+}
+
+// その場の評価: ブラウザ版の Python（Pyodide）の Worker で selfplay.problem_eval を動かす。Worker は 1 つだけ作って使い回す
+let evalWorker = null, evalReady = null, evalSeq = 0;
+const evalWaits = {};
+function liveWorker(onStatus) {
+  if (!evalWorker) {
+    evalWorker = new Worker('worker.js?helpers=0', { type: 'module' });
+    evalReady = new Promise((ok, ng) => {
+      evalWorker.onmessage = ev => { const m = ev.data;
+        if (m.type === 'ready') ok();
+        else if (m.type === 'status') onStatus && onStatus(m.step);
+        else if (m.type === 'error') ng(new Error(m.msg));
+        else if (m.type === 'called' && evalWaits[m.id]) { evalWaits[m.id](m.s); delete evalWaits[m.id]; } };
+      evalWorker.onerror = () => ng(new Error('AI を読み込めませんでした'));
+    });
+  }
+  return evalReady;
+}
+function pcResult(p, same) {
+  return `<div class="res"><h3>伏せ札の中身</h3><div>${esc(p.reveal.mm)}</div></div>
+    <div class="res"><h3>あなたの手の結果（実際の伏せ札に対して）</h3>${same ? outcomeTable(p.ai.outcome)
+      : p.engine === false ? '<div class="mut">あなたの手の結果は、公開版ではブラウザの中で AI のエンジンを動かして出します（この確認版では出ません）。</div>' : '<div id="pc-live"></div>'}</div>`;
+}
+
+async function liveEval(p, mine, box) {
+  const say = t => { box.innerHTML = `<div class="mut">${esc(t)}</div>`; };
+  try {
+    say('AI を読み込んでいます…');
+    await liveWorker(step => say(step + '…'));
+    say('AI が評価しています…');
+    const engine = await (await fetch(DIR + encodeURIComponent(p.id) + '.engine.json')).json();
+    const id = ++evalSeq;
+    const out = JSON.parse(await new Promise(r => { evalWaits[id] = r; evalWorker.postMessage({ type: 'call', fn: 'evaluate_json', id, arg: JSON.stringify({ engine, mine, ai: key(p.ai.cards), side: p.side }) }); }));
+    if (out.error) return say(out.error);
+    if (p.side === 'pc') { box.innerHTML = outcomeTable(out.mine); return; }
+    if (out.mine.error) return say(out.mine.error);
+    const rep = r => (r || []).map(y => `主人公${y.by}が${(p.targets.find(t => t.id === y.target) || {}).name || y.target}に${CARD_JA[y.card] || y.card}`).join('・') || '—';
+    const d = Math.round((out.ai.value - out.mine.value) * 100) / 100;
+    box.innerHTML = `<div>その場の評価: 候補 ${out.mine.of} 通りのうち <b>${out.mine.rank} 位</b>（AI の手は ${out.ai.rank} 位、値の差 ${d}）</div>
+      <table class="evt"><tr><th>主人公が何もしないとき</th><td>${fx(out.mine.none)}</td></tr>
+        <tr><th>AI が読んだ主人公の応手</th><td>${esc(rep(out.mine.reply))}</td></tr>
+        <tr><th>その応手の後</th><td>${fx(out.mine.after_reply)}</td></tr></table>
+      <div class="mut">その場の評価は、この局面までの公開の出来事から AI を作り直して計算します。前もって計算した値とは少しずれることがあります。</div>`;
+  } catch (err) { say('評価できませんでした: ' + err.message); }
+}
+
+function statsBlock(p, mine) {
+  // これまでの回答の割合（GA4 の problem_answer を集計して問題の JSON の stats に書き戻したもの。リアルタイムではない）
+  const st = p.stats;
+  if (!st || !st.total) return `<div class="res"><h3>これまでの回答</h3><div class="mut">まだ集計がありません。集計は公開のたびに更新します。</div></div>`;
+  const ai = key(p.ai.cards);
+  const rows = [...st.moves].sort((a, b) => b.count - a.count);
+  return `<div class="res"><h3>これまでの回答<span class="mut">（${st.total} 件${st.updated ? '・' + esc(st.updated) + ' 時点' : ''}${st.sample ? '・サンプルの数字' : ''}）</span></h3>
+    ${rows.map(m => { const pct = Math.round(m.count / st.total * 100); const tags = (m.key === mine ? '<span class="tag same">あなた</span>' : '') + (m.key === ai ? '<span class="tag other">AI</span>' : '');
+      return `<div class="stat"><div class="sl">${esc(m.label)}${tags}</div><div class="sb"><span class="bar" style="width:${pct}%"></span><span class="num">${pct}%（${m.count}）</span></div></div>`; }).join('')}
+    ${rows.some(m => m.key === mine) ? '' : '<div class="mut">あなたの手は、まだほかに選んだ人がいない手です。</div>'}</div>`;
+}
+
+function pcInfo(p) {
+  // 主人公の問題: 公開情報だけ（伏せ札の置き場所・公開の推理・これまでのループ）。真相と伏せ札の中身は回答の後に出す
+  const k = p.known || {};
+  const losses = (p.losses || []).length ? `<ul>${p.losses.map(l => `<li>ループ${l.loop}・${l.day}日目: ${esc(l.text || '')}</li>`).join('')}</ul>` : '<div class="mut">これまでのループはない（ループ1）</div>';
+  return `<details class="info" open><summary>いま分かっていること（公開情報）</summary>
+    <div>脚本家の伏せ札の置き場所: <b>${p.mm_targets.map(t => esc(t.name)).join('・')}</b></div>
+    <div style="margin-top:4px">これまでのループ:</div>${losses}
+    ${k.chars ? `<div class="mut" style="margin-top:6px">公開された出来事から数えた役職の見込み（自動の主人公と同じ推理。残っている組み合わせ ${k.n_hyp ?? '?'} 通り）</div>
+    <table><tr><th>人物</th><th>見込み</th></tr>${k.chars.map(c => `<tr><td>${esc(c.name)}</td><td class="num">${c.guess.map(g => `${esc(g.role)} ${Math.round(g.p * 100)}%`).join('・')}</td></tr>`).join('')}</table>
+    <div style="margin-top:6px">ルールの組の見込み:</div><ul>${(k.rules || []).map(r => `<li>${r.rules.map(esc).join('・')} <span class="num">${Math.round(r.p * 100)}%</span></li>`).join('')}</ul>` : ''}</details>`;
+}
+
+function outcomeTable(o) {
+  if (!o) return '';
+  if (o.error) return `<div class="mut">${esc(o.error)}</div>`;
+  return `${o.lethal ? '<div><span class="tag other">この日のうちに負け筋が成り立つ</span></div>' : '<div><span class="tag same">この日のうちに成り立つ負け筋はない</span></div>'}
+    <div>${fx(o.routes)}</div>`;
+}
+
+function aiBlock(p) {
+  if (p.side === 'pc') return `<div class="res"><h3>AI の手と考え</h3><div><b>${esc(p.ai.label)}</b></div><p>${esc(p.ai.reason)}</p>
+    <div class="mut">実際の伏せ札に対する AI の手の結果:</div>${outcomeTable(p.ai.outcome)}
+    <div class="mut">AI の手は参考の1案です。あなたの手の方が良いこともあります。</div></div>`;
+  const ae = (p.evals || []).find(x => x.key === key(p.ai.cards));
+  return `<div class="res"><h3>AI の手と考え</h3><div><b>${esc(p.ai.label)}</b></div><p>${esc(p.ai.reason)}</p>
+    ${ae ? `<table class="evt"><tr><th>主人公が何もしないとき</th><td>${fx(ae.none)}</td></tr><tr><th>AI が読んだ主人公の応手</th><td>${esc(ae.reply || '—')}</td></tr><tr><th>その応手の後</th><td>${fx(ae.after_reply)}</td></tr></table>` : ''}
+    <div class="mut">AI の手は参考の1案です。あなたの手の方が良いこともあります。</div></div>`;
+}
+
+(params.get('id') ? show(params.get('id')) : list()).catch(e => { $('main').textContent = '読み込めませんでした: ' + e.message; });
+</script>
+</body>
+</html>

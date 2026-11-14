@@ -988,11 +988,6 @@ class ReadingBlocker(DeductiveBlocker):
                         h[x['card']] = h.get(x['card'], 0) + 1
                         if (self.card_lr or self.assume or self.bluff_read) and x['card'] in ('INT1', 'INT2', 'PAR+'):
                             self._evidence(s, x['target'], x['card'])
-                        if getattr(self, 'final_read', None) and x['card'] in ('INT1', 'INT2', 'PAR+'):  # 最後の戦いの宣言で読む（同じ所・同じ種類は1ループ1回）
-                            k = (s['loop'], x['target'], 'par' if x['card'] == 'PAR+' else 'int')
-                            if k not in getattr(self, '_final_seen', set()):
-                                self._final_seen = getattr(self, '_final_seen', set()) | {k}
-                                self._final_cards = getattr(self, '_final_cards', []) + [(x['target'], x['card'], s.get('init'))]
             if (self.ability_lr or self.bluff_read) and e.get('kind') == 'mm_ability' and e.get('role') in ('KUROMAKU', 'MISLEADER') and e.get('target'):
                 # role は進行役の内部の記録（主人公には見えない）。見えるのは「どこからともなく」置かれたカウンターと置き先だけ。
                 # 不穏な噂（ボードに暗躍1）とは公開情報では見分けられないので、ボードへの暗躍は手がかりにしない
@@ -1167,12 +1162,4 @@ class OracleReader(ReadingBlocker):
         if getattr(self, 'final_truth', False):
             # アルバイトとアルバイト？は2人で1回だけ宣言する（裁定。engine.abilities.final_battle）。両方を出すと反則で進行役が落ちた（d18 の Claude 戦 2026-10-30）
             return [{'char': c, 'role': s['script']['roles'].get(c, 'PERSON')} for c in s['chars'] if not (c == 'C33' and 'C32' in s['chars'])]
-        # final_read: 宣言の直前だけ、公開された脚本家の暗躍・不安+1 の札を推理の重みに掛ける（途中の手は変えない。同じ重みの組を、脚本家の手に合う方へ）
-        fr = getattr(self, 'final_read', None)
-        if fr and getattr(self, 'ded', None) is not None and not (self.bluff_read or self.card_lr):
-            for target, card, init in getattr(self, '_final_cards', []):
-                if fr == 'bluff':
-                    self.ded.bluff_evidence(target, card, init)
-                else:
-                    self.ded.card_evidence(target, card, init, float(fr) * (1.5 if card == 'INT2' else 1.0))
         return super().final_guesses(s)

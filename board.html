@@ -403,6 +403,8 @@ body.mode-ai .manual-only { display:none; }
 #rpbuild.on { display:flex; } #rpbuild .box { background:var(--panel); border:2px solid var(--acc); border-radius:8px; padding:18px 24px; font-size:16px; text-align:center; }
 #rpbar { position:fixed; z-index:24; left:50%; bottom:10px; transform:translateX(-50%); width:max-content; display:none; align-items:center; gap:6px; flex-wrap:wrap;
   background:rgba(0,0,0,.92); border:2px solid #6fc3ff; border-radius:8px; padding:6px 10px; max-width:96vw; box-shadow:0 4px 18px #000; }
+/* 次の一手問題に埋め込まれたとき（?embed=1）: 局面の1枚だけを見せる（再生のバー・観戦の操作・上の道具は出さない。ユーザー決定 2026-11-14） */
+body.embed #rpbar, body.embed #band .tools, body.embed #watchbar { display:none !important; } body.embed.replay { padding-bottom:0; }
 body.replay #rpbar { display:flex; } #rpbar .t { color:#6fc3ff; font-weight:700; margin-right:4px; } #rpbar input[type=range] { width:min(320px, 40vw); }
 #rpbar .pos { color:var(--mut); font-size:12px; min-width:5em; text-align:center; } #rpbar .more { display:contents; }
 @media (max-width:900px) {  /* 狭い画面: 下の「推理」の見出しの真上に全幅で置く。1行目は再生の操作、2行目はシーク、3行目はその他（横に送る）。盤面を隠さない */
@@ -2143,11 +2145,12 @@ const RP = {
     if (!built && S.loop && !(S.phaseName || '').startsWith('ゲーム終了') && !RP.on && !await ask({ title: 'リプレイに切り替えますか？', html: para('いまの試合の表示をリプレイに切り替えます。' + '（試合はそのまま続いています。『リプレイを終える』で戻ります）'), ok: '切り替える', cancel: 'やめる' })) return;
     clearInterval(pollTimer); backToLive(); closeScene(); $('welcome').classList.remove('on'); $('start').classList.remove('on'); $('reveal').classList.remove('on');
     this.on = true; this.data = d; awaiting = 0; document.body.classList.add('replay');
+    if (new URLSearchParams(location.search).get('embed') === '1') document.body.classList.add('embed');
     const steps = [...d.snapshots]; if (d.final && d.final.loop) steps.push({ prev_n: steps.length ? steps[steps.length - 1].log_n : 0, log_n: d.log.length ? d.log[d.log.length - 1].n : 0, state: d.final });
     this.steps = steps; $('rp-seek').max = steps.length - 1;
     $('rp-title').textContent = d.title ? `「${d.title}」` : d.complete ? '' : '（途中まで）';
     $('rp-reveal').style.display = d.final && d.final.reveal ? '' : 'none';
-    this.go(0);
+    this.go(new URLSearchParams(location.search).get('at') === 'last' ? steps.length - 1 : 0);  // 次の一手問題: 問題の局面（最後の場面）から開く（&at=last）
   },
   go(i) {
     const st = this.steps, was = this.i; this.i = Math.max(0, Math.min(i, st.length - 1));
@@ -2334,7 +2337,7 @@ $('rp-last').onclick = () => RP.go(RP.steps.length - 1); $('rp-play').onclick = 
 $('rp-seek').oninput = e => RP.go(+e.target.value);
 $('rp-reveal').onclick = () => { const keep = S; S = { ...S, reveal: RP.data.final.reveal }; openReveal(); S = keep; };
 // ---- 開始画面（脚本・脚本家・乱数の種を選んで進行役を起動し直す。サーバーが SANGEKI_AI=1 のときだけ）----
-const MMLABEL = { calcGBxhdKN: 'Guignol 2（G）― 鍵を先回りで封じ、主人公の友好能力まで読む最強の型・1手に数秒〜数十秒', calcGBxhdK: 'Guignol（G）― 鍵を先回りで封じる型・1手に数秒〜数十秒', calcGBxhd: 'Foreshadow（F）― 人の止め方を見越して外す・1手に数秒〜数十秒', calcD: 'Escalation（E）― 二重の脅威で追い込む・1手に数十秒', calcG: 'Dramaturge（D）― 主人公の知らない筋を逆算する・1手に数十秒', searchL: 'Cliffhanger（C）― その日の決着まで読む', search: 'Blocking（B）― 一手ずつ探る・速い', route: 'Antagonist（A）― 筋をまっすぐ進める・最速' };  // 通称（頭文字＝メジャー版）と説明。台帳 engine/data/players.json と合わせる（tests/test_players.py）
+const MMLABEL = { calcGBxhdKNi: 'Guignol 3（G）― 意図のある札で押し、事件の日に合わせて筋を進める最強の型・1手に数秒〜数十秒', calcGBxhdKN: 'Guignol 2（G）― 鍵を先回りで封じ、主人公の友好能力まで読む型・1手に数秒〜数十秒', calcGBxhdK: 'Guignol（G）― 鍵を先回りで封じる型・1手に数秒〜数十秒', calcGBxhd: 'Foreshadow（F）― 人の止め方を見越して外す・1手に数秒〜数十秒', calcD: 'Escalation（E）― 二重の脅威で追い込む・1手に数十秒', calcG: 'Dramaturge（D）― 主人公の知らない筋を逆算する・1手に数十秒', searchL: 'Cliffhanger（C）― その日の決着まで読む', search: 'Blocking（B）― 一手ずつ探る・速い', route: 'Antagonist（A）― 筋をまっすぐ進める・最速' };  // 通称（頭文字＝メジャー版）と説明。台帳 engine/data/players.json と合わせる（tests/test_players.py）
 let canStart = false;
 fetch('/scripts').then(r => r.ok ? r.json() : null).then(d => {
   if (!d) return;

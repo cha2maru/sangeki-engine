@@ -83,3 +83,15 @@ def generate_json(_=''):
 def list_json():
     return json.dumps({'scripts': ai_gm.list_scripts(), 'blind': ai_gm.blind_count()}, ensure_ascii=False)
 
+
+def evaluate_json(arg):
+    """次の一手問題: 回答者の手と AI の手を、その場で AI に評価させる（selfplay.problem_eval）。arg: {"engine": <id>.engine.json の中身, "mine": 札の組, "ai": 札の組}。"""
+    from selfplay.problem_eval import compare
+    try:
+        a = json.loads(arg)
+        if a.get('side') == 'pc':
+            from selfplay.problem_eval import evaluate_pc
+            return json.dumps({'mine': evaluate_pc(a['engine'], a['mine'])}, ensure_ascii=False)
+        return json.dumps(compare(a['engine'], a['mine'], a['ai']), ensure_ascii=False)
+    except Exception as e:  # 問題の形が違う・置けない手など
+        return json.dumps({'error': f'評価できませんでした: {e}'}, ensure_ascii=False)

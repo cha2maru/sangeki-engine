@@ -139,6 +139,40 @@ def make_plan(s):
     return plan
 
 
+def _killer_key_today(s, sv, worlds, T, put):
+    """今日のターン終了にキラーがキーパーソンを殺しうる形を、ほかの守りより先に止める（plan_read2k の today_first）。
+    推理の世界の半分以上でキラー・キーパーソンの組が同じときだけ。キーパーソンに伏せ札があり暗躍で 2 に届きうるなら暗躍禁止、
+    キラーに伏せ札があり動けば同じエリアになりうるなら移動禁止、キーパーソンに伏せ札があり暗躍がもう 2 以上で別のエリアなら移動禁止。
+    自動の主人公はこの筋をほとんど止めていなかった（runs/stop_rate_2026-11-14: KILLER_KEY 0〜0.14、実際の主人公は 0.61〜0.73。
+    gen_s11_009 L2D1: キラーに移動↑↓・キーパーソンに暗躍+2 に対し、キーパーソンに移動禁止・都市のボードに暗躍禁止を置いて殺された）"""
+    ch = s['chars']
+    int2 = 'INT2' not in s['used']['M']
+    pairs = {}
+    for w in worlds:
+        ks = [c for c, r in w.get('roles', {}).items() if r == 'KILLER']
+        keys = [c for c, r in w.get('roles', {}).items() if r == 'KEY']
+        for k in ks:
+            for key in keys:
+                pairs[(k, key)] = pairs.get((k, key), 0) + 1
+    for (k, key), n in sorted(pairs.items(), key=lambda kv: -kv[1]):
+        if n * 2 < len(worlds) or k not in ch or key not in ch:
+            continue
+        a, b = ch[k], ch[key]
+        if not (a['alive'] and b['alive'] and a.get('present', True) and b.get('present', True) and a.get('area') and b.get('area')):
+            continue
+        same = a['area'] == b['area']
+        can_meet = same or k in T or key in T  # 伏せ札（移動の札かもしれない）で同じエリアになりうる
+        int_reach = b['int'] >= 2 or (key in T and b['int'] + (2 if int2 else 1) >= 2)
+        if not (can_meet and int_reach):
+            continue
+        if key in T and b['int'] < 2:
+            put(key, ['INTX'])  # 暗躍を止める（移動禁止では暗躍は止まらない）
+        if k in T and not same:
+            put(k, ['MVX'])  # キラーを動かさない
+        elif key in T and b['int'] >= 2 and not same:
+            put(key, ['MVX'])
+
+
 def plan_pc(rng, script, base_kind='oreadKQLm', fair=False):
     """league の oplan: oreadKQLm＋予約（このモジュールの説明）。fair: 脚本を知らない主人公（base_kind は推理する主人公）。
     予約は推理の世界ごとに作って多数決、配役に頼る日々の判断も推理の世界で行う（本当の脚本は見ない）。"""
@@ -190,12 +224,16 @@ def plan_pc(rng, script, base_kind='oreadKQLm', fair=False):
         def put(t, cards):
             if t in taken or t == 'C20' or (t in ch and (not ch[t]['alive'] or not ch[t].get('present', True))):
                 return False  # 幻想（C20）には行動カードを置けない
+            if any(x['card'] == 'INTX' for x in out):  # 暗躍禁止は2人以上が置くと全部無効（1日に主人公全体で1枚）
+                cards = [c for c in cards if c != 'INTX']
             for p in list(free):
                 for c in cards:
                     if not (c in ONCE[p] and c in used[p]):
                         out.append({'by': p, 'target': t, 'card': c}); free.remove(p); taken.add(t)
                         return True
             return False
+        if getattr(base, 'today_first', False):
+            _killer_key_today(s, sv, wsv0 := ([sv['script']] if not fair else (base._worlds(s)[:4] or [sv['script']])), T, put)
         # 人数で2人きりを防ぐ（学び7、d12）: シリアルキラーは、ほかに2人以上いるエリアに置く。1人だけのエリアにいると、
         # そこへ動かされた人物と2人きりで殺される（脚本家の一度きりの斜めの移動はいつ来るか分からない）。人の多い隣へ動かし、戻されそうなら移動禁止
         def others(a, me):
@@ -262,9 +300,9 @@ def plan_pc(rng, script, base_kind='oreadKQLm', fair=False):
                         if put(c2, ['MVX']):
                             need -= 1
                     return need
-                # 既定は移動禁止が先。bring_first（oplanB・planB_*）は人を入れるのが先（ユーザー「移動禁止より人を入れるほうがループ制限の
+                # 移動禁止が先（人を入れるのが先の bring_first は 2026-10-30 に比べ、2026-11-14 に消した。ユーザー「移動禁止より人を入れるほうがループ制限の
                 # カード消費しないので有効では」2026-10-30。d13 の決まった手順の脚本家で oplan 4試合: 移動禁止が先 3勝・人を入れるのが先 1勝。比べ中）
-                need = forbid(bring_in(need)) if getattr(base, 'bring_first', False) else bring_in(forbid(need))
+                need = bring_in(forbid(need))
         # 暗躍の条件（層②の句のうち暗躍・ボード）: 負け筋の暗躍の対象に伏せ札があり、暗躍+2 で必要量に届きうるなら暗躍禁止を最優先
         # （d14: 予約の手が札の枠を取り、学校の暗躍2（巨大時限爆弾X）を止めずにループ終了で負けた）。暗躍禁止は1日1枚だけ
         cult_areas = {v['area'] for c, v in ch.items() if v['alive'] and ph.base_role(sv, c) == 'CULTIST'}

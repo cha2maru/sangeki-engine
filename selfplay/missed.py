@@ -111,7 +111,8 @@ def main():
     ap.add_argument('--rank', type=int, default=20)
     ap.add_argument('--rand', type=int, default=150)
     a = ap.parse_args()
-    sid = open(os.path.join(a.run, 'script_id.txt')).read().strip()
+    sp = next(p for p in (os.path.join(a.run, 'script_id.txt'), os.path.join(a.run, 'private', 'script_id.txt')) if os.path.exists(p))  # サブエージェントの対戦は private/ に置く
+    sid = open(sp).read().strip()
     from engine.scripts import by_id
     script = by_id(sid)
     mk = lambda: make(a.kind, random.Random(1), script)  # noqa: E731
