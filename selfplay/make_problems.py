@@ -268,7 +268,28 @@ def gm_replay(r, title):
             'log': [x for x in log if x['n'] <= last], 'snapshots': snaps}
 
 
-def pick(raw_dir, n=10, gap=0.1):
+STAGES = ('初手', '中盤', '終盤')
+
+
+def stage_of(r):
+    """問題の段階（ユーザー 2026-11-15）: 初手＝ループ1の1日目、終盤＝最終ループ、中盤＝それ以外。"""
+    if (r['loop'], r['day']) == (1, 1):
+        return '初手'
+    return '終盤' if r['loop'] >= by_id(r['script'])['loops'] else '中盤'
+
+
+def auto_text(r, side):
+    """題と問いの文を局面の事実（ルールY・ループ・日）から作る（Claude が考えて書かない。ユーザー 2026-11-15）。"""
+    from ai_gm import RULE_JA
+    sc = by_id(r['script'])
+    y = '・'.join(RULE_JA.get(x, x) for x in sc['rules'] if x.startswith('Y_'))
+    last = r['loop'] >= sc['loops']
+    when = f"ループ{r['loop']}{'（最終）' if last else ''}・{r['day']}日目{'（最終日）' if r['day'] >= sc['days'] else ''}"
+    q = ('脚本家として、3枚の札をどこに置きますか。' if side == 'mm' else '脚本家の伏せ札の置き場所を見て、主人公として3人の札をどこに置きますか。')
+    return {'title': f"{y}（{r['script'].split('_', 1)[-1]}）、{when}", 'question': f"{when}。{q}"}  # 同じルール・同じ日の問題を見分けるため脚本の番号も
+
+
+def pick(raw_dir, n=10, gap=0.1, stage=None):
     """拾った局面から問題の候補を選ぶ: AI が探索の 1 位をそのまま指し（後処理の書き換えはよくあるので外す）、1 位と 2 位の値の差が gap 未満で、
     2 つの手が 2 枚以上違う局面。脚本・ループ・日が偏らないよう、脚本ごとに 1 つずつ順に取る。"""
     import glob
@@ -276,9 +297,10 @@ def pick(raw_dir, n=10, gap=0.1):
     ok, seen = [], set()
     for r in recs:
         c = r['candidates']
-        if len(c) < 2 or r['rewritten'] or r['gap'] is None or r['gap'] >= gap:
+        if len(c) < 2 or r['rewritten'] or r['gap'] is None or r['gap'] >= gap or (stage and stage_of(r) != stage):
             continue
-        if len(set(c[0]['cards']) ^ set(c[1]['cards'])) < 4:  # 2 枚以上違う（対称差 4 以上）
+        # 2 枚以上違う（対称差 4 以上）。初手は上位 2 手が 1 枚違いのことが多い（50/86 局面）ので 1 枚違いも採る（ユーザー 2026-11-15「もう少し初手問題増やしたい」）
+        if len(set(c[0]['cards']) ^ set(c[1]['cards'])) < (2 if stage == '初手' else 4):
             continue
         tg = lambda cs: {x.rsplit(':', 1)[0] for x in cs}  # noqa: E731
         if tg(c[0]['cards']) == tg(c[1]['cards']):  # 同じ置き先で札を入れ替えただけ（暗躍+1 と +2 の入れ替えなど）は外す
@@ -404,7 +426,7 @@ def pc_outcome(s, mm_actual, reply):
             'lethal': any(r['total'] == 0 and (r['id'] in today or last) for r in rs)}
 
 
-def pick_pc(raw_dir, n=5):
+def pick_pc(raw_dir, n=5, stage=None):
     """主人公の問題の候補: 自動の主人公（AI）の札では、脚本家の実際の札による負け筋がその日のうちに成り立った（残り 0）局面＝AI が止めきれなかった局面。
     脚本・ループが偏らないよう脚本ごとに 1 つずつ。"""
     import glob
@@ -416,11 +438,14 @@ def pick_pc(raw_dir, n=5):
             r = json.loads(line)
             if not r['mm_actual'] or len(r['ai']) != 3:
                 continue
+            r = dict(r, script=sid)
+            if stage and stage_of(r) != stage:
+                continue
             o = pc_outcome(r['state'], r['mm_actual'], r['ai'])
-            if o.get('lethal'):
+            if o.get('lethal') or stage == '初手':  # 初手はその日に負けることがほぼ無いので、ループ1の1日目をそのまま問題にする
                 by.setdefault(sid, []).append(dict(r, script=sid, seed=seed, ai_outcome=o))
     for k in by:  # ループ 1 の 1 日目は主人公に手がかりが無く運の要素が強いので外し、後のループを先に
-        by[k] = sorted((r for r in by[k] if (r['loop'], r['day']) != (1, 1)), key=lambda r: (-r['loop'], r['day']))
+        by[k] = sorted((r for r in by[k] if stage == '初手' or (r['loop'], r['day']) != (1, 1)), key=lambda r: (-r['loop'], r['day']))
     out = []
     while len(out) < n and any(by.values()):
         for k in sorted(by):
@@ -437,9 +462,7 @@ def export_pc(picked, texts, outdir, index):
     tname = lambda t: AREA_JA[t[2:]] + 'のボード' if t.startswith('B:') else CHARS[t]['name']  # noqa: E731
     for r in picked:
         key = f"{r['script'].split('/')[-1]}:{r['seed']}:L{r['loop']}D{r['day']}:pc"
-        t = texts.get(key)
-        if not t:
-            continue
+        t = texts.get(key) or auto_text(r, 'pc' if key.endswith(':pc') else 'mm')
         pid = key.replace(':', '_')
         s = r['state']
         rp = gm_replay(r, f"問題 {r['script'].split('/')[-1]} L{r['loop']}D{r['day']}")
@@ -478,7 +501,7 @@ def export_pc(picked, texts, outdir, index):
         json.dump(p, open(os.path.join(outdir, pid + '.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
         json.dump({'state': {k_: v for k_, v in s.items() if k_ not in ('script', 'init')}, 'state_script': s['script'], 'init': s.get('init'),
                    'mm_actual': r['mm_actual'], 'script_full': by_id(r['script']), 'mm': r.get('mm', 'calcGBxhdKNi'), 'seed': r['seed']}, open(os.path.join(outdir, pid + '.engine.json'), 'w', encoding='utf-8'), ensure_ascii=False, default=str)
-        index.append({'id': pid, 'side': 'pc', 'title': t['title']})
+        index.append({'id': pid, 'side': 'pc', 'title': t['title'], 'stage': stage_of(r)})
     return index
 
 
@@ -551,9 +574,7 @@ def export(picked, texts, outdir):
     index = []
     for r in picked:
         key = f"{r['script'].split('/')[-1]}:{r['seed']}:L{r['loop']}D{r['day']}"
-        t = texts.get(key)
-        if not t:
-            continue
+        t = texts.get(key) or auto_text(r, 'pc' if key.endswith(':pc') else 'mm')
         pid = key.replace(':', '_')
         s = r['state']
         rp = gm_replay(r, f"問題 {r['script'].split('/')[-1]} L{r['loop']}D{r['day']}") if r.get('gmdir') else replay_of(r)
@@ -636,7 +657,7 @@ def export(picked, texts, outdir):
                    'replay': pid + '.replay.json', 'choices': choices, 'hand': hand, 'targets': targets,
                    'ai': {'cards': r['ai'], 'label': label(r['ai']), 'reason': ai_reason(r, evals, tname, CARD_UI)}},
                   open(os.path.join(outdir, pid + '.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
-        index.append({'id': pid, 'side': 'mm', 'title': t['title']})
+        index.append({'id': pid, 'side': 'mm', 'title': t['title'], 'stage': stage_of(r)})
     json.dump(index, open(os.path.join(outdir, 'index.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     return index
 
@@ -653,10 +674,11 @@ def main():
     ap.add_argument('--texts', default='', help='問いの文・理由（{局面の鍵: {title, question, notes, reason}}）')
     ap.add_argument('--pick-pc', type=int, default=0, help='主人公の問題の候補を n 個選び、<out>/picked_pc.jsonl に書く')
     ap.add_argument('--texts-pc', default='', help='--export のとき、主人公の問題の文（鍵は 脚本:seed:LxDy:pc）')
+    ap.add_argument('--gap', type=float, default=0.3, help='--pick: 1 位と 2 位の値の差がこれ未満の局面')
     ap.add_argument('--pick', type=int, default=0, help='scripts の代わりに --out の拾った局面から問題の候補を n 個選び、<out>/picked.jsonl に書く')
     a = ap.parse_args()
     if a.pick_pc:
-        ps = pick_pc(a.out, a.pick_pc)
+        ps = [r for st in STAGES for r in pick_pc(a.out, a.pick_pc, stage=st)]  # 段階ごとに n 問ずつ
         with open(os.path.join(a.out, 'picked_pc.jsonl'), 'w', encoding='utf-8') as f:
             for r in ps:
                 f.write(json.dumps(r, ensure_ascii=False, default=str) + '\n')
@@ -666,15 +688,15 @@ def main():
         return
     if a.export:
         picked = [json.loads(x) for x in open(os.path.join(a.out, 'picked.jsonl'), encoding='utf-8')]
-        idx = export(picked, json.load(open(a.texts, encoding='utf-8')), a.export)
+        idx = export(picked, json.load(open(a.texts, encoding='utf-8')) if a.texts else {}, a.export)
         pp = os.path.join(a.out, 'picked_pc.jsonl')
-        if a.texts_pc and os.path.exists(pp):
-            idx = export_pc([json.loads(x) for x in open(pp, encoding='utf-8')], json.load(open(a.texts_pc, encoding='utf-8')), a.export, idx)
+        if os.path.exists(pp):
+            idx = export_pc([json.loads(x) for x in open(pp, encoding='utf-8')], json.load(open(a.texts_pc, encoding='utf-8')) if a.texts_pc else {}, a.export, idx)
             json.dump(idx, open(os.path.join(a.export, 'index.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
         print('書き出した', len(idx), '問 →', a.export)
         return
     if a.pick:
-        ps = pick(a.out, a.pick)
+        ps = [r for st in STAGES for r in pick(a.out, a.pick, gap=a.gap, stage=st)]  # 段階ごとに n 問ずつ
         with open(os.path.join(a.out, 'picked.jsonl'), 'w', encoding='utf-8') as f:
             for r in ps:
                 f.write(json.dumps(r, ensure_ascii=False) + '\n')

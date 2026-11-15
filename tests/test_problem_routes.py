@@ -14,3 +14,10 @@ def test_cultist_ignore_and_morning_zero_route():
     assert o['lethal']
     assert any(r['left'] == 0 and '主人公死亡' in r['route'] for r in o['routes'])
     assert '主人公死亡' in o['today']['summary']
+
+
+def test_route_mastermind_ability_skips_absent_actor():
+    # 登場前（エリアなし）の人物には脚本家の能力を使わせない（gen_s51_017 で pc_v2 の先読みが TypeError で落ちた）
+    from selfplay.players import RouteMastermind
+    s = {'chars': {'C24': {'area': None, 'present': False, 'alive': True, 'par': 0, 'gw': 0, 'int': 0}}, 'boards': {}}
+    assert RouteMastermind.mm_ability(None, s, 'C24', 'KUROMAKU') is None

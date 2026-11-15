@@ -15,6 +15,7 @@ main { padding:12px 16px 40px; }
 .list a:hover { border-color:var(--acc); } .list .side { color:var(--acc); font-size:12px; margin-right:8px; }
 .prob { display:grid; grid-template-columns:minmax(0, 1fr) 380px; grid-template-areas:"board q" "board panel"; grid-template-rows:auto 1fr; gap:14px; }
 .prob .qhead { grid-area:q; } .prob .sec-board { grid-area:board; min-width:0; } .prob .panel { grid-area:panel; }
+main > h2 { font-size:15px; margin:18px 0 6px; }
 .qhead { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; } .qhead h2 { font-size:16px; margin:0 0 6px; }
 .mtabs, .mbar { display:none; }
 a.next { color:var(--acc); }
@@ -85,9 +86,15 @@ const mineClear = () => { try { localStorage.removeItem(MINE); } catch {} };
 
 async function list() {
   const idx = await (await fetch(DIR + 'index.json')).json();
+  // 段階（初手・中盤・終盤）ごとに見出しを分ける。?stage=中盤 でその段階だけ（ユーザー 2026-11-15）
+  const STAGE_JA = { '初手': '初手（ループ1の1日目）', '中盤': '中盤', '終盤': '終盤（最終ループ）' };
+  const want = params.get('stage');
+  const item = p => { const m = (mineAll()[p.id] || []).slice(-1)[0];
+    return `<a href="?id=${encodeURIComponent(p.id)}"><span class="side">${p.side === 'mm' ? '脚本家' : '主人公'}</span>${esc(p.title)}${m ? `<span class="tag ${m.same ? 'same' : 'other'}">回答済み・${m.same ? 'AI と同じ' : 'AI と違う'}</span>` : ''}</a>`; };
+  const stages = [...new Set(idx.map(p => p.stage || '中盤'))].sort((a, b) => Object.keys(STAGE_JA).indexOf(a) - Object.keys(STAGE_JA).indexOf(b)).filter(st => !want || st === want);
   $('main').innerHTML = `<p class="mut">AI が迷った局面を集めた問題です。正解は決まっていません。あなたの手と、AI の手と考えを見比べてください。</p>
-    <div class="list">${idx.map(p => { const m = (mineAll()[p.id] || []).slice(-1)[0];
-      return `<a href="?id=${encodeURIComponent(p.id)}"><span class="side">${p.side === 'mm' ? '脚本家' : '主人公'}</span>${esc(p.title)}${m ? `<span class="tag ${m.same ? 'same' : 'other'}">回答済み・${m.same ? 'AI と同じ' : 'AI と違う'}</span>` : ''}</a>`; }).join('')}</div>
+    <p class="mut">${['', ...Object.keys(STAGE_JA)].map(st => st === (want || '') ? `<b>${st || 'すべて'}</b>` : `<a href="${st ? '?stage=' + encodeURIComponent(st) : '?'}">${st || 'すべて'}</a>`).join('・')}</p>
+    ${stages.map(st => `<h2>${esc(STAGE_JA[st] || st)}</h2><div class="list">${idx.filter(p => (p.stage || '中盤') === st).map(item).join('')}</div>`).join('')}
     ${Object.keys(mineAll()).length ? '<p class="mut">回答の記録はこのブラウザの中だけに保存しています。<button id="clear-mine">記録を消す</button></p>' : ''}` + privacy();
   const cb = document.getElementById('clear-mine'); if (cb) cb.onclick = () => { mineClear(); list(); };
 }

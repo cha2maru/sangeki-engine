@@ -104,6 +104,8 @@ class RouteMastermind:
 
     def mm_ability(self, s, actor, ability=None):
         a = s['chars'][actor]
+        if not a.get('area') or not a.get('present', True):  # 盤面にいない人物（登場前など）は能力を使えない。gen_s51_017 で主人公の先読み（pc_v2）が落ちた（2026-11-15）
+            return None
         opts = [c for c in ph.alive_in(s, a['area'])]
         if (ability or ph.role(s, actor)) == 'KUROMAKU':
             opts.append('B:' + a['area'])
@@ -634,6 +636,8 @@ class HiddenMastermind(RouteMastermind):
 
     def mm_ability(self, s, actor, ability=None):
         a = s['chars'][actor]
+        if not a.get('area') or not a.get('present', True):  # 盤面にいない人物（登場前など）は能力を使えない。gen_s51_017 で主人公の先読み（pc_v2）が落ちた（2026-11-15）
+            return None
         opts = [c for c in ph.alive_in(s, a['area'])]
         if (ability or ph.role(s, actor)) == 'KUROMAKU':
             opts.append('B:' + a['area'])
