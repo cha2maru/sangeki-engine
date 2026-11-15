@@ -158,7 +158,8 @@ async function show(id) {
     }
     $('err').textContent = '';
     const same = key(cards) === key(p.ai.cards);
-    ga('problem_answer', { problem_id: p.id, side: p.side, mode, same_as_ai: same, move: same ? 'ai' : key(cards), sec: Math.round((Date.now() - t0) / 1000) });
+    // 集計に送るのは、この問題への最初の回答だけ（答え直しで数が膨らまないように。ユーザー 2026-11-15 の自動集計）
+    if (!(mineAll()[p.id] || []).length) ga('problem_answer', { problem_id: p.id, side: p.side, mode, same_as_ai: same, move: same ? 'ai' : key(cards), sec: Math.round((Date.now() - t0) / 1000) });
     $('send').disabled = true;
     const at = new Date().toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
     const lab = mode === 'choice' ? p.choices.find(c => key(c.cards) === key(cards)).label : cards.map(x => { const [t, c] = [x.slice(0, x.lastIndexOf(':')), x.slice(x.lastIndexOf(':') + 1)]; return (p.targets.find(y => y.id === t) || {}).name + 'に' + (CARD_JA[c] || c); }).join('・');

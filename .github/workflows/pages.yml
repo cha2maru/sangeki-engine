@@ -4,6 +4,8 @@ name: Pages
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '17 18 * * *'  # 毎日 03:17 JST に組み直す（次の一手問題の回答の集計を新しくする）
   workflow_dispatch:  # リリースを作ったら gh workflow run Pages --ref main で組み直す（トップページの最近の更新）。release のきっかけはタグで動き、github-pages の環境の保護（main だけ）で弾かれる
 permissions:
   contents: read
@@ -37,6 +39,23 @@ jobs:
         run: gh api 'repos/${{ github.repository }}/releases?per_page=5' > web/release.json || rm -f web/release.json
       - name: 組み立て
         run: bash web/build.sh
+      # 次の一手問題の回答の集計（GA4 の problem_answer）。Workload Identity 連携で GA4 を読むだけのサービスアカウントになる（鍵は置かない）。
+      # 集計は組み立てたページの中だけに書き、リポジトリにはコミットしない。失敗しても公開は止めない（集計の無い問題として出る）
+      - id: gauth
+        uses: google-github-actions/auth@v2
+        continue-on-error: true
+        with:
+          workload_identity_provider: projects/25319163481/locations/global/workloadIdentityPools/github/providers/sangeki-engine
+          service_account: sangeki-stats-gh@sangeki-stats-11151255.iam.gserviceaccount.com
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/analytics.readonly
+      - name: 次の一手問題の回答の集計
+        if: steps.gauth.outcome == 'success'
+        continue-on-error: true
+        env:
+          GA4_PROPERTY_ID: '561751039'
+          GA4_TOKEN: ${{ steps.gauth.outputs.access_token }}
+        run: python3 web/problem_stats.py --dir web/dist/play/problems
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web/dist
