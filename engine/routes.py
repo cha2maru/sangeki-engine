@@ -172,7 +172,9 @@ def _enumerate(state, days_in_loop=None):
         r = br[cid]
         for e in EFFECTS['roles'].get(r, []):
             if e.get('effect') == 'kill' and e['target'] == 'KEY':
-                for k in keys:
+                # キラーが殺せるのは役職がキーパーソンの人物だけ。ファクターはキーパーソンの能力を得ても役職は変わらない（wiki role-abilities、
+                # 進行の phases._keys_in_reach と同じ）。以前はファクターも数え、gen_s51_059 で殺せない筋を「その日に成り立つ」と見た
+                for k in [k for k in keys if k not in fkeys]:
                     if k not in alive:
                         continue
                     add(e['id'], cid, f'{k} 死亡（キーパーソン）', keycond(k) + [

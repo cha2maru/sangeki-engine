@@ -13,8 +13,32 @@ header h1 { font-size:17px; margin:0; } header a { color:var(--mut); font-size:1
 main { padding:12px 16px 40px; }
 .list a { display:block; padding:12px 14px; margin:8px 0; background:var(--panel); border:1px solid var(--line); border-radius:8px; color:var(--text); text-decoration:none; }
 .list a:hover { border-color:var(--acc); } .list .side { color:var(--acc); font-size:12px; margin-right:8px; }
-.prob { display:grid; grid-template-columns:minmax(0, 1fr) 380px; gap:14px; }
-@media (max-width: 900px) { .prob { grid-template-columns:1fr; } }
+.prob { display:grid; grid-template-columns:minmax(0, 1fr) 380px; grid-template-areas:"board q" "board panel"; grid-template-rows:auto 1fr; gap:14px; }
+.prob .qhead { grid-area:q; } .prob .sec-board { grid-area:board; min-width:0; } .prob .panel { grid-area:panel; }
+.qhead { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; } .qhead h2 { font-size:16px; margin:0 0 6px; }
+.mtabs, .mbar { display:none; }
+a.next { color:var(--acc); }
+@media (max-width: 900px) and (min-width: 701px) { .prob { grid-template-columns:1fr; grid-template-areas:"q" "board" "panel"; } }
+/* スマホ: 1 画面に 1 つ（盤面・状況・回答）。下に回答バーを固定 */
+@media (max-width: 700px) {
+  main { padding-bottom:calc(84px + env(safe-area-inset-bottom, 0px)); }
+  .prob { display:block; }
+  .mtabs { display:flex; gap:6px; position:sticky; top:env(safe-area-inset-top, 0px); z-index:5; background:var(--bg); padding:6px 0 8px; }
+  .mtabs button { flex:1; min-height:44px; font-size:15px; }
+  .qhead { margin-bottom:10px; padding:10px 12px; }
+  .prob:not([data-tab=board]) .sec-board, .prob:not([data-tab=info]) .sec-info, .prob:not([data-tab=ans]) .sec-ans { display:none; }
+  .prob[data-tab=board] .panel { display:none; }
+  .prob:not([data-tab=board]) .qhead .notes { display:none; }
+  iframe { height:560px; min-height:0; }
+  .panel { padding:10px 12px; }
+  label.ch { padding:12px 10px; min-height:44px; }
+  .row select { font-size:16px; min-height:44px; }
+  button { min-height:44px; }
+  .mbar { display:flex; gap:10px; align-items:center; position:fixed; left:0; right:0; bottom:0; z-index:6; background:var(--panel); border-top:1px solid var(--line);
+    padding:10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+  .mbar #mb-sum { flex:1; min-width:0; font-size:13px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mbar .go { width:auto; margin:0; padding:0 18px; }
+}
 iframe { width:100%; height:78vh; min-height:480px; border:1px solid var(--line); border-radius:8px; background:#000; }
 .panel { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; align-self:start; }
 .panel h2 { font-size:16px; margin:0 0 6px; } .q { margin:6px 0 10px; } .notes { color:var(--mut); font-size:13px; padding-left:18px; margin:6px 0 12px; }
@@ -76,12 +100,14 @@ async function show(id) {
   const p = await (await fetch(DIR + encodeURIComponent(id) + '.json')).json();
   const t0 = Date.now(), aiFirst = params.get('ai') === 'first';
   const opt = (arr, f) => arr.map(x => `<option value="${esc(f(x)[0])}">${esc(f(x)[1])}</option>`).join('');
-  $('main').innerHTML = `<div class="prob">
-    <iframe src="${BOARD}?replay=${encodeURIComponent(DIR + p.replay)}&at=last&embed=1" title="局面の盤面"></iframe>
+  $('main').innerHTML = `<div class="prob" id="prob" data-tab="board">
+    <nav class="mtabs" aria-label="表示の切り替え"><button data-t="board" aria-pressed="true">盤面</button><button data-t="info" aria-pressed="false">状況</button><button data-t="ans" aria-pressed="false">回答</button></nav>
+    <div class="qhead"><h2>${esc(p.title)}</h2><div class="q">${esc(p.question)}</div>
+      ${p.notes.length ? `<ul class="notes">${p.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}</div>
+    <div class="sec-board"><iframe src="${BOARD}?replay=${encodeURIComponent(DIR + p.replay)}&at=last&embed=1" title="局面の盤面"></iframe></div>
     <div class="panel">
-      <h2>${esc(p.title)}</h2><div class="q">${esc(p.question)}</div>
-      ${p.notes.length ? `<ul class="notes">${p.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
-      ${infoBlocks(p)}
+      <div class="sec-info">${infoBlocks(p)}</div>
+      <div class="sec-ans">
       ${aiFirst ? aiBlock(p) : ''}
       ${(() => { const m = (mineAll()[p.id] || []).slice(-1)[0]; return m ? `<div class="mut">前回のあなたの回答（${esc(m.at)}）: ${esc(m.label)}<span class="tag ${m.same ? 'same' : 'other'}">${m.same ? 'AI と同じ手' : 'AI と違う手'}</span></div>` : ''; })()}
       <div class="tabs" ${p.side === 'pc' ? 'hidden' : ''}><button id="t-ch" aria-pressed="true">候補から選ぶ</button><button id="t-free" aria-pressed="false">札を指定する</button></div>
@@ -95,16 +121,29 @@ async function show(id) {
       <button class="go" id="send">この手で答える</button>
       <div id="res"></div>
       ${privacy()}
-    </div></div>`;
+      </div>
+    </div>
+    <div class="mbar"><span id="mb-sum" class="mut">手を選んでください</span><button class="go" id="mb-send">答える</button></div></div>`;
+  // スマホ: タブで 盤面・状況・回答 を切り替え、下の回答バーにいま選んでいる手と「答える」を出す（デスクトップは全部並べたまま）
+  const tabTo = t => { $('prob').dataset.tab = t; document.querySelectorAll('.mtabs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.t === t)); window.scrollTo(0, 0); };
+  document.querySelectorAll('.mtabs button').forEach(b => b.onclick = () => tabTo(b.dataset.t));
+  const sumNow = () => {
+    let lab = '';
+    if (mode === 'choice') { const r = document.querySelector('input[name=ch]:checked'); lab = r ? p.choices[+r.value].label : ''; }
+    else { const xs = [0, 1, 2].map(i => [$('ft' + i).value, $('fc' + i).value]).filter(([t, c]) => t && c); lab = xs.map(([t, c]) => (p.targets.find(y => y.id === t) || {}).name + 'に' + (CARD_JA[c] || c)).join('・'); }
+    $('mb-sum').textContent = lab || '手を選んでください';
+  };
+  $('prob').addEventListener('change', sumNow);
+  $('mb-send').onclick = () => { if ($('send').disabled) return tabTo('ans'); tabTo('ans'); $('send').click(); };
   let mode = 'choice';
   if (p.side === 'pc') { $('m-ch').hidden = true; $('m-free').hidden = false; mode = 'free'; }
   const tab = m => { mode = m; $('t-ch').setAttribute('aria-pressed', m === 'choice'); $('t-free').setAttribute('aria-pressed', m === 'free'); $('m-ch').hidden = m !== 'choice'; $('m-free').hidden = m !== 'free'; };
-  $('t-ch').onclick = () => tab('choice'); $('t-free').onclick = () => tab('free');
+  $('t-ch').onclick = () => { tab('choice'); sumNow(); }; $('t-free').onclick = () => { tab('free'); sumNow(); };
   $('send').onclick = () => {
     let cards;
     if (mode === 'choice') {
       const r = document.querySelector('input[name=ch]:checked');
-      if (!r) return $('err').textContent = '候補を1つ選んでください';
+      if (!r) { tabTo('ans'); return $('err').textContent = '候補を1つ選んでください'; }
       cards = p.choices[+r.value].cards;
     } else {
       const xs = [0, 1, 2].map(i => [$('ft' + i).value, $('fc' + i).value]);
@@ -124,9 +163,13 @@ async function show(id) {
     const at = new Date().toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
     const lab = mode === 'choice' ? p.choices.find(c => key(c.cards) === key(cards)).label : cards.map(x => { const [t, c] = [x.slice(0, x.lastIndexOf(':')), x.slice(x.lastIndexOf(':') + 1)]; return (p.targets.find(y => y.id === t) || {}).name + 'に' + (CARD_JA[c] || c); }).join('・');
     mineSave(p.id, { cards, label: lab, same, mode, at });
+    $('mb-sum').textContent = same ? 'AI と同じ手でした' : 'AI と違う手でした'; $('mb-send').textContent = '結果';
+    if (window.matchMedia('(max-width: 700px)').matches) setTimeout(() => $('res').scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);  // スマホ: 結果まで送る
+    fetch(DIR + 'index.json').then(r => r.json()).then(idx => { const i = idx.findIndex(x => x.id === p.id); const nx = idx[i + 1];
+      if (nx) $('res').insertAdjacentHTML('beforeend', `<div class="res"><a class="next" href="?id=${encodeURIComponent(nx.id)}">次の問題へ: ${esc(nx.title)} →</a></div>`); }).catch(() => {});
     setTimeout(() => { if (p.side === 'pc' && !same && p.engine !== false) liveEval(p, p._mine, document.getElementById('pc-live')); });
     setTimeout(() => { const b = document.getElementById('live-go'); if (b) b.onclick = () => { b.disabled = true; const box = document.createElement('div'); b.after(box); liveEval(p, key(cards), box); }; });
-    $('res').innerHTML = `<div class="res"><h3>あなたの手<span class="tag ${same ? 'same' : 'other'}">${same ? 'AI と同じ手' : 'AI と違う手'}</span></h3><div>${esc(lab)}</div></div>` + (p.side === 'pc' ? pcResult(p, same) : (same ? '' : evalBlock(p, key(cards)))) + (aiFirst ? '' : aiBlock(p)) + statsBlock(p, key(cards));
+    $('res').innerHTML = `<div class="res"><h3>あなたの手<span class="tag ${same ? 'same' : 'other'}">${same ? 'AI と同じ手' : 'AI と違う手'}</span></h3><div>${esc(lab)}</div></div>` + (p.side === 'pc' ? pcResult(p, same) : (same ? '' : evalBlock(p, key(cards)))) + (aiFirst ? '' : aiBlock(p)) + (p.side === 'pc' ? '' : choicesAfter(p, key(cards))) + statsBlock(p, key(cards));
   };
 }
 
@@ -153,7 +196,24 @@ function infoBlocks(p) {
 }
 
 const fx = list => !list ? '<span class="mut">（計算できない置き方）</span>' : !list.length ? '近づく負け筋はない'
-  : list.map(x => `${esc(x.route)} <span class="num">${x.left === 0 ? '→ その日に成り立つ' : '→ 残り' + x.left}</span>`).join('<br>');
+  : list.map(x => `${esc(x.route)} <span class="num">${x.left === 0 ? '→ この日に成り立つ' : '→ あと' + Math.ceil(x.left) + '手（この日は成り立たない）'}</span>`).join('<br>');
+// その後の進行: 書き出しのときに、エンジンの脚本家と主人公でループの終わりまで進めた記録（make_problems.rollout）。主人公の問題の AI の手は実際の試合のログ
+function linesBy(lines) {
+  const by = {};
+  (lines || []).forEach(x => (by[x.day] = by[x.day] || []).push(x.text));
+  return Object.keys(by).map(d => `<div class="mut" style="margin-top:4px">${esc(d)}日目</div><ul>${by[d].map(t => `<li>${esc(t)}</li>`).join('')}</ul>`).join('');
+}
+const afterBlock = (a, head) => !a ? '' : `<div class="after"><div>${esc(head)}: <b>${esc(a.summary || '')}</b></div>
+  ${a.lines && a.lines.length ? `<details><summary>出来事（${a.lines.length} 行）</summary>${linesBy(a.lines)}</details>` : ''}</div>`;
+function choicesAfter(p, mine) {
+  // 選択肢のそれぞれを、エンジン同士でループの終わりまで進めた結末（ユーザー 2026-11-15「各回答について進めた場合何が起きるかを解説」）
+  const evs = p.evals || [];
+  const rows = p.choices.map(c => { const k = key(c.cards); const e = evs.find(x => x.key === k);
+    const tags = (k === mine ? '<span class="tag same">あなた</span>' : '') + (k === key(p.ai.cards) ? '<span class="tag other">AI</span>' : '');
+    return `<div class="stat"><div class="sl">${esc(c.label)}${tags}</div>${afterBlock(e && e.after, 'その後')}</div>`; }).join('');
+  return `<div class="res"><h3>選択肢ごとのその後</h3>${rows}
+    <div class="mut">この局面から、その選択肢の札を置き、以後の日は自動の脚本家と自動の主人公（どちらもエンジン）が指してループの終わりまで進めた結果です。実際の主人公なら違う手を指すことがあります。</div></div>`;
+}
 function evalBlock(p, mine) {
   // AI と違う手を選んだ回答者に、その手を AI が評価した結果と、AI が選ばなかった理由を出す（ユーザー 2026-11-14）
   const evs = p.evals || [];
@@ -174,7 +234,7 @@ function evalBlock(p, mine) {
     <table class="evt"><tr><th>主人公が何もしないとき</th><td>${fx(e.none)}</td></tr>
       <tr><th>AI が読んだ主人公の応手</th><td>${esc(e.reply || '—')}</td></tr>
       <tr><th>その応手の後</th><td>${fx(e.after_reply)}</td></tr></table>
-    <div class="mut">「残り」は、その負け筋が成り立つまでに脚本家に要る手数の見込みです。AI の読みは自動の主人公の考え方に基づくもので、実際の主人公とは違うことがあります。</div></div>`;
+    <div class="mut">「あと○手」は、その負け筋が成り立つまでに脚本家に要る手数の見込みです（このループの残りの日数で間に合うものだけ）。AI の読みは自動の主人公の考え方に基づくもので、実際の主人公とは違うことがあります。</div></div>`;
 }
 
 // その場の評価: ブラウザ版の Python（Pyodide）の Worker で selfplay.problem_eval を動かす。Worker は 1 つだけ作って使い回す
@@ -210,7 +270,7 @@ async function liveEval(p, mine, box) {
     const id = ++evalSeq;
     const out = JSON.parse(await new Promise(r => { evalWaits[id] = r; evalWorker.postMessage({ type: 'call', fn: 'evaluate_json', id, arg: JSON.stringify({ engine, mine, ai: key(p.ai.cards), side: p.side }) }); }));
     if (out.error) return say(out.error);
-    if (p.side === 'pc') { box.innerHTML = outcomeTable(out.mine); return; }
+    if (p.side === 'pc') { box.innerHTML = outcomeTable(out.mine) + afterBlock(out.mine.today, 'この日のターン終了まで進めると'); return; }
     if (out.mine.error) return say(out.mine.error);
     const rep = r => (r || []).map(y => `主人公${y.by}が${(p.targets.find(t => t.id === y.target) || {}).name || y.target}に${CARD_JA[y.card] || y.card}`).join('・') || '—';
     const d = Math.round((out.ai.value - out.mine.value) * 100) / 100;
@@ -218,6 +278,8 @@ async function liveEval(p, mine, box) {
       <table class="evt"><tr><th>主人公が何もしないとき</th><td>${fx(out.mine.none)}</td></tr>
         <tr><th>AI が読んだ主人公の応手</th><td>${esc(rep(out.mine.reply))}</td></tr>
         <tr><th>その応手の後</th><td>${fx(out.mine.after_reply)}</td></tr></table>
+      ${afterBlock(out.mine.today, 'AI が読んだ応手で、この日のターン終了まで進めると')}
+      <div class="mut">ターン終了までの進行: 脚本家の能力・事件・ターン終了の判断は AI、主人公の札は AI が読んだ応手で、主人公の友好能力は使わない形です。</div>
       <div class="mut">その場の評価は、この局面までの公開の出来事から AI を作り直して計算します。前もって計算した値とは少しずれることがあります。</div>`;
   } catch (err) { say('評価できませんでした: ' + err.message); }
 }
@@ -256,6 +318,7 @@ function outcomeTable(o) {
 function aiBlock(p) {
   if (p.side === 'pc') return `<div class="res"><h3>AI の手と考え</h3><div><b>${esc(p.ai.label)}</b></div><p>${esc(p.ai.reason)}</p>
     <div class="mut">実際の伏せ札に対する AI の手の結果:</div>${outcomeTable(p.ai.outcome)}
+    ${p.ai.after && p.ai.after.length ? `<details><summary>実際の試合の、この後ループの終わりまで（${p.ai.after.length} 行）</summary>${linesBy(p.ai.after)}</details>` : ''}
     <div class="mut">AI の手は参考の1案です。あなたの手の方が良いこともあります。</div></div>`;
   const ae = (p.evals || []).find(x => x.key === key(p.ai.cards));
   return `<div class="res"><h3>AI の手と考え</h3><div><b>${esc(p.ai.label)}</b></div><p>${esc(p.ai.reason)}</p>

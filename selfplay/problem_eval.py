@@ -67,9 +67,10 @@ def evaluate_many(eng, keys):
     for rank, (k, x) in enumerate(uniq, 1):
         if k in keys and k not in out:
             reply = mm._reply_of.get(id(x[1]), [])
-            out[k] = {'key': k, 'rank': rank, 'of': len(uniq), 'value': round(x[0], 3),
-                      'reply': [{'by': y['by'], 'target': y['target'], 'card': y['card']} for y in reply],
-                      **effects(s, sorted(k.split(',')), reply)}
+            rp = [{'by': y['by'], 'target': y['target'], 'card': y['card']} for y in reply]
+            out[k] = {'key': k, 'rank': rank, 'of': len(uniq), 'value': round(x[0], 3), 'reply': rp,
+                      **effects(s, sorted(k.split(',')), reply),
+                      'today': turn_end(mm, s, _cards(k), rp if len(rp) == 3 else DUMMY_PC)}  # 読んだ応手でその日のターン終了まで
     for key in keys:
         out.setdefault(key, {'key': key, 'error': '探索の候補に入らなかった'})
     return out
@@ -84,7 +85,27 @@ def evaluate_pc(eng, mine):
         t, c = rest.rsplit(':', 1)
         reply.append({'by': by, 'target': t, 'card': c})
     s = dict(eng['state'], script=eng['state_script'], init=eng.get('init'))
-    return pc_outcome(s, eng['mm_actual'], reply)
+    out = pc_outcome(s, eng['mm_actual'], reply)
+    if 'error' not in out and eng.get('script_full'):
+        # ponytail: 主人公の問題の engine.json は脚本家の観測を持たないので、その日の残りの判断（能力・事件・ターン終了）は観測なしで作った脚本家が決める
+        from selfplay.league import make
+        out['today'] = turn_end(make(eng['mm'], random.Random(eng['seed']), eng['script_full']), s, eng['mm_actual'], reply)
+    return out
+
+
+def turn_end(mm, s, mm_cards, reply):
+    """その日の札（脚本家 mm_cards・主人公 reply）を置き、その日のターン終了まで進める（ユーザー 2026-11-15「その一手を進めた時のターン終了まではその場で評価できないか」）。
+    その日の残りの脚本家の判断（能力・事件の対象・ターン終了の殺害）はエンジンの脚本家 mm。主人公の友好能力は使わない（ponytail: 主人公のエンジンを作り直していない）。"""
+    import copy
+    from selfplay.make_problems import after_text, play_through
+    from selfplay.missed import Fixed
+    from selfplay.run import Combo
+    try:
+        ro = play_through(Combo(copy.deepcopy(mm), Fixed(reply, [])), s, mm_cards, s['day'])
+    except Exception as e:
+        return {'error': repr(e)[:80], 'summary': '進められなかった'}
+    ro['summary'] = after_text(ro)
+    return ro
 
 
 def compare(eng, mine, ai):

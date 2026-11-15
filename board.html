@@ -404,7 +404,7 @@ body.mode-ai .manual-only { display:none; }
 #rpbar { position:fixed; z-index:24; left:50%; bottom:10px; transform:translateX(-50%); width:max-content; display:none; align-items:center; gap:6px; flex-wrap:wrap;
   background:rgba(0,0,0,.92); border:2px solid #6fc3ff; border-radius:8px; padding:6px 10px; max-width:96vw; box-shadow:0 4px 18px #000; }
 /* 次の一手問題に埋め込まれたとき（?embed=1）: 局面の1枚だけを見せる（再生のバー・観戦の操作・上の道具は出さない。ユーザー決定 2026-11-14） */
-body.embed #rpbar, body.embed #band .tools, body.embed #watchbar { display:none !important; } body.embed.replay { padding-bottom:0; }
+body.embed #rpbar, body.embed #band .tools, body.embed #watchbar { display:none !important; } body.embed.replay { padding-bottom:0; } body.embed #p-log, body.embed #p-ops, body.embed #p-sheet, body.embed #band .wait { display:none !important; }
 body.replay #rpbar { display:flex; } #rpbar .t { color:#6fc3ff; font-weight:700; margin-right:4px; } #rpbar input[type=range] { width:min(320px, 40vw); }
 #rpbar .pos { color:var(--mut); font-size:12px; min-width:5em; text-align:center; } #rpbar .more { display:contents; }
 @media (max-width:900px) {  /* 狭い画面: 下の「推理」の見出しの真上に全幅で置く。1行目は再生の操作、2行目はシーク、3行目はその他（横に送る）。盤面を隠さない */
@@ -800,7 +800,7 @@ document.addEventListener('keydown', e => {
   }
   if (e.key === '?') { e.preventDefault(); alert(KEYHELP); return; }
   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !$('send').disabled) { e.preventDefault(); $('send').click(); return; }
-  if (/^[1-8]$/.test(e.key) && (S.waiting || {}).kind === 'cards' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+  if (/^[1-8]$/.test(e.key) && (S.waiting || {}).kind === 'cards' && !document.body.classList.contains('embed') && !e.ctrlKey && !e.altKey && !e.metaKey) {
     const p = trayP || pcOrder().find(x => !pending.some(q => q.type === 'card' && q.actor === x)) || 'A', [n, , lim] = PCARDS[+e.key - 1];
     if (lim && (S.used?.[p] || []).includes(n)) { guideMsg = `主人公${p} の ${n} はこのループで使用済み`; render(); return; }
     armed = { actor: p, card: n }; document.body.classList.add('arming'); render();
@@ -2145,7 +2145,9 @@ const RP = {
     if (!built && S.loop && !(S.phaseName || '').startsWith('ゲーム終了') && !RP.on && !await ask({ title: 'リプレイに切り替えますか？', html: para('いまの試合の表示をリプレイに切り替えます。' + '（試合はそのまま続いています。『リプレイを終える』で戻ります）'), ok: '切り替える', cancel: 'やめる' })) return;
     clearInterval(pollTimer); backToLive(); closeScene(); $('welcome').classList.remove('on'); $('start').classList.remove('on'); $('reveal').classList.remove('on');
     this.on = true; this.data = d; awaiting = 0; document.body.classList.add('replay');
-    if (new URLSearchParams(location.search).get('embed') === '1') document.body.classList.add('embed');
+    if (new URLSearchParams(location.search).get('embed') === '1') {  // 問題の盤面は見るだけ（手札を選んで置けないように。ユーザー指摘 2026-11-15）
+      document.body.classList.add('embed'); $('hands').inert = true;
+    }
     const steps = [...d.snapshots]; if (d.final && d.final.loop) steps.push({ prev_n: steps.length ? steps[steps.length - 1].log_n : 0, log_n: d.log.length ? d.log[d.log.length - 1].n : 0, state: d.final });
     this.steps = steps; $('rp-seek').max = steps.length - 1;
     $('rp-title').textContent = d.title ? `「${d.title}」` : d.complete ? '' : '（途中まで）';

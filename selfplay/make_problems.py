@@ -90,6 +90,75 @@ def record(script, mm_kind, pc_kind, seed, top=4):
     return out
 
 
+def _fork(mm, mm_orig, pc, pc_orig):
+    """記録用の差し替え（フック）を外した脚本家・主人公を固める（cloudpickle＋gzip。主人公 plan_read2 は関数の中の関数で作られるので pickle では固まらない）。
+    戻した複製で同じ局面の 1 日を 2 回進め、同じ札になることを確かめた（2026-11-15）。"""
+    import cloudpickle
+    import gzip
+    cur = [(o, {k: o.__dict__.get(k) for k in og}) for o, og in ((mm, mm_orig), (pc, pc_orig))]
+    try:
+        for o, og in ((mm, mm_orig), (pc, pc_orig)):
+            for k, v in og.items():
+                if v is None:
+                    o.__dict__.pop(k, None)
+                else:
+                    o.__dict__[k] = v
+        return gzip.compress(cloudpickle.dumps((mm, pc)))
+    finally:
+        for o, c in cur:
+            for k, v in c.items():
+                if v is not None:
+                    o.__dict__[k] = v
+
+
+def rollout(fork, s0, mm_cards):
+    """分けておいた試合（_fork）を、その日の脚本家の札を mm_cards に固定して、ループの終わりまで進める。その後の日の判断はどちらもエンジン（脚本家・主人公の型）。"""
+    import cloudpickle
+    import gzip
+    mm, pc = cloudpickle.loads(gzip.decompress(open(fork, 'rb').read()))
+    return play_through(Combo(mm, pc), s0, mm_cards, s0['script']['days'])
+
+
+def play_through(player, s0, mm_cards, last_day):
+    """s0 の日に脚本家の札を mm_cards に固定し、last_day のターン終了まで（ループが先に終われば そこまで）進める。
+    返り値: lines（日ごとの出来事の文。非公開の理由も含む）・end（ループが途中で終わった日・フェイズ・理由）・loop_end_loss（最終日まで進んだときのループ終了時の判定で負けた条件）。"""
+    from ai_gm import CARD_UI, PHASE_JA, describe, name
+    from engine import phases as ph
+    from selfplay.run import play_day
+    s, box, lines = copy.deepcopy(s0), {}, []
+
+    def log(kind, rec):
+        if rec.get('phase') and rec['phase'] not in ('loop_end', 'loop_end_check', 'pc_knowledge'):
+            box['phase'] = rec['phase']
+        d = rec.get('day')
+        if kind == 'decisions' and rec.get('kind') == 'place_cards':
+            lines.append({'day': d, 'text': ('脚本家' if rec['who'] == 'M' else '主人公') + 'の札: '
+                          + '、'.join((f"{x['by']} " if x.get('by') != 'M' else '') + f"{name(x['target'])}={CARD_UI.get(x['card'], x['card'])}" for x in rec['choice'])})
+        if kind == 'events' and 'events' in rec:
+            for e in rec['events']:
+                t = describe(e) if e.get('kind') not in ('revealed', 'loop_end') else None
+                if t and e.get('kind') == 'mm_ability' and e.get('actor'):
+                    t += f"（{name(e['actor'])}の能力）"
+                if t:
+                    lines.append({'day': d, 'text': t, 'phase': PHASE_JA.get(rec.get('phase'), '')})
+            if box.get('s') is not None and hasattr(player, 'observe'):
+                player.observe(box['s'], rec.get('phase'), rec['events'])
+    end = None
+    try:
+        for day in range(s0['day'], last_day + 1):
+            s = play_day(s, player, s0['loop'], day, log, box, mm_override=copy.deepcopy(mm_cards) if day == s0['day'] else None)
+    except ph.LoopEnd as e:
+        s = box['s']
+        end = {'day': s['day'], 'phase': PHASE_JA.get(box.get('phase'), box.get('phase')), 'reason': e.reason, 'loss': e.loss}
+        for x in e.events:  # ループを終わらせた出来事（事件の死亡など）は log を通らない
+            t = describe(x) if x.get('kind') not in ('revealed', 'loop_end') else None
+            if t:
+                lines.append({'day': s['day'], 'text': t, 'phase': end['phase']})
+        lines.append({'day': s['day'], 'text': f"{end['phase']}にループが終わった（{e.reason}）", 'phase': end['phase']})
+    full = end is not None or last_day >= s0['script']['days']
+    return {'lines': lines, 'end': end, 'loop_end_loss': ph.loop_end_loss(s) if full else [], 'to_loop_end': full}
+
+
 def record_gm(sid, mm_kind, pc_kind, seed, gmdir, top=4):
     """record() と同じ局面を、対戦画面の進行役（ai_gm の自動同士の観戦モード）の上で拾う。盤面の記録（snapshots.jsonl・log.jsonl）が
     gmdir に残るので、問題の局面までの試合の流れを board.html のリプレイでそのまま見られる（ユーザー 2026-11-14）。
@@ -104,13 +173,14 @@ def record_gm(sid, mm_kind, pc_kind, seed, gmdir, top=4):
         p = make0(kind, rng, script)
         if kind == pc_kind and not box.get('pc'):  # 主人公の問題: 主人公の手番の局面（脚本家の実際の札つき）を残す
             box['pc'] = p
+            box['pc_orig'] = {'pc_cards': p.__dict__.get('pc_cards')}
             pcc0 = p.pc_cards
 
             def pc_cards(s, order, mm_targets=None):
                 s0 = copy.deepcopy(s)
                 snap = sum(1 for _ in open(os.path.join(gmdir, 'snapshots.jsonl'), encoding='utf-8')) if os.path.exists(os.path.join(gmdir, 'snapshots.jsonl')) else 0
                 out_ = pcc0(s, order, mm_targets)
-                pcs.append({'side': 'pc', 'loop': s0['loop'], 'day': s0['day'], 'state': s0, 'order': list(order), 'targets': list(mm_targets or []),
+                pcs.append({'side': 'pc', 'pc': pc_kind, 'loop': s0['loop'], 'day': s0['day'], 'state': s0, 'order': list(order), 'targets': list(mm_targets or []),
                             'known': known_of(obs, s0), 'snap': snap, 'mm_actual': box.get('last_mm', []),
                             'ai': [{'by': x['by'], 'target': x['target'], 'card': x['card']} for x in out_]})
                 return out_
@@ -119,6 +189,7 @@ def record_gm(sid, mm_kind, pc_kind, seed, gmdir, top=4):
         if kind != mm_kind or box.get('mm'):
             return p
         box['mm'] = p
+        box['mm_orig'] = {k: p.__dict__.get(k) for k in ('rank_moves', 'mm_cards', 'observe', 'progress')}
         rank0, cards0, obs0 = p.rank_moves, p.mm_cards, p.observe
         box['obs'] = []
 
@@ -148,11 +219,17 @@ def record_gm(sid, mm_kind, pc_kind, seed, gmdir, top=4):
             box['ranked'], box['s'], box['evals'] = [], s, []
             s0 = copy.deepcopy(s)
             snap = sum(1 for _ in open(os.path.join(gmdir, 'snapshots.jsonl'), encoding='utf-8')) if os.path.exists(os.path.join(gmdir, 'snapshots.jsonl')) else 0
+            blob = _fork(p, box['mm_orig'], box['pc'], box['pc_orig']) if box.get('pc') else None  # 考える前の両者（各回答を進めるため）
             chose = cards0(s)
             box['last_mm'] = [{'by': 'M', 'target': x['target'], 'card': x['card']} for x in chose]
             ranked = box.get('ranked') or []
             vals = [round(x[0], 3) for x in ranked]
-            out.append({'loop': s0['loop'], 'day': s0['day'], 'state': s0, 'known': known_of(obs, s0), 'snap': snap, 'evals': box.get('evals', []),
+            fork = None
+            if blob and len(vals) >= 2 and (vals[0] - vals[1] < GAP or _cards(chose) != _cards(ranked[0][1])):  # 問題の候補になる局面だけ残す
+                fork = os.path.join(gmdir, 'forks', f"L{s0['loop']}D{s0['day']}.pkl.gz")
+                os.makedirs(os.path.dirname(fork), exist_ok=True)
+                open(fork, 'wb').write(blob)
+            out.append({'fork': fork, 'loop': s0['loop'], 'day': s0['day'], 'state': s0, 'known': known_of(obs, s0), 'snap': snap, 'evals': box.get('evals', []),
                         'obs_n': len(box['obs']),
                         'ai': _cards(chose), 'candidates': [{'cards': _cards(x[1]), 'value': round(x[0], 3)} for x in ranked],
                         'gap': round(vals[0] - vals[1], 3) if len(vals) >= 2 else None})
@@ -195,7 +272,7 @@ def pick(raw_dir, n=10, gap=0.1):
     """拾った局面から問題の候補を選ぶ: AI が探索の 1 位をそのまま指し（後処理の書き換えはよくあるので外す）、1 位と 2 位の値の差が gap 未満で、
     2 つの手が 2 枚以上違う局面。脚本・ループ・日が偏らないよう、脚本ごとに 1 つずつ順に取る。"""
     import glob
-    recs = [json.loads(line) for f in sorted(glob.glob(os.path.join(raw_dir, '*.jsonl'))) for line in open(f, encoding='utf-8')]
+    recs = [json.loads(line) for f in sorted(glob.glob(os.path.join(raw_dir, '*.jsonl'))) if not os.path.basename(f).startswith('picked') for line in open(f, encoding='utf-8')]
     ok, seen = [], set()
     for r in recs:
         c = r['candidates']
@@ -267,7 +344,24 @@ def route_ja(r):
         rid = {'HOSPITAL_PROT': 'HOSPITAL', 'HOSPITAL_KILL': 'HOSPITAL'}.get(r['id'], r['id'])  # 病院の事件の筋（主人公死亡・殺害）
         head = INC_JA.get(rid, RULE_JA.get(rid, rid))
         head = f'{head}（{via}）' if via else head
+    if goal and ' 死亡' in goal:  # 「刑事 死亡（フレンド）」→「シリアルキラー（女子学生）による 刑事の死亡（フレンド）」（死んだと読まれないように）
+        return f"{head}による {goal.replace(' 死亡', 'の死亡')}"
     return f'{head}: {goal}' if goal else head
+
+
+def after_routes(s, placements):
+    """札を解決した後の負け筋。カルティストが暗躍禁止を無視する選び方（脚本家の任意）は、筋ごとにいちばん近いものを採る。
+    以前は無視を入れずに数え、主人公の問題 023 L2D4 で「この日に成り立つ負け筋はない」と出たのに、実際は病院の暗躍禁止が無視されて主人公が死亡した（2026-11-15）。"""
+    from engine.resolve import resolve_actions
+    from engine.routes import enumerate_routes
+    from selfplay.players import cultist_options
+    best = {}
+    for o in [None] + cultist_options(s, placements):
+        for r in enumerate_routes(resolve_actions(s, placements, [o] if o else [])[0]):
+            k = (r['id'], r['via'], r['goal'])
+            if k not in best or r['total'] < best[k]['total']:
+                best[k] = r
+    return list(best.values())
 
 
 def effects(s, cards, reply):
@@ -280,10 +374,11 @@ def effects(s, cards, reply):
     before = {key(r): r['total'] for r in enumerate_routes(s)}
     def near(pc):
         try:
-            after = enumerate_routes(resolve_actions(s, mm + pc)[0])
+            after = after_routes(s, mm + pc)
         except (IllegalPlacement, Exception):
             return None
-        out = sorted(((r['total'], route_ja(r)) for r in after if r['total'] <= 2 and r['total'] < before.get(key(r), 99)), key=lambda x: x[0])
+        left_days = (s['script'].get('days') or s.get('days') or 99) - s['day']  # 今日の後の日数。それより多くの手が要る筋はこのループで間に合わない
+        out = sorted(((r['total'], route_ja(r)) for r in after if r['total'] <= min(2, left_days) and r['total'] < before.get(key(r), 99)), key=lambda x: x[0])
         return [{'left': t, 'route': g} for t, g in out[:4]]
     return {'none': near(DUMMY_PC), 'after_reply': near(reply) if reply and len(reply) == 3 else None}
 
@@ -295,10 +390,12 @@ def pc_outcome(s, mm_actual, reply):
     key = lambda r: (r['id'], r['via'], r['goal'])  # noqa: E731
     before = {key(r): r['total'] for r in enumerate_routes(s)}
     try:
-        after = enumerate_routes(resolve_actions(s, list(mm_actual) + list(reply))[0])
+        after = after_routes(s, list(mm_actual) + list(reply))
     except IllegalPlacement as e:
         return {'error': f'置けない手です: {e}'}
-    rs = [r for r in after if r['total'] <= 2 and r['total'] < before.get(key(r), 99)]
+    left_days = (s['script'].get('days') or s.get('days') or 99) - s['day']
+    # 朝からすでに成り立っている筋（残り 0）も、主人公の札で崩せなければ残る（以前は縮んだ筋だけを見て、朝から 0 の病院の事件の筋を落としていた）
+    rs = [r for r in after if r['total'] <= min(2, left_days) and (r['total'] < before.get(key(r), 99) or r['total'] == 0)]
     out = sorted(((r['total'], route_ja(r)) for r in rs), key=lambda x: x[0])
     # その日のうちに負けが決まる: ターン終了の殺害・今日の事件の筋が残り 0、または最終日のループ終了時の条件が残り 0
     today = {'KILLER_KEY', 'KILLER_PROT', 'SK_KILL', 'ML_PROT', 'HOSPITAL_PROT', 'HOSPITAL_KILL', 'MURDER', 'SUICIDE', 'REMOTE'}
@@ -364,21 +461,85 @@ def export_pc(picked, texts, outdir, index):
         p = {'id': pid, 'side': 'pc', 'title': t['title'], 'question': t['question'], 'notes': t.get('notes', []),
              'replay': pid + '.replay.json', 'order': r['order'], 'hands': hands, 'mm_targets': [{'id': x, 'name': tname(x)} for x in r['targets']],
              'targets': [{'id': x, 'name': tname(x)} for x in card_targets(s)], 'known': known, 'losses': [],
-             'choices': [], 'ai': {'cards': sorted(f"{x['target']}:{x['card']}" for x in r['ai']), 'label': lbl(r['ai']), 'reason': t['reason'],
-                                   'outcome': r['ai_outcome']},
+             'choices': [], 'ai': {'cards': sorted(f"{x['target']}:{x['card']}" for x in r['ai']), 'label': lbl(r['ai']),
+                                   'outcome': r['ai_outcome'], 'after': game_after(r['gmdir'], r['snap'], r['loop'])},
              'reveal': {'mm': '・'.join(f"{tname(x['target'])}に{CARD_UI[x['card']]}" for x in r['mm_actual'])}}
+        # 理由はエンジンの出力から（AI の札・脚本家の実際の札・実際の試合のその後）。Claude が考えて書かない（ユーザー 2026-11-15）
+        end = [x['text'] for x in p['ai']['after'] if 'ループが終わった' in x['text'] or x['text'].startswith('ループ終了時の判定')]
+        p['ai']['reason'] = (f"{player_name(r.get('pc', 'plan_read2'))} は {p['ai']['label']} を置いた。脚本家の伏せ札は {p['reveal']['mm']}。"
+                             + (f"実際の試合では、この後 {end[-1]}。" if end else ''))
         snaps = [json.loads(x) for x in open(os.path.join(r['gmdir'], 'snapshots.jsonl'), encoding='utf-8')][:r['snap']]
         last = snaps[-1]['log_n'] if snaps else 0
         lines = [x for x in (json.loads(y) for y in open(os.path.join(r['gmdir'], 'log.jsonl'), encoding='utf-8')) if x['n'] <= last]
         for i, x in enumerate(lines):
-            if (x.get('ev') or {}).get('kind') == 'loop_end':
+            if (x.get('ev') or {}).get('kind') == 'loop_end' or x['text'].startswith('ループ終了時の判定: 主人公の敗北'):  # ループ終了時の判定の負けは出来事の印が無い
                 dead = [y['text'] for y in lines[max(0, i - 4):i] if (y.get('ev') or {}).get('kind') == 'death' and y['loop'] == x['loop'] and y['day'] == x['day']]
                 p['losses'].append({'loop': x['loop'], 'day': x['day'], 'text': '／'.join(dead + [x['text']])})
         json.dump(p, open(os.path.join(outdir, pid + '.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
         json.dump({'state': {k_: v for k_, v in s.items() if k_ not in ('script', 'init')}, 'state_script': s['script'], 'init': s.get('init'),
-                   'mm_actual': r['mm_actual']}, open(os.path.join(outdir, pid + '.engine.json'), 'w', encoding='utf-8'), ensure_ascii=False, default=str)
+                   'mm_actual': r['mm_actual'], 'script_full': by_id(r['script']), 'mm': r.get('mm', 'calcGBxhdKNi'), 'seed': r['seed']}, open(os.path.join(outdir, pid + '.engine.json'), 'w', encoding='utf-8'), ensure_ascii=False, default=str)
         index.append({'id': pid, 'side': 'pc', 'title': t['title']})
     return index
+
+
+def player_name(code):
+    """種類コードの通称（台帳 play/engine/data/players.json）。台帳に無ければ種類コード。"""
+    reg = json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'engine', 'data', 'players.json'), encoding='utf-8'))
+    for side in ('mastermind', 'protagonist'):
+        for x in reg.get(side, []):
+            if x.get('code') == code:
+                return f"{x['name']}（{code}）"
+    return code
+
+
+def after_text(ro):
+    """rollout の結末を 1 行に。"""
+    if ro.get('error'):
+        return '進められなかった: ' + ro['error']
+    e = ro['end']
+    if e and e['loss']:
+        return f"{e['day']}日目の{e['phase']}に主人公の敗北（{e['reason']}）"
+    if ro['loop_end_loss']:
+        from ai_gm import ROLE_JA, RULE_JA
+        return 'ループ終了時の判定で主人公の敗北（' + '・'.join(RULE_JA.get(x, ROLE_JA.get(x, str(x))) for x in ro['loop_end_loss']) + '）'
+    if not ro.get('to_loop_end', True):
+        return 'この日のターン終了まで、主人公の敗北は起きない'
+    return '主人公がループを守りきった（主人公の勝ち）'
+
+
+def game_after(gmdir, snap, loop):
+    """実際の試合で、局面（盤面の記録 snap 件目）の後、そのループの終わりまでの公開ログ（主人公の問題の AI の手の「その後」）。"""
+    snaps = [json.loads(x) for x in open(os.path.join(gmdir, 'snapshots.jsonl'), encoding='utf-8')]
+    n0 = snaps[snap - 1]['log_n'] if 0 < snap <= len(snaps) else 0
+    out = []
+    for x in (json.loads(y) for y in open(os.path.join(gmdir, 'log.jsonl'), encoding='utf-8')):
+        if x['n'] > n0 and x.get('loop') == loop:
+            if x['text'].startswith('──'):  # フェイズの見出しは飛ばし、次のループの見出しで止める
+                if 'ループの準備' in x['text']:
+                    break
+                continue
+            if x['text'].startswith(('ゲーム終了', '非公開シート')):
+                break
+            out.append({'day': x.get('day'), 'text': x['text']})
+            if x['text'].startswith('ループ終了時の判定'):  # ループの終わり（この後はゲーム終了・非公開シート）
+                break
+    return out
+
+
+def ai_reason(r, evals, tname, card_ui):
+    """AI の手の説明を、探索の出力（値・順位・読んだ応手）と、各選択肢を進めた結末から作る（Claude が理由を考えて書かない。ユーザー 2026-11-15）。"""
+    ev = {e['key']: e for e in evals}
+    ai = ev.get(','.join(sorted(r['ai'])), {})
+    c = r.get('candidates') or []
+    out = [f"{player_name(r.get('mm', 'calcGBxhdKNi'))} は {label(r['ai'])} を選んだ（探索の値 {ai.get('value')}、{ai.get('rank')} 位）。"]
+    if ai.get('reply'):
+        out.append(f"読んだ主人公の応手は「{ai['reply']}」。")
+    if len(c) >= 2:
+        nxt = c[1] if c[0]['cards'] == r['ai'] else c[0]
+        out.append(f"いちばん近い候補は {label(nxt['cards'])}（値 {nxt['value']}、差 {round(abs(c[0]['value'] - nxt['value']), 3)}）。")
+    if ai.get('after'):
+        out.append(f"この手のままエンジン同士でループの終わりまで進めると: {ai['after']['summary']}。")
+    return ''.join(out)
 
 
 def export(picked, texts, outdir):
@@ -396,6 +557,10 @@ def export(picked, texts, outdir):
         pid = key.replace(':', '_')
         s = r['state']
         rp = gm_replay(r, f"問題 {r['script'].split('/')[-1]} L{r['loop']}D{r['day']}") if r.get('gmdir') else replay_of(r)
+        if r.get('gmdir') and rp['snapshots']:  # 盤面の帯を、前の日の終わりではなく問題の日の行動カード（脚本家）に
+            last = copy.deepcopy(rp['snapshots'][-1])
+            last['state'].update({'loop': r['loop'], 'day': r['day'], 'phaseName': f"L{r['loop']} {r['day']}日目 行動カード（脚本家）", 'cards': []})
+            rp['snapshots'].append({'prev_n': last['log_n'], 'log_n': last['log_n'], 'state': last['state']})
         json.dump(rp, open(os.path.join(outdir, pid + '.replay.json'), 'w', encoding='utf-8'), ensure_ascii=False)
         hand = [c for c in CARDS['mastermind_hand'] if not (c in ONCE['M'] and c in s['used']['M'])]
         from engine.resolve import card_targets  # 札を置ける対象（エンジンの決まり。幻想を除く生存キャラクターと4つのボード）
@@ -434,7 +599,7 @@ def export(picked, texts, outdir):
             lines = [json.loads(x) for x in open(os.path.join(r['gmdir'], 'log.jsonl'), encoding='utf-8')]
             lines = [x for x in lines if x['n'] <= last]
             for i, x in enumerate(lines):
-                if (x.get('ev') or {}).get('kind') == 'loop_end':
+                if (x.get('ev') or {}).get('kind') == 'loop_end' or x['text'].startswith('ループ終了時の判定: 主人公の敗北'):  # ループ終了時の判定の負けは出来事の印が無い
                     dead = [y['text'] for y in lines[max(0, i - 4):i] if (y.get('ev') or {}).get('kind') == 'death' and y['loop'] == x['loop'] and y['day'] == x['day']]
                     losses.append({'loop': x['loop'], 'day': x['day'], 'text': '／'.join(dead + [x['text']])})
         from engine.resolve import CHARS as _CH
@@ -445,16 +610,31 @@ def export(picked, texts, outdir):
             json.dump({'script_id': r['script'], 'script_full': by_id(r['script']), 'mm': r.get('mm', 'calcGBxhdKNi'), 'seed': r['seed'], 'init': s.get('init'), 'state_script': s['script'],
                        'state': {k: v for k, v in s.items() if k not in ('script', 'init')}, 'obs': obs_all[:r['obs_n']]},
                       open(os.path.join(outdir, pid + '.engine.json'), 'w', encoding='utf-8'), ensure_ascii=False, default=str)
+        # 選択肢（探索の上位と AI の手）は、分けておいた試合をエンジン同士でループの終わりまで進める（ユーザー 2026-11-15「その後どうなるかまでちゃんとエンジンを使って確かめて」）
+        mmc = lambda cards: [{'by': 'M', 'target': x.rsplit(':', 1)[0], 'card': x.rsplit(':', 1)[1]} for x in cards]  # noqa: E731
+        after = {}
+        for c in choices:
+            k_ = ','.join(sorted(c['cards']))
+            if not r.get('fork'):
+                after[k_] = {'error': '試合を分けた記録が無い'}
+                continue
+            try:
+                after[k_] = rollout(r['fork'], s, mmc(c['cards']))
+            except Exception as ex:
+                after[k_] = {'error': repr(ex)[:80]}
+            after[k_]['summary'] = after_text(after[k_])
+            print(pid, label(c['cards']), '→', after[k_]['summary'], file=sys.stderr)
         evals = []
         for i, e in enumerate(r.get('evals', [])):
-            evals.append({'key': ','.join(sorted(e['cards'])), 'rank': i + 1, 'value': e['value'],
+            k_ = ','.join(sorted(e['cards']))
+            evals.append({'key': k_, 'after': after.get(k_), 'rank': i + 1, 'value': e['value'],
                           'reply': '・'.join(f"主人公{y['by']}が{tname(y['target'])}に{CARD_UI[y['card']]}" for y in e['reply']),
                           **effects(s, e['cards'], e['reply'])})
         json.dump({'id': pid, 'side': 'mm', 'title': t['title'], 'question': t['question'], 'notes': t.get('notes', []),
                    'evals': evals, 'ai_value': r['candidates'][0]['value'] if r.get('candidates') else None,
                    'secret': secret, 'known': known, 'losses': losses,
                    'replay': pid + '.replay.json', 'choices': choices, 'hand': hand, 'targets': targets,
-                   'ai': {'cards': r['ai'], 'label': label(r['ai']), 'reason': t['reason']}},
+                   'ai': {'cards': r['ai'], 'label': label(r['ai']), 'reason': ai_reason(r, evals, tname, CARD_UI)}},
                   open(os.path.join(outdir, pid + '.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
         index.append({'id': pid, 'side': 'mm', 'title': t['title']})
     json.dump(index, open(os.path.join(outdir, 'index.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)

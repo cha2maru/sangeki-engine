@@ -342,3 +342,4 @@ def test_tt_goodwill_not_limited_by_paranoia_minus():
     # タイムトラベラーは友好2（あと1つ）、今日は4日目、最終日は6日目。主人公の不安−1 は残っていない
     assert solve([('C24', 'gwd2')], [1], [(6, ((0, 1),))], 4, 6, (False, False, False), False, idle=True)[0] is False
     assert solve([('C24', 'gwd2')], [1], [(6, ((0, 1),))], 4, 6, (False, False, False), False)[0] is False
+
